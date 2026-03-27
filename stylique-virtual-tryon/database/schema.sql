@@ -1,40 +1,47 @@
-Stores:
-create table public.stores (
-  id uuid not null default gen_random_uuid (),
-  store_name character varying(255) not null,
-  store_id character varying(100) not null,
-  password_hash character varying(255) not null,
-  email character varying(255) null,
-  phone character varying(50) null,
-  address text null,
-  created_at timestamp with time zone null default now(),
-  updated_at timestamp with time zone null default now(),
-  subscription_name public.subscription_plan null,
-  subscription_start_at timestamp with time zone null,
-  subscription_end_at timestamp with time zone null,
-  tryons_quota integer not null default 0,
-  tryons_used integer not null default 0,
-  constraint stores_pkey primary key (id),
-  constraint stores_store_id_key unique (store_id),
-  constraint stores_tryons_nonneg check (
-    (
-      (tryons_quota >= 0)
-      and (tryons_used >= 0)
-    )
-  ),
-  constraint stores_tryons_used_leq_quota check ((tryons_used <= tryons_quota))
-) TABLESPACE pg_default;
+-- Create custom types
+CREATE TYPE public.subscription_plan AS ENUM ('FREE', 'BASIC', 'PREMIUM', 'ENTERPRISE');
+CREATE TYPE public.gender_type AS ENUM ('MALE', 'FEMALE', 'UNISEX', 'UNSPECIFIED');
 
-create index IF not exists idx_stores_store_id on public.stores using btree (store_id) TABLESPACE pg_default;
+-- Create the helper function for updated_at
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-create index IF not exists idx_stores_subscription_end_at on public.stores using btree (subscription_end_at) TABLESPACE pg_default;
+-- Stores table
+CREATE TABLE public.stores (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  store_name character varying(255) NOT NULL,
+  store_id character varying(100) NOT NULL,
+  password_hash character varying(255) NOT NULL,
+  email character varying(255) NULL,
+  phone character varying(50) NULL,
+  address text NULL,
+  created_at timestamp with time zone NULL DEFAULT now(),
+  updated_at timestamp with time zone NULL DEFAULT now(),
+  subscription_name public.subscription_plan NULL,
+  subscription_start_at timestamp with time zone NULL,
+  subscription_end_at timestamp with time zone NULL,
+  tryons_quota integer NOT NULL DEFAULT 0,
+  tryons_used integer NOT NULL DEFAULT 0,
+  CONSTRAINT stores_pkey PRIMARY KEY (id),
+  CONSTRAINT stores_store_id_key UNIQUE (store_id),
+  CONSTRAINT stores_tryons_nonneg CHECK (tryons_quota >= 0 AND tryons_used >= 0),
+  CONSTRAINT stores_tryons_used_leq_quota CHECK (tryons_used <= tryons_quota)
+);
 
-create trigger update_stores_updated_at BEFORE
-update on stores for EACH row
-execute FUNCTION update_updated_at_column ();
+CREATE INDEX IF NOT EXISTS idx_stores_store_id ON public.stores USING btree (store_id);
+CREATE INDEX IF NOT EXISTS idx_stores_subscription_end_at ON public.stores USING btree (subscription_end_at);
 
-Inventory:
-CREATE  TABLE public.inventory (
+CREATE TRIGGER update_stores_updated_at
+  BEFORE UPDATE ON stores
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Inventory table
+CREATE TABLE public.inventory (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   store_id uuid NOT NULL,
   product_name character varying(255) NOT NULL,
@@ -54,71 +61,80 @@ CREATE  TABLE public.inventory (
   activity character varying(50) NULL DEFAULT 'CASUAL'::character varying,
   occasion character varying(50) NULL DEFAULT 'WEEKEND_CASUAL'::character varying,
   gender public.gender_type NOT NULL DEFAULT 'UNSPECIFIED'::gender_type,
-  3d_front_image text NULL,
-  3d_back_image text NULL,
+  "3d_front_image" text NULL,
+  "3d_back_image" text NULL,
   CONSTRAINT inventory_pkey PRIMARY KEY (id),
   CONSTRAINT inventory_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
-) TABLESPACE pg_default;
-CREATE INDEX IF NOT EXISTS idx_inventory_gender ON public.inventory USING btree (gender) TABLESPACE pg_default;
-CREATE INDEX IF NOT EXISTS idx_inventory_store_id ON public.inventory USING btree (store_id) TABLESPACE pg_default;
-CREATE INDEX IF NOT EXISTS idx_inventory_product_link ON public.inventory USING btree (product_link)  TABLESPACE pg_default WHERE (product_link IS NOT NULL);
-CREATE INDEX IF NOT EXISTS idx_inventory_fabric_type ON public.inventory USING btree (fabric_type) TABLESPACE pg_default;
-CREATE INDEX IF NOT EXISTS idx_inventory_season ON public.inventory USING btree (season) TABLESPACE pg_default;
-CREATE INDEX IF NOT EXISTS idx_inventory_activity ON public.inventory USING btree (activity) TABLESPACE pg_default;
-CREATE INDEX IF NOT EXISTS idx_inventory_occasion ON public.inventory USING btree (occasion) TABLESPACE pg_default;
-CREATE TRIGGER update_inventory_updated_at BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+);
 
-Size Templates:
-create table public.size_templates (
-  id uuid not null default gen_random_uuid (),
-  store_id uuid not null,
-  template_name character varying(255) not null,
-  category character varying(100) null,
-  size_name character varying(50) not null,
-  measurements jsonb not null default '{}'::jsonb,
-  created_at timestamp with time zone null default now(),
-  updated_at timestamp with time zone null default now(),
-  constraint size_templates_pkey primary key (id),
-  constraint size_templates_store_id_fkey foreign KEY (store_id) references stores (id) on delete CASCADE
-) TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS idx_inventory_gender ON public.inventory USING btree (gender);
+CREATE INDEX IF NOT EXISTS idx_inventory_store_id ON public.inventory USING btree (store_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_product_link ON public.inventory USING btree (product_link) WHERE (product_link IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_inventory_fabric_type ON public.inventory USING btree (fabric_type);
+CREATE INDEX IF NOT EXISTS idx_inventory_season ON public.inventory USING btree (season);
+CREATE INDEX IF NOT EXISTS idx_inventory_activity ON public.inventory USING btree (activity);
+CREATE INDEX IF NOT EXISTS idx_inventory_occasion ON public.inventory USING btree (occasion);
 
-create index IF not exists idx_size_templates_store_id on public.size_templates using btree (store_id) TABLESPACE pg_default;
+CREATE TRIGGER update_inventory_updated_at
+  BEFORE UPDATE ON inventory
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-create trigger update_size_templates_updated_at BEFORE
-update on size_templates for EACH row
-execute FUNCTION update_updated_at_column ();
+-- Size Templates table
+CREATE TABLE public.size_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  store_id uuid NOT NULL,
+  template_name character varying(255) NOT NULL,
+  category character varying(100) NULL,
+  size_name character varying(50) NOT NULL,
+  measurements jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NULL DEFAULT now(),
+  updated_at timestamp with time zone NULL DEFAULT now(),
+  CONSTRAINT size_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT size_templates_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+);
 
-Conversions:
-create table public.conversions (
-  id bigint generated by default as identity not null,
-  created_at timestamp with time zone not null default timezone ('utc'::text, now()),
-  user_id uuid not null,
-  store_id text null,
-  product_id text null,
-  add_to_cart boolean null default true,
-  status text null default 'Logged In'::text,
-  constraint conversions_pkey primary key (id)
-) TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS idx_size_templates_store_id ON public.size_templates USING btree (store_id);
 
-Tryon Analytics:
-create table public.tryon_analytics (
-  id uuid not null default gen_random_uuid (),
-  store_id uuid not null,
-  product_id uuid null,
-  user_id uuid null,
-  tryon_type character varying(50) not null,
-  created_at timestamp with time zone null default now(),
-  redirect_status boolean not null default false,
-  constraint tryon_analytics_pkey primary key (id),
-  constraint tryon_analytics_product_id_fkey foreign KEY (product_id) references inventory (id) on delete set null,
-  constraint tryon_analytics_store_id_fkey foreign KEY (store_id) references stores (id) on delete CASCADE,
-  constraint tryon_analytics_user_id_fkey foreign KEY (user_id) references users (id) on delete set null
-) TABLESPACE pg_default;
+CREATE TRIGGER update_size_templates_updated_at
+  BEFORE UPDATE ON size_templates
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-create index IF not exists idx_tryon_analytics_store_id on public.tryon_analytics using btree (store_id) TABLESPACE pg_default;
+-- Users table (minimal for foreign key)
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NULL,
+  created_at timestamp with time zone NULL DEFAULT now(),
+  PRIMARY KEY (id)
+);
 
-create index IF not exists idx_tryon_analytics_created_at on public.tryon_analytics using btree (created_at) TABLESPACE pg_default;
+-- Conversions table
+CREATE TABLE public.conversions (
+  id bigint GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  user_id uuid NOT NULL,
+  store_id text NULL,
+  product_id text NULL,
+  add_to_cart boolean NULL DEFAULT true,
+  status text NULL DEFAULT 'Logged In'::text,
+  CONSTRAINT conversions_pkey PRIMARY KEY (id)
+);
 
-create index IF not exists idx_tryon_analytics_redirect_status on public.tryon_analytics using btree (redirect_status) TABLESPACE pg_default;
+-- Tryon Analytics table
+CREATE TABLE public.tryon_analytics (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  store_id uuid NOT NULL,
+  product_id uuid NULL,
+  user_id uuid NULL,
+  tryon_type character varying(50) NOT NULL,
+  created_at timestamp with time zone NULL DEFAULT now(),
+  redirect_status boolean NOT NULL DEFAULT false,
+  CONSTRAINT tryon_analytics_pkey PRIMARY KEY (id),
+  CONSTRAINT tryon_analytics_product_id_fkey FOREIGN KEY (product_id) REFERENCES inventory(id) ON DELETE SET NULL,
+  CONSTRAINT tryon_analytics_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+  CONSTRAINT tryon_analytics_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
 
-create index IF not exists idx_tryon_analytics_store_redirect on public.tryon_analytics using btree (store_id, redirect_status, created_at) TABLESPACE pg_default;
+CREATE INDEX IF NOT EXISTS idx_tryon_analytics_store_id ON public.tryon_analytics USING btree (store_id);
+CREATE INDEX IF NOT EXISTS idx_tryon_analytics_created_at ON public.tryon_analytics USING btree (created_at);
+CREATE INDEX IF NOT EXISTS idx_tryon_analytics_redirect_status ON public.tryon_analytics USING btree (redirect_status);
+CREATE INDEX IF NOT EXISTS idx_tryon_analytics_store_redirect ON public.tryon_analytics USING btree (store_id, redirect_status, created_at);
