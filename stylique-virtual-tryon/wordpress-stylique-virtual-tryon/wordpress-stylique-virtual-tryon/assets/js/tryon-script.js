@@ -23,7 +23,12 @@
     console.error("Stylique Error: Store ID is missing in configuration.");
   }
 
-  const API_BASE_URL = "https://www.styliquetechnologies.com/api";
+  if (!styliqueConfig.backendUrl) {
+    console.error("Stylique Error: Backend URL is missing in configuration.");
+  }
+
+  // Use configured backend URL
+  const API_BASE_URL = styliqueConfig.backendUrl;
 
   // Apply Custom Colors
   function applyColors() {
@@ -41,6 +46,94 @@
       );
     }
   }
+
+  // ==========================================
+  // BACKEND API INTEGRATION FUNCTIONS
+  // ==========================================
+
+  /**
+   * Get size recommendation from backend
+   */
+  window.getSizeRecommendation = async function (productId, measurements) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/recommend-size`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: productId.toString(),
+          measurements: measurements,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.status === 'success' && data.recommendation) {
+        console.log('Size recommendation:', data.recommendation);
+        return data.recommendation;
+      } else {
+        console.error('Failed to get size recommendation:', data);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching size recommendation:', error);
+      return null;
+    }
+  };
+
+  /**
+   * Get product inventory and try-on image from backend
+   */
+  window.getProductTryOnImage = async function (productId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/inventory?product_id=${productId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+      if (data.status === 'success' && data.inventory && data.inventory.length > 0) {
+        const product = data.inventory[0];
+        console.log('Product inventory:', product);
+        return {
+          tryonImageUrl: product.tryon_image_url || product.image_url,
+          sizes: product.sizes || [],
+          measurements: product.measurements || {},
+        };
+      } else {
+        console.warn('No inventory data found for product', productId);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching product inventory:', error);
+      return null;
+    }
+  };
+
+  /**
+   * Track try-on event with backend
+   */
+  window.trackTryOnEvent = async function (productId, tryonType = 'virtual') {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/track-tryon`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          store_id: window.styliqueSection.storeId,
+          product_id: productId ? productId.toString() : null,
+          tryon_type: tryonType,
+          redirect_status: false,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        console.log('Try-on event tracked');
+      } else {
+        console.warn('Failed to track try-on event:', data);
+      }
+    } catch (error) {
+      console.error('Error tracking try-on event:', error);
+    }
+  };
 
   // ==========================================
   // AUTHENTICATION FUNCTIONS

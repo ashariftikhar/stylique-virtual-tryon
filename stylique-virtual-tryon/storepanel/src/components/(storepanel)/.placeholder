@@ -1,0 +1,6 @@
+// Placeholder for future components
+// The storepanel folder had references to these components:
+// - StoreSidebar and StoreSidebar from @/components/(storepanel)/StoreSidebar
+// - StoreTopBar from @/components/(storepanel)/StoreTopbar
+
+// These should be created as needed when they're actually used in pages
