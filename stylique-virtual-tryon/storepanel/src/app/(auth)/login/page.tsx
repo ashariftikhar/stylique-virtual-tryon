@@ -11,10 +11,9 @@ import {
   Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 
 export default function StoreLogin() {
-  const [storeId, setStoreId] = useState('');
+  const [store_id, setStore_id] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +26,7 @@ export default function StoreLogin() {
     setError('');
 
     try {
-      console.log('Attempting to authenticate store:', storeId);
+      console.log('Attempting to authenticate store:', store_id);
 
       // Use API endpoint for authentication
       const response = await fetch('/api/test-auth', {
@@ -35,7 +34,7 @@ export default function StoreLogin() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ storeId, password }),
+        body: JSON.stringify({ store_id, password }),
       });
 
       const result = await response.json();
@@ -47,7 +46,7 @@ export default function StoreLogin() {
       }
 
       console.log('Authentication successful, redirecting...');
-      router.push('/dashboard');
+      router.push('/');
     } catch (error) {
       console.error('Login error:', error);
       setError('An error occurred during login');
@@ -110,17 +109,17 @@ export default function StoreLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Store ID Input */}
             <div>
-              <label htmlFor="storeId" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="store_id" className="block text-sm font-medium text-gray-300 mb-2">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   Store ID
                 </div>
               </label>
               <input
-                id="storeId"
+                id="store_id"
                 type="text"
-                value={storeId}
-                onChange={(e) => setStoreId(e.target.value)}
+                value={store_id}
+                onChange={(e) => setStore_id(e.target.value)}
                 placeholder="Enter your store ID"
                 className="w-full px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7] focus:border-transparent"
                 disabled={isLoading}
@@ -162,7 +161,7 @@ export default function StoreLogin() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || !storeId || !password}
+              disabled={isLoading || !store_id || !password}
               className="w-full py-2 rounded-lg bg-gradient-to-r from-[#642FD7] to-[#F4536F] text-white font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-6"
             >
               {isLoading ? (

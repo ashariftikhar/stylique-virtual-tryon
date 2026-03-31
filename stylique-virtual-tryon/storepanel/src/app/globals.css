@@ -1,8 +1,6 @@
-@layer base {
-  @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 * {
   @apply box-border;
@@ -13,59 +11,15 @@ html {
 }
 
 body {
-  @apply bg-black text-white;
-  font-family: 'PPValve ExtraLight', system-ui, sans-serif;
-  font-weight: 200;
+  @apply bg-black text-white antialiased;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 @keyframes twinkle {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes twinkle-slow {
-  0%, 100% {
-    opacity: 0.2;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-@keyframes twinkle-fast {
-  0%, 100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes pulse-slow {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
 .animate-twinkle {
   animation: twinkle 3s ease-in-out infinite;
-}
-
-.animate-twinkle-slow {
-  animation: twinkle-slow 4s ease-in-out infinite;
-}
-
-.animate-twinkle-fast {
-  animation: twinkle-fast 2s ease-in-out infinite;
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
 }

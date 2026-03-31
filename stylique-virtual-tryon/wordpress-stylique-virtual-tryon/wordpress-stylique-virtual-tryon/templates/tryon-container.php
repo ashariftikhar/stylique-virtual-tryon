@@ -271,7 +271,7 @@
           </svg>
         </div>
         <h5>Try-On Not Available</h5>
-        <p>This product hasn't been added to try-on yet. Check back later!</p>
+        <p>This product is not in your Stylique catalog yet. Save or update the product in WordPress admin to sync, wait a few seconds, then refresh. If it still fails, check your Store ID and backend URL in Stylique settings.</p>
       </div>
     </div>
 
@@ -411,7 +411,7 @@
         </div>
       </div>
 
-      <!-- Recommendations Section (ULTIMATE only, shown when image is uploaded) -->
+      <!-- Recommendations Section (shown when image is uploaded, or immediately for tier 3) -->
       <div id="stylique-plugin-recommendations" style="display: none; margin-top: 2rem;">
         <!-- Size Recommendation Section -->
         <div class="stylique-size-recommendation-section" id="stylique-plugin-size-recommendation-section">
@@ -426,6 +426,33 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Styling / Outfit Suggestions Section -->
+      <div id="stylique-styling-suggestions" class="stylique-styling-section" style="display: none; margin-top: 1.5rem;">
+        <div class="stylique-section-header">
+          <h5>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: text-bottom; margin-right: 4px;">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            Complete the Look
+          </h5>
+          <div class="stylique-ai-badge">AI Styling</div>
+        </div>
+        <div class="stylique-styling-content">
+          <div class="stylique-styling-placeholder">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <h6>Outfit Suggestions Coming Soon</h6>
+            <p>Our AI will suggest complementary items to complete your look — matching bottoms, accessories, and shoes based on your style and body type.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tier Badge (shown after product check) -->
+      <div style="text-align: center; margin-top: 1rem;">
+        <span id="stylique-tier-badge" class="stylique-tier-badge" style="display: none;"></span>
       </div>
 
     </div>

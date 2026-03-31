@@ -1,122 +1,239 @@
 import express from 'express';
 import type { Router, Request, Response } from 'express';
+import { RekognitionClient, DetectLabelsCommand } from '@aws-sdk/client-rekognition';
 import { getSupabase } from '../services/supabase.ts';
 
 const router: Router = express.Router();
 
-interface ProcessImagesPayload {
-  product_id: string;
-  images: Array<{
-    url: string;
-    alt?: string;
-  }>;
+// Labels that indicate an image is good for virtual try-on
+const TRYON_POSITIVE_LABELS = [
+  'person', 'human', 'clothing', 'apparel', 'fashion', 'dress', 'shirt',
+  'pants', 'jacket', 'coat', 'top', 'blouse', 'skirt', 'suit', 'jeans',
+  'outerwear', 'sleeve', 'collar', 'wear', 'standing', 'man', 'woman',
+  'model', 'portrait', 'outfit',
+];
+
+const TRYON_NEGATIVE_LABELS = [
+  'logo', 'text', 'screenshot', 'collage', 'advertisement', 'poster',
+  'meme', 'animal', 'food', 'car', 'vehicle', 'furniture',
+];
+
+interface ImageCandidate {
+  url: string;
+  alt?: string;
 }
 
-interface RekognitionScore {
-  Confidence: number;
-  Name: string;
+interface ScoredImage extends ImageCandidate {
+  score: number;
+  labels?: string[];
 }
 
-// Rule-based filtering for images
-function filterImages(images: Array<{ url: string; alt?: string }>): Array<{ url: string; alt?: string }> {
+// ──────────────────────────────────────────────
+// Rule-based pre-filter
+// ──────────────────────────────────────────────
+function filterImages(images: ImageCandidate[]): ImageCandidate[] {
   return images.filter((img) => {
-    // Filter out images with low quality indicators
-    if (img.alt && (img.alt.toLowerCase().includes('placeholder') || img.alt.toLowerCase().includes('coming soon'))) {
-      return false;
+    if (img.alt) {
+      const altLower = img.alt.toLowerCase();
+      if (altLower.includes('placeholder') || altLower.includes('coming soon') || altLower.includes('logo')) {
+        return false;
+      }
     }
-    // Basic URL validation
-    if (!img.url || !img.url.startsWith('http')) {
-      return false;
-    }
+    if (!img.url || !img.url.startsWith('http')) return false;
     return true;
   });
 }
 
-// Mock AWS Rekognition scoring - in production, call actual AWS Rekognition API
-async function scoreImageWithRekognition(imageUrl: string): Promise<number> {
+// ──────────────────────────────────────────────
+// AWS Rekognition scoring
+// ──────────────────────────────────────────────
+let rekognitionClient: RekognitionClient | null = null;
+
+function getRekognition(): RekognitionClient | null {
+  if (rekognitionClient) return rekognitionClient;
+
+  const region = process.env.AWS_REGION || 'us-east-1';
+  const hasCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+
+  if (!hasCredentials) {
+    console.warn('[Images] AWS credentials not set – using mock scoring. Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION.');
+    return null;
+  }
+
+  rekognitionClient = new RekognitionClient({ region });
+  return rekognitionClient;
+}
+
+async function scoreImageWithRekognition(imageUrl: string): Promise<{ score: number; labels: string[] }> {
+  const client = getRekognition();
+
+  if (!client) {
+    // Fallback mock scoring when AWS is not configured
+    const baseScore = 65;
+    const urlLower = imageUrl.toLowerCase();
+    const qualityBonus = (urlLower.includes('-hq') || urlLower.includes('-high') || urlLower.includes('_large')) ? 15 : 0;
+    const modelBonus = (urlLower.includes('model') || urlLower.includes('front')) ? 10 : 0;
+    return {
+      score: Math.min(100, baseScore + qualityBonus + modelBonus),
+      labels: ['mock-scored'],
+    };
+  }
+
   try {
-    // TODO: Implement actual AWS Rekognition call using AWS SDK
-    // For now, return a mock score based on image properties
-    // In production: 
-    // const rekognition = new AWS.Rekognition();
-    // const response = await rekognition.detectCustomLabels({...}).promise();
-    
-    // Mock implementation - return score between 0-100
-    const baseScore = 75;
-    const urlQualityBonus = imageUrl.includes('-hq') || imageUrl.includes('-high') ? 15 : 0;
-    return Math.min(100, baseScore + urlQualityBonus);
+    // Fetch the image as bytes for Rekognition
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      return { score: 20, labels: ['fetch-failed'] };
+    }
+    const buffer = await response.arrayBuffer();
+
+    const command = new DetectLabelsCommand({
+      Image: { Bytes: new Uint8Array(buffer) },
+      MaxLabels: 20,
+      MinConfidence: 40,
+    });
+
+    const result = await client.send(command);
+    const detectedLabels = (result.Labels || []).map(l => ({
+      name: (l.Name || '').toLowerCase(),
+      confidence: l.Confidence || 0,
+    }));
+
+    const labelNames = detectedLabels.map(l => l.name);
+
+    let score = 0;
+    let positiveHits = 0;
+
+    // Positive signals: clothing/person labels boost score
+    for (const label of detectedLabels) {
+      if (TRYON_POSITIVE_LABELS.some(pos => label.name.includes(pos))) {
+        score += label.confidence * 0.08;
+        positiveHits++;
+      }
+    }
+
+    // Negative signals: logos, text, animals reduce score
+    for (const label of detectedLabels) {
+      if (TRYON_NEGATIVE_LABELS.some(neg => label.name.includes(neg))) {
+        score -= label.confidence * 0.05;
+      }
+    }
+
+    // Base score: any image with at least 2 clothing-related labels gets a minimum
+    if (positiveHits >= 2) {
+      score = Math.max(score, 35);
+    }
+
+    // Bonus if image has both "person" and "clothing" type labels
+    const hasPerson = labelNames.some(n => n.includes('person') || n.includes('human') || n.includes('man') || n.includes('woman') || n.includes('adult'));
+    const hasClothing = labelNames.some(n =>
+      n.includes('clothing') || n.includes('apparel') || n.includes('fashion') ||
+      n.includes('shirt') || n.includes('jacket') || n.includes('coat') ||
+      n.includes('pants') || n.includes('dress') || n.includes('sleeve'));
+    if (hasPerson && hasClothing) {
+      score += 20;
+    } else if (hasClothing) {
+      score += 10;
+    }
+
+    return {
+      score: Math.max(0, Math.min(100, Math.round(score))),
+      labels: labelNames,
+    };
   } catch (error) {
-    console.error('Error scoring image with Rekognition:', error);
-    return 50; // Default score on error
+    console.error('[Images] Rekognition error:', error);
+    return { score: 50, labels: ['rekognition-error'] };
   }
 }
 
+// ──────────────────────────────────────────────
+// Tier assignment
+// Tier 1: >= 5 usable images (score >= 40)
+// Tier 2: 2-4 usable images
+// Tier 3: <= 1 usable image
+// ──────────────────────────────────────────────
+function computeTier(scoredImages: ScoredImage[]): number {
+  const usable = scoredImages.filter(img => img.score >= 40).length;
+  if (usable >= 5) return 1;
+  if (usable >= 2) return 2;
+  return 3;
+}
+
+// ──────────────────────────────────────────────
+// Exported function for use by sync routes
+// ──────────────────────────────────────────────
+export async function processProductImages(
+  productId: string,
+  images: ImageCandidate[],
+): Promise<{ bestUrl: string; tier: number; scoredImages: ScoredImage[] }> {
+  const supabase = getSupabase();
+
+  console.log(`[Images] processProductImages: product=${productId} received=${images.length} images`);
+
+  const filtered = filterImages(images);
+  console.log(`[Images] After filtering: ${filtered.length}/${images.length} passed`);
+
+  if (filtered.length === 0) {
+    console.log(`[Images] No usable images — assigning tier=3`);
+    return { bestUrl: '', tier: 3, scoredImages: [] };
+  }
+
+  const scoredImages: ScoredImage[] = await Promise.all(
+    filtered.map(async (img) => {
+      const { score, labels } = await scoreImageWithRekognition(img.url);
+      console.log(`[Images]   score=${score} labels=[${labels.slice(0, 5).join(', ')}] url=${img.url.slice(0, 70)}…`);
+      return { ...img, score, labels };
+    }),
+  );
+
+  const sorted = [...scoredImages].sort((a, b) => b.score - a.score);
+  const bestUrl = sorted[0]?.url || '';
+  const tier = computeTier(scoredImages);
+  const usable = scoredImages.filter(i => i.score >= 40);
+  console.log(`[Images] Scores summary: ${scoredImages.map(i => i.score).join(', ')} | usable(≥40): ${usable.length}/${scoredImages.length} → tier=${tier}`);
+
+  // Persist to inventory
+  const { error } = await supabase
+    .from('inventory')
+    .update({ tryon_image_url: bestUrl, tier })
+    .eq('id', productId);
+
+  if (error) {
+    console.error(`[Images] Failed to update product ${productId}:`, error.message);
+  } else {
+    console.log(`[Images] product=${productId} best=${bestUrl.slice(0, 60)}… tier=${tier} usable=${scoredImages.filter(i => i.score >= 40).length}`);
+  }
+
+  return { bestUrl, tier, scoredImages: sorted };
+}
+
+// ──────────────────────────────────────────────
 // POST /api/process-images
+// ──────────────────────────────────────────────
 router.post('/process-images', async (req: Request, res: Response) => {
   try {
-    const supabase = getSupabase();
-    const payload: ProcessImagesPayload = req.body;
+    const payload = req.body;
 
-    // Validate input
     if (!payload.product_id || !payload.images || payload.images.length === 0) {
-      return res.status(400).json({
-        error: 'Missing required fields: product_id and images array',
-      });
+      return res.status(400).json({ error: 'Missing required fields: product_id and images array' });
     }
 
-    // Step 1: Rule-based filtering
-    const filteredImages = filterImages(payload.images);
+    const { bestUrl, tier, scoredImages } = await processProductImages(payload.product_id, payload.images);
 
-    if (filteredImages.length === 0) {
-      return res.status(400).json({
-        error: 'No valid images after filtering',
-      });
-    }
-
-    // Step 2: Score images with Rekognition
-    const scoredImages = await Promise.all(
-      filteredImages.map(async (img) => ({
-        url: img.url,
-        alt: img.alt,
-        score: await scoreImageWithRekognition(img.url),
-      }))
-    );
-
-    // Step 3: Select best image (highest score)
-    const bestImage = scoredImages.reduce((best, current) =>
-      current.score > best.score ? current : best
-    );
-
-    // Step 4: Update inventory with selected image
-    const { data, error } = await supabase
-      .from('inventory')
-      .update({
-        tryon_image_url: bestImage.url,
-      })
-      .eq('id', payload.product_id);
-
-    if (error) {
-      return res.status(500).json({
-        error: 'Failed to update product with selected image',
-        details: error.message,
-      });
+    if (!bestUrl) {
+      return res.status(400).json({ error: 'No valid images after filtering' });
     }
 
     res.status(200).json({
       status: 'success',
-      message: 'Image processed and stored successfully',
-      selectedImage: {
-        url: bestImage.url,
-        score: bestImage.score,
-      },
-      scoredImages: scoredImages.sort((a, b) => b.score - a.score),
+      message: 'Images processed, best image selected and tier assigned',
+      selectedImage: { url: bestUrl, score: scoredImages[0]?.score },
+      tier,
+      scoredImages: scoredImages.map(({ url, score, labels }) => ({ url, score, labels })),
     });
   } catch (error: any) {
-    console.error('Error processing images:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      details: error.message,
-    });
+    console.error('[Images] process-images error:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 

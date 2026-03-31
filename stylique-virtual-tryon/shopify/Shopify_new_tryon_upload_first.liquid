@@ -37,7 +37,6 @@ Clean minimal login like get-started page with light theme
                 <div class="stylique-spinner-small"></div>
               </div>
             </button>
-            </button>
           </div>
 
 
@@ -3831,114 +3830,115 @@ Clean minimal login like get-started page with light theme
   }
 </style>
 
+{% assign _stylique_backend = section.settings.backend_url | strip %}
+{% if _stylique_backend == blank %}
+  {% assign _stylique_backend = 'https://www.styliquetechnologies.com' %}
+{% endif %}
+{% assign _stylique_store_id = section.settings.store_id | strip %}
+{% if _stylique_store_id == blank %}
+  {% assign _stylique_store_id = shop.permanent_domain %}
+{% endif %}
+
 <script>
   (function () {
+    var STYLIQUE_API_BASE = {{ _stylique_backend | json }};
+
+    console.log('[Stylique] API base URL:', STYLIQUE_API_BASE);
+    console.log('[Stylique] Store ID:', {{ _stylique_store_id | json }});
+
+    /**
+     * Wrapper around fetch() that automatically injects
+     * ngrok-skip-browser-warning for any request to STYLIQUE_API_BASE.
+     * Without this header ngrok free-tier returns an HTML interstitial
+     * page that has NO CORS headers, which causes the browser to block it.
+     */
+    function styFetch(url, opts) {
+      opts = opts || {};
+      var isApiCall = (typeof url === 'string') && url.indexOf(STYLIQUE_API_BASE) === 0;
+      if (isApiCall) {
+        if (opts.headers instanceof Headers) {
+          if (!opts.headers.has('ngrok-skip-browser-warning')) {
+            opts.headers.set('ngrok-skip-browser-warning', 'true');
+          }
+        } else if (opts.headers && typeof opts.headers === 'object' && !Array.isArray(opts.headers)) {
+          opts.headers = Object.assign({ 'ngrok-skip-browser-warning': 'true' }, opts.headers);
+        } else {
+          opts.headers = { 'ngrok-skip-browser-warning': 'true' };
+        }
+      }
+      return fetch(url, opts);
+    }
+
     // Configuration
     window.styliqueSection = {
-      storeId: '{{ section.settings.store_id | default: "beescreations" }}',
+      storeId: {{ _stylique_store_id | json }},
       currentUrl: window.location.href,
       domain: window.location.hostname,
       selectedImage: null,
       currentProduct: null,
-      isLoggedIn: false, // Will be determined by checking login status
+      isLoggedIn: false,
       storePlan: null,
       planActive: false,
       tryonsQuota: 0,
       tryonsUsed: 0,
-      storeStatus: null, // Will be set by fetchStoreStatus
-      stores: null // Will be set when stores are fetched
+      storeStatus: null,
+      stores: null
     };
 
-    console.log('Stylique Section initialized');
-    console.log('Store ID:', window.styliqueSection.storeId);
-    console.log('Current URL:', window.styliqueSection.currentUrl);
+    console.log('[Stylique] Section initialized, store:', window.styliqueSection.storeId);
 
-    // Test API connection
-    async function testAPIConnection() {
-      console.log('🔍 Testing API connection...');
-
+    async function _styProbe(label, url, opts) {
+      console.log('[Stylique probe]', label, '→', url);
       try {
-        // Test standalone CORS endpoint
-        console.log('🔍 Testing standalone CORS endpoint...');
-        const corsResponse = await fetch('https://www.styliquetechnologies.com/api/cors-test');
-        console.log('🔍 Standalone CORS response:', corsResponse.status);
-        console.log('🔍 Standalone CORS headers:', Object.fromEntries(corsResponse.headers.entries()));
-
-        if (corsResponse.ok) {
-          const corsResult = await corsResponse.json();
-          console.log('✅ Standalone CORS result:', corsResult);
+        var resp = await styFetch(url, opts || {});
+        var ct = resp.headers.get('content-type') || '';
+        var bodyText = await resp.text();
+        var isJson = ct.indexOf('application/json') !== -1;
+        var isHtml = ct.indexOf('text/html') !== -1 || bodyText.trim().charAt(0) === '<';
+        console.log('[Stylique probe]', label, 'status:', resp.status, 'type:', ct);
+        if (isHtml) {
+          console.warn('[Stylique probe]', label, 'GOT HTML (ngrok warning page?), first 300 chars:', bodyText.slice(0, 300));
+        } else {
+          console.log('[Stylique probe]', label, 'body:', bodyText.slice(0, 500));
         }
+        return { ok: resp.ok, status: resp.status, isJson: isJson, isHtml: isHtml, bodyText: bodyText,
+          json: function () { try { return JSON.parse(bodyText); } catch (e) { return null; } } };
+      } catch (err) {
+        console.error('[Stylique probe]', label, 'EXCEPTION:', err.name, err.message);
+        return { ok: false, status: 0, isJson: false, isHtml: false, bodyText: '', error: err,
+          json: function () { return null; } };
+      }
+    }
 
-        // Test stores endpoint
-        console.log('🔍 Testing stores endpoint...');
-        const storesResponse = await fetch('https://www.styliquetechnologies.com/api/plugin/list-stores');
-        console.log('🔍 Stores endpoint response:', storesResponse.status);
+    async function testAPIConnection() {
+      console.log('[Stylique] ── testAPIConnection start ──');
+      console.log('[Stylique] API base:', STYLIQUE_API_BASE);
+      console.log('[Stylique] Page origin:', window.location.origin);
 
-        if (storesResponse.ok) {
-          const storesResult = await storesResponse.json();
-          console.log('✅ Stores endpoint result:', storesResult);
-          console.log('📋 Available stores:', storesResult.stores);
-          // Store the stores array for fallback in recommendations
-          if (storesResult.stores && Array.isArray(storesResult.stores)) {
-            window.styliqueSection.stores = storesResult.stores;
-          }
+      var ping = await _styProbe('ping', STYLIQUE_API_BASE + '/api/ping');
+      if (!ping.ok) {
+        console.error('[Stylique] /api/ping failed — cannot reach backend. Status:', ping.status,
+          ping.error ? ('Error: ' + ping.error.message) : '');
+        if (ping.isHtml) {
+          console.error('[Stylique] Received HTML instead of JSON. This usually means ngrok is showing its browser-warning page or the URL is wrong.');
         }
-
-        // Test simple endpoint
-        console.log('🔍 Testing simple endpoint...');
-        const simpleResponse = await fetch('https://www.styliquetechnologies.com/api/plugin/simple');
-        console.log('🔍 Simple endpoint response:', simpleResponse.status);
-        console.log('🔍 Simple endpoint headers:', Object.fromEntries(simpleResponse.headers.entries()));
-
-        if (simpleResponse.ok) {
-          const simpleResult = await simpleResponse.json();
-          console.log('✅ Simple endpoint result:', simpleResult);
-        }
-
-        // Test debug endpoint
-        console.log('🔍 Testing debug endpoint...');
-        const debugResponse = await fetch('https://www.styliquetechnologies.com/api/plugin/debug');
-        console.log('🔍 Debug endpoint response:', debugResponse.status);
-        console.log('🔍 Debug endpoint headers:', Object.fromEntries(debugResponse.headers.entries()));
-
-        if (debugResponse.ok) {
-          const debugResult = await debugResponse.json();
-          console.log('✅ Debug endpoint result:', debugResult);
-        }
-
-        // Test new 2D test endpoint
-        console.log('🔍 Testing 2D test endpoint...');
-        const test2dResponse = await fetch('https://www.styliquetechnologies.com/api/plugin/test-2d');
-        console.log('🔍 2D test endpoint response:', test2dResponse.status);
-
-        if (test2dResponse.ok) {
-          const test2dResult = await test2dResponse.json();
-          console.log('✅ 2D test endpoint result:', test2dResult);
-        }
-
-        // Test main test endpoint
-        console.log('🔍 Testing main test endpoint...');
-        const testResponse = await fetch('https://www.styliquetechnologies.com/api/plugin/test');
-        console.log('🔍 Main test endpoint response:', testResponse.status);
-        console.log('🔍 Main test endpoint headers:', Object.fromEntries(testResponse.headers.entries()));
-
-        if (testResponse.ok) {
-          const testResult = await testResponse.json();
-          console.log('✅ Main test endpoint result:', testResult);
-        }
-
-        console.log('✅ API connection successful:', {
-          status: 'ok',
-          message: 'Plugin API is reachable',
-          timestamp: new Date().toISOString(),
-          origin: window.location.origin
-        });
-
-        return true;
-      } catch (error) {
-        console.error('❌ API connection error:', error);
+        console.log('[Stylique] ── testAPIConnection FAILED ──');
         return false;
       }
+
+      var stores = await _styProbe('list-stores', STYLIQUE_API_BASE + '/api/plugin/list-stores');
+      if (stores.ok) {
+        var j = stores.json();
+        if (j && j.stores && Array.isArray(j.stores)) {
+          window.styliqueSection.stores = j.stores;
+        }
+        console.log('[Stylique] list-stores OK, count:', (j && j.stores ? j.stores.length : '?'));
+      } else {
+        console.warn('[Stylique] list-stores failed (non-fatal), status:', stores.status);
+      }
+
+      console.log('[Stylique] ── testAPIConnection OK ──');
+      return true;
     }
 
     // Fetch store plan/quota
@@ -3949,13 +3949,20 @@ Clean minimal login like get-started page with light theme
         window.styliqueSection.storeStatus = s;
 
         window.styliqueSection.storePlan = s.subscription_name || null;
-        const hasDates = !!s.subscription_start_at && !!s.subscription_end_at;
         let active = false;
-        if (hasDates) {
-          const today = new Date();
-          const start = new Date(s.subscription_start_at);
-          const end = new Date(s.subscription_end_at);
-          active = today >= start && today <= end;
+        if (typeof s.subscription_active === 'boolean') {
+          active = s.subscription_active;
+        } else {
+          const hasDates = !!s.subscription_start_at && !!s.subscription_end_at;
+          if (hasDates) {
+            const today = new Date();
+            const start = new Date(s.subscription_start_at);
+            const end = new Date(s.subscription_end_at);
+            active = today >= start && today <= end;
+          } else {
+            const q = typeof s.tryons_quota === 'number' ? s.tryons_quota : 0;
+            active = q > 0 && (s.subscription_name === 'FREE' || !s.subscription_name);
+          }
         }
         window.styliqueSection.planActive = active;
         window.styliqueSection.tryonsQuota = typeof s.tryons_quota === 'number' ? s.tryons_quota : 0;
@@ -3974,9 +3981,9 @@ Clean minimal login like get-started page with light theme
 
       // Try plugin endpoint first
       try {
-        const url = 'https://www.styliquetechnologies.com/api/plugin/store-status?storeId=' + encodeURIComponent(window.styliqueSection.storeId);
+        const url = STYLIQUE_API_BASE + '/api/plugin/store-status?storeId=' + encodeURIComponent(window.styliqueSection.storeId);
         console.log('Fetching store status (plugin):', url);
-        const resp = await fetch(url, { credentials: 'omit' });
+        const resp = await styFetch(url, { credentials: 'omit' });
         if (resp.ok) {
           const json = await resp.json();
           if (json && json.success && json.store) {
@@ -3993,9 +4000,9 @@ Clean minimal login like get-started page with light theme
 
       // Fallback: use CORS-safe plugin endpoint and match by store_id
       try {
-        const url2 = 'https://www.styliquetechnologies.com/api/plugin/list-stores';
+        const url2 = STYLIQUE_API_BASE + '/api/plugin/list-stores';
         console.log('Falling back to plugin stores list:', url2);
-        const resp2 = await fetch(url2, { credentials: 'omit' });
+        const resp2 = await styFetch(url2, { credentials: 'omit' });
         if (!resp2.ok) throw new Error('stores http ' + resp2.status);
         const json2 = await resp2.json();
         // Expected: { success: true, stores: [...] }
@@ -4143,19 +4150,20 @@ Clean minimal login like get-started page with light theme
       if (tryonOptions) tryonOptions.style.display = 'block';
 
       try {
-        const response = await fetch('https://www.styliquetechnologies.com/api/plugin/check-product', {
+        const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/check-product', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             storeId: window.styliqueSection.storeId,
-            currentUrl: window.styliqueSection.currentUrl
+            currentUrl: window.styliqueSection.currentUrl,
+            shopifyProductId: {% if product %}{{ product.id }}{% else %}null{% endif %}
           })
         });
 
         const data = await response.json();
         console.log('📦 Product availability check:', data);
 
-        if (data.success && data.available) {
+        if (data.available === true && data.product) {
           // Product is available - store product info
           window.styliqueSection.currentProduct = data.product;
           window.styliqueSection.internalProductId = data.product.id;
@@ -4224,7 +4232,7 @@ Clean minimal login like get-started page with light theme
       successDiv.style.display = 'none';
 
       try {
-        const response = await fetch('https://www.styliquetechnologies.com/api/plugin/auth', {
+        const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/auth', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4304,7 +4312,7 @@ Clean minimal login like get-started page with light theme
       successDiv.style.display = 'none';
 
       try {
-        const response = await fetch('https://www.styliquetechnologies.com/api/plugin/auth', {
+        const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/auth', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4392,7 +4400,7 @@ Clean minimal login like get-started page with light theme
     // Helper function to send OTP for specific email
     async function sendOTPForEmail(email) {
       try {
-        const response = await fetch('https://www.styliquetechnologies.com/api/plugin/auth', {
+        const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/auth', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4731,7 +4739,7 @@ Clean minimal login like get-started page with light theme
         timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
 
         // Add request debugging
-        console.log('📤 Sending request to:', 'https://www.styliquetechnologies.com/api/plugin/embed-tryon-2d');
+        console.log('📤 Sending request to:', STYLIQUE_API_BASE + '/api/plugin/embed-tryon-2d');
         console.log('📋 FormData contents:', {
           storeId: formData.get('storeId'),
           currentUrl: formData.get('currentUrl'),
@@ -4741,7 +4749,7 @@ Clean minimal login like get-started page with light theme
         });
 
         try {
-          const response = await fetch('https://www.styliquetechnologies.com/api/plugin/embed-tryon-2d', {
+          const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/embed-tryon-2d', {
             method: 'POST',
             body: formData,
             headers: {
@@ -4908,7 +4916,7 @@ Clean minimal login like get-started page with light theme
         }, 30000); 
 
         // 1. Start Generation
-        const response = await fetch('https://www.styliquetechnologies.com/api/plugin/embed-tryon-3d', {
+        const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/embed-tryon-3d', {
             method: 'POST',
             body: formData,
             headers: {
@@ -4932,7 +4940,7 @@ Clean minimal login like get-started page with light theme
         // 2. Poll for Video
         const pollInterval = setInterval(async () => {
              try {
-                 const statusResp = await fetch(`https://www.styliquetechnologies.com/api/plugin/embed-tryon-3d?operationName=${encodeURIComponent(operationName)}`);
+                 const statusResp = await styFetch(`${STYLIQUE_API_BASE}/api/plugin/embed-tryon-3d?operationName=${encodeURIComponent(operationName)}`);
                  const statusData = await statusResp.json();
                  
                  if (statusData.done && statusData.videoUrl) {
@@ -5049,7 +5057,7 @@ Clean minimal login like get-started page with light theme
           };
           console.log('📊 Analytics payload:', analyticsPayload);
 
-          let respA = await fetch('https://www.styliquetechnologies.com/api/plugin/tryon-analytics', {
+          let respA = await styFetch(STYLIQUE_API_BASE + '/api/plugin/tryon-analytics', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(analyticsPayload)
@@ -5066,7 +5074,7 @@ Clean minimal login like get-started page with light theme
             }).toString();
             console.log('📊 Falling back to GET with query:', qs);
             // Fallback to GET if POST is not allowed
-            await fetch('https://www.styliquetechnologies.com/api/plugin/tryon-analytics?' + qs, { method: 'GET' });
+            await styFetch(STYLIQUE_API_BASE + '/api/plugin/tryon-analytics?' + qs, { method: 'GET' });
           } else if (respA.ok) {
             const analyticsResult = await respA.json().catch(() => null);
             console.log('📊 Analytics result:', analyticsResult);
@@ -5076,7 +5084,7 @@ Clean minimal login like get-started page with light theme
         }
 
         // Consume try-on quota
-        let resp = await fetch('https://www.styliquetechnologies.com/api/plugin/consume-tryon', {
+        let resp = await styFetch(STYLIQUE_API_BASE + '/api/plugin/consume-tryon', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ storeId: window.styliqueSection.storeId, tryonType: type })
@@ -5087,7 +5095,7 @@ Clean minimal login like get-started page with light theme
             tryonType: String(type || '')
           }).toString();
           // Fallback to GET if POST is not allowed
-          resp = await fetch('https://www.styliquetechnologies.com/api/plugin/consume-tryon?' + qs2, { method: 'GET' });
+          resp = await styFetch(STYLIQUE_API_BASE + '/api/plugin/consume-tryon?' + qs2, { method: 'GET' });
         }
         const json = await resp.json().catch(() => ({ success: false }));
         if (json && json.success) {
@@ -5664,7 +5672,7 @@ Clean minimal login like get-started page with light theme
           return;
         }
 
-        const response = await fetch('https://www.styliquetechnologies.com/api/plugin/size-recommendation', {
+        const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/size-recommendation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -5918,7 +5926,7 @@ Clean minimal login like get-started page with light theme
           currentUrl: window.styliqueSection.currentUrl
         });
 
-        const response = await fetch('https://www.styliquetechnologies.com/api/plugin/complete-look', {
+        const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/complete-look', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -6114,14 +6122,15 @@ Clean minimal login like get-started page with light theme
         fetchStoreStatus();
         checkLoginStatus();
       } else {
-        console.error('❌ Cannot proceed - API connection failed');
-        document.getElementById('stylique-login-required').innerHTML = `
-          <div style="text-align: center; padding: 2rem;">
-            <h4 style="color: #dc2626; margin-bottom: 1rem;">⚠️ Service Temporarily Unavailable</h4>
-            <p style="color: #6c757d; margin-bottom: 1rem;">Unable to connect to Stylique services. Please try again later.</p>
-            <button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Retry</button>
-          </div>
-        `;
+        console.error('[Stylique] Cannot proceed — API connection failed. Check console above for [Stylique probe] details.');
+        var apiUrl = STYLIQUE_API_BASE || '(not set)';
+        document.getElementById('stylique-login-required').innerHTML =
+          '<div style="text-align: center; padding: 2rem;">' +
+            '<h4 style="color: #dc2626; margin-bottom: 1rem;">Service Temporarily Unavailable</h4>' +
+            '<p style="color: #6c757d; margin-bottom: .5rem;">Unable to connect to Stylique services.</p>' +
+            '<p style="color: #999; font-size: 12px; margin-bottom: 1rem;">API: ' + apiUrl + '/api/ping</p>' +
+            '<button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Retry</button>' +
+          '</div>';
       }
     });
 
@@ -6297,7 +6306,7 @@ Clean minimal login like get-started page with light theme
       const formData = new FormData();
       formData.append('image', file);
 
-      const response = await fetch('https://www.styliquetechnologies.com/api/detect-skin-tone', {
+      const response = await styFetch(STYLIQUE_API_BASE + '/api/detect-skin-tone', {
         method: 'POST',
         body: formData
       });
@@ -6408,7 +6417,7 @@ Clean minimal login like get-started page with light theme
       console.log('Saving profile data:', userData);
 
       // Update user profile via API
-      const response = await fetch('https://www.styliquetechnologies.com/api/plugin/update-profile', {
+      const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/update-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
@@ -6565,7 +6574,7 @@ Clean minimal login like get-started page with light theme
     completeSpinner.style.display = 'flex';
 
     try {
-      const response = await fetch('https://www.styliquetechnologies.com/api/plugin/update-profile', {
+      const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/update-profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -6640,7 +6649,7 @@ Clean minimal login like get-started page with light theme
     
     try {
       console.log('📈 Tracking conversion for:', productId);
-      await fetch('https://www.styliquetechnologies.com/api/plugin/track-conversion', {
+      await styFetch(STYLIQUE_API_BASE + '/api/plugin/track-conversion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -6876,10 +6885,17 @@ Clean minimal login like get-started page with light theme
 },
 {
 "type": "text",
+"id": "backend_url",
+"label": "Stylique API base URL",
+"default": "",
+"info": "HTTPS URL of your backend (no trailing slash), e.g. your ngrok URL. Leave blank to use production default."
+},
+{
+"type": "text",
 "id": "store_id",
-"label": "Store ID",
-"default": "beescreations",
-"info": "Your Stylique store ID"
+"label": "Stylique store ID",
+"default": "",
+"info": "Must match stores.store_id in Supabase (usually your-shop.myshopify.com). Leave blank to use this shop’s permanent domain."
 },
 {
 "type": "text",

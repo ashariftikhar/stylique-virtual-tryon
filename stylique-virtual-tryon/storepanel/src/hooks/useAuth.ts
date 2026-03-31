@@ -21,12 +21,12 @@ export function useAuth() {
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);
-          router.push('/auth/login');
+          router.push('/login');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         setIsAuthenticated(false);
-        router.push('/auth/login');
+        router.push('/login');
       } finally {
         setIsLoading(false);
       }
@@ -35,11 +35,15 @@ export function useAuth() {
     checkAuth();
   }, [router]);
 
-  const logout = () => {
-    document.cookie = 'store_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  const logout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } catch {
+      // Best-effort
+    }
     setStore(null);
     setIsAuthenticated(false);
-    router.push('/auth/login');
+    router.push('/login');
   };
 
   return { store, isLoading, isAuthenticated, logout };

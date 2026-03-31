@@ -22,22 +22,25 @@ interface StoreConfig {
 router.get('/store/:id/config', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
-    const storeId = req.params.id;
+    const storeId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
-    if (!storeId) {
+    if (!storeId || typeof storeId !== 'string') {
       return res.status(400).json({
         error: 'Missing store ID parameter',
       });
     }
 
-    // Fetch store configuration
+    // Resolve store: try by store_id slug first, then by UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storeId);
+    const lookupCol = isUUID ? 'id' : 'store_id';
+
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select(
         'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used'
       )
-      .or(`id.eq.${storeId},store_id.eq.${storeId}`)
-      .single();
+      .eq(lookupCol, storeId)
+      .maybeSingle();
 
     if (storeError || !store) {
       return res.status(404).json({

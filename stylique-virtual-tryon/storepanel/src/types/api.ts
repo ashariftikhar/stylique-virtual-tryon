@@ -5,6 +5,7 @@ export interface StoreConfig {
   email?: string;
   phone?: string;
   subscription_plan?: string;
+  subscription_name?: string;
   subscription_start_at?: string;
   subscription_end_at?: string;
   tryons_quota: number;
@@ -21,9 +22,14 @@ export interface InventoryItem {
   image_url?: string;
   tryon_image_url?: string;
   sizes: string[];
+  measurements?: Record<string, any>;
   product_link?: string;
   category?: string;
   brand?: string;
+  tier?: number;
+  shopify_product_id?: string;
+  woocommerce_product_id?: string;
+  sync_status?: 'success' | 'pending' | 'failed';
   created_at?: string;
   updated_at?: string;
 }

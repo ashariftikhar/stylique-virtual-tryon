@@ -9,11 +9,14 @@
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "target": "esnext",
-    "types": [],
+    "types": ["node"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
     // and npm install -D @types/node
+
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
 
     // Other Outputs
     "sourceMap": true,

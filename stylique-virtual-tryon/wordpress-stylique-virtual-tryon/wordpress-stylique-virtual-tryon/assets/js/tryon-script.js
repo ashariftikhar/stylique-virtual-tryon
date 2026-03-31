@@ -23,12 +23,16 @@
     console.error("Stylique Error: Store ID is missing in configuration.");
   }
 
+  // Use configured backend URL with fallback chain
+  const API_BASE_URL =
+    (typeof styliqueConfig !== "undefined" && styliqueConfig.backendUrl) ||
+    "http://localhost:5000";
+
   if (!styliqueConfig.backendUrl) {
-    console.error("Stylique Error: Backend URL is missing in configuration.");
+    console.warn("Stylique: backendUrl missing in config, falling back to", API_BASE_URL);
   }
 
-  // Use configured backend URL
-  const API_BASE_URL = styliqueConfig.backendUrl;
+  console.log("Stylique API_BASE_URL:", API_BASE_URL);
 
   // Apply Custom Colors
   function applyColors() {
@@ -257,15 +261,62 @@
     location.reload();
   };
 
-  function checkLoginStatus() {
+  async function checkLoginStatus() {
     const storedUser = localStorage.getItem("stylique_user");
-    if (storedUser) {
+    const storedToken = localStorage.getItem("stylique_token");
+
+    if (!storedUser) {
+      console.log("Stylique: No stored session — showing login");
+      return;
+    }
+
+    let parsedUser;
+    try {
+      parsedUser = JSON.parse(storedUser);
+    } catch {
+      localStorage.removeItem("stylique_user");
+      localStorage.removeItem("stylique_token");
+      console.warn("Stylique: Corrupt stored user — cleared");
+      return;
+    }
+
+    // If we have a token, verify it with the backend to get fresh user data
+    if (storedToken) {
       try {
-        window.styliqueSection.user = JSON.parse(storedUser);
-        showTryOnInterface();
-      } catch {
-        localStorage.removeItem("stylique_user");
+        const resp = await fetch(`${API_BASE_URL}/plugin/verify-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: storedToken }),
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.success && result.user) {
+          console.log("Stylique: Token verified — restoring session for", result.user.email);
+          window.styliqueSection.user = result.user;
+          localStorage.setItem("stylique_user", JSON.stringify(result.user));
+          showTryOnInterface();
+          return;
+        } else {
+          console.warn("Stylique: Token verification failed:", result.error || resp.status);
+        }
+      } catch (e) {
+        console.warn("Stylique: Token verify network error — using cached user", e);
       }
+    }
+
+    // Fallback: use the cached user if the UUID looks valid
+    if (parsedUser && parsedUser.id && /^[0-9a-f]{8}-/i.test(String(parsedUser.id))) {
+      console.log("Stylique: Using cached session for", parsedUser.email || parsedUser.id);
+      window.styliqueSection.user = parsedUser;
+      showTryOnInterface();
+    } else if (parsedUser && parsedUser.email) {
+      console.log("Stylique: Cached user has no UUID — using email fallback");
+      window.styliqueSection.user = parsedUser;
+      showTryOnInterface();
+    } else {
+      console.warn("Stylique: Stored user has no usable id/email — clearing");
+      localStorage.removeItem("stylique_user");
+      localStorage.removeItem("stylique_token");
     }
   }
 
@@ -329,28 +380,45 @@
   }
 
   async function checkProductAvailability(url) {
+    const p = styliqueConfig.product || {};
+    const wooId =
+      p.id != null && p.id !== ""
+        ? Number(p.id)
+        : null;
+    const payload = {
+      storeId: styliqueConfig.storeId,
+      currentUrl: url,
+      ...(Number.isFinite(wooId) && wooId > 0 ? { wooProductId: wooId } : {}),
+    };
+    console.log("Stylique check-product payload:", payload);
+
     try {
       const response = await fetch(`${API_BASE_URL}/plugin/check-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          storeId: styliqueConfig.storeId,
-          currentUrl: url,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
+      console.log("Stylique check-product response:", data);
 
       if (data.available) {
-        // [NEW] Capture Product UUID
+        // Capture Product UUID
         if (data.product && data.product.id) {
             window.styliqueSection.productUuid = data.product.id;
-            console.log('✅ Product UUID resolved:', data.product.id);
+            console.log('Stylique: Product UUID resolved:', data.product.id);
         }
+
+        // Capture product tier (1, 2, or 3) — default to 3 if missing
+        const tier = (data.product && data.product.tier) ? Number(data.product.tier) : 3;
+        window.styliqueSection.productTier = tier;
+        console.log('Stylique: Product tier:', tier);
 
         document.getElementById("stylique-product-unavailable").style.display =
           "none";
         document.querySelector(".stylique-upload-section").style.display =
           "block";
+
+        applyTierRouting(tier);
       } else {
         document.getElementById("stylique-product-unavailable").style.display =
           "block";
@@ -359,8 +427,60 @@
       }
     } catch (e) {
       console.warn("Failed to check product availability", e);
-      document.getElementById("stylique-product-unavailable").style.display =
-        "none";
+      const unavail = document.getElementById("stylique-product-unavailable");
+      if (unavail) {
+        unavail.style.display = "block";
+        const msg = unavail.querySelector("p");
+        if (msg) {
+          msg.textContent =
+            "Could not reach Stylique. Check your network, backend URL, and that the product is saved (synced) in WordPress admin.";
+        }
+      }
+      const upload = document.querySelector(".stylique-upload-section");
+      if (upload) upload.style.display = "none";
+    }
+  }
+
+  /**
+   * Show/hide UI sections based on the product tier.
+   * Tier 1-2: full try-on experience (2D/3D buttons visible).
+   * Tier 3: only size recommendation and styling suggestions.
+   */
+  function applyTierRouting(tier) {
+    const tryOnOptions = document.querySelector(".stylique-tryon-options");
+    const uploadSection = document.querySelector(".stylique-upload-section");
+    const stylingSection = document.getElementById("stylique-styling-suggestions");
+    const recsSection = document.getElementById("stylique-plugin-recommendations");
+    const tierBadge = document.getElementById("stylique-tier-badge");
+
+    if (tier === 3) {
+      console.log("Stylique: Tier 3 — hiding try-on buttons, showing size rec + styling only");
+
+      if (tryOnOptions) tryOnOptions.style.display = "none";
+      if (uploadSection) uploadSection.style.display = "none";
+
+      // Show recommendations and styling for tier 3 immediately
+      if (recsSection) recsSection.style.display = "block";
+      if (stylingSection) stylingSection.style.display = "block";
+      if (tierBadge) {
+        tierBadge.textContent = "Size & Style Only";
+        tierBadge.style.display = "inline-block";
+      }
+
+      // Auto-load size recommendation if product ID available
+      if (styliqueConfig.product && styliqueConfig.product.id) {
+        loadSizeRecommendation(styliqueConfig.product.id);
+      }
+    } else {
+      console.log("Stylique: Tier " + tier + " — full try-on experience available");
+
+      if (tryOnOptions) tryOnOptions.style.display = "block";
+      if (uploadSection) uploadSection.style.display = "block";
+      if (stylingSection) stylingSection.style.display = "block";
+      if (tierBadge) {
+        tierBadge.textContent = tier === 1 ? "Premium" : "Standard";
+        tierBadge.style.display = "inline-block";
+      }
     }
   }
 
@@ -521,30 +641,104 @@
       return;
     }
 
+    // Disable button and show spinner
+    const tryOnBtn = document.getElementById("stylique-start-2d-tryon");
+    let originalBtnHTML = "";
+    if (tryOnBtn) {
+      originalBtnHTML = tryOnBtn.innerHTML;
+      tryOnBtn.disabled = true;
+      tryOnBtn.innerHTML =
+        '<span class="stylique-spinner"></span> Processing...';
+    }
+
     showProcessingOverlay();
     simulateProcessingProgress();
 
     try {
-      const formData = new FormData();
-      formData.append("storeId", styliqueConfig.storeId);
-      formData.append("currentUrl", window.styliqueSection.currentUrl);
-      formData.append("userImage", window.styliqueSection.selectedImage);
-      formData.append("garmentType", "upper_body");
+      const selectedImg = window.styliqueSection.selectedImage;
+      const storeId = styliqueConfig.storeId;
+      const currentUrl = window.location.href;
+      const productId = styliqueConfig.product && styliqueConfig.product.id ? String(styliqueConfig.product.id) : null;
+      const imageUrl = styliqueConfig.product && styliqueConfig.product.image ? styliqueConfig.product.image : null;
+      const userId = window.styliqueSection.user && window.styliqueSection.user.id ? window.styliqueSection.user.id : null;
 
-      if (window.styliqueSection.user && window.styliqueSection.user.id) {
-        formData.append("userId", window.styliqueSection.user.id);
+      console.log("=== Stylique 2D Try-On Debug ===");
+      console.log("API_BASE_URL:", API_BASE_URL);
+      console.log("storeId:", storeId, typeof storeId);
+      console.log("currentUrl:", currentUrl);
+      console.log("productId:", productId);
+      console.log("imageUrl:", imageUrl);
+      console.log("userId:", userId);
+      console.log("selectedImage type:", typeof selectedImg);
+      console.log("selectedImage instanceof File:", selectedImg instanceof File);
+      console.log("selectedImage instanceof Blob:", selectedImg instanceof Blob);
+      if (selectedImg) {
+        console.log("selectedImage details:", {
+          name: selectedImg.name || "(no name)",
+          size: selectedImg.size || "(unknown)",
+          type: selectedImg.type || "(unknown)",
+        });
+      } else {
+        console.warn("Stylique: selectedImage is null/undefined!");
       }
 
-      // Using the endpoint discovered in liquid file
-      const response = await fetch(`${API_BASE_URL}/plugin/embed-tryon-2d`, {
+      if (!storeId) {
+        console.error("Stylique: storeId is missing from styliqueConfig!");
+      }
+
+      const formData = new FormData();
+      formData.append("storeId", storeId || "");
+      formData.append("currentUrl", currentUrl);
+      formData.append("garmentType", "upper_body");
+
+      if (selectedImg) {
+        formData.append("userImage", selectedImg);
+      }
+      if (productId) {
+        formData.append("product_id", productId);
+      }
+      if (imageUrl) {
+        formData.append("image_url", imageUrl);
+      }
+      if (userId) {
+        formData.append("userId", userId);
+      }
+
+      const endpoint = `${API_BASE_URL}/plugin/embed-tryon-2d`;
+      console.log("Stylique: Fetching", endpoint);
+
+      const response = await fetch(endpoint, {
         method: "POST",
         body: formData,
-        headers: {
-          "X-Current-URL": window.styliqueSection.currentUrl,
-        },
       });
 
-      const result = await response.json();
+      console.log("Stylique: Response status:", response.status, response.statusText);
+
+      let result;
+      const responseText = await response.text();
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.error("Stylique: Response is not JSON:", responseText.substring(0, 500));
+        throw new Error("Server returned non-JSON response: " + response.status);
+      }
+
+      console.log("Stylique: Response body:", result);
+
+      if (!response.ok) {
+        console.error("Stylique: Server error:", result.error || result);
+        throw new Error(result.error || "Server error " + response.status);
+      }
+
+      if (!result.success) {
+        console.error("Stylique: Backend returned success=false:", result);
+        throw new Error(result.error || "Processing failed (success=false)");
+      }
+
+      if (!result.resultImage) {
+        console.warn("Stylique: No resultImage in response. Product may not have an image in inventory.");
+        throw new Error("No try-on image available for this product");
+      }
 
       if (response.ok && result.success && result.resultImage) {
         // Animate to completion before hiding
@@ -591,10 +785,23 @@
         throw new Error("Processing failed");
       }
     } catch (error) {
-      console.error("Try-on error:", error);
+      console.error("=== Stylique 2D Try-On ERROR ===");
+      console.error("Error message:", error.message);
+      console.error("Error object:", error);
+      if (error.stack) console.error("Stack:", error.stack);
       clearInterval(processingState.interval);
       hideProcessingOverlay();
-      alert("We encountered a temporary issue. Please try again.");
+      const displayMsg = error.message && error.message !== "Processing failed"
+        ? "Try-on error: " + error.message
+        : "We encountered a temporary issue. Please try again.";
+      alert(displayMsg);
+    } finally {
+      // Restore button state
+      if (tryOnBtn) {
+        tryOnBtn.innerHTML = originalBtnHTML || "2D Try-On";
+        tryOnBtn.disabled = false;
+      }
+      updateTryOnButtonsState();
     }
   };
 
@@ -654,12 +861,19 @@
 
       const formData = new FormData();
       formData.append("storeId", styliqueConfig.storeId);
+      formData.append("currentUrl", window.location.href);
       formData.append("userImage", window.styliqueSection.selectedImage);
-      // formData.append("userId", window.styliqueSection.user.id); // Typically added if available
-      if (window.styliqueSection.user && window.styliqueSection.user.id) {
-          formData.append("userId", window.styliqueSection.user.id);
-      }
       formData.append("productId", currentProductId);
+
+      if (styliqueConfig.product && styliqueConfig.product.id) {
+        formData.append("product_id", String(styliqueConfig.product.id));
+      }
+      if (styliqueConfig.product && styliqueConfig.product.image) {
+        formData.append("image_url", styliqueConfig.product.image);
+      }
+      if (window.styliqueSection.user && window.styliqueSection.user.id) {
+        formData.append("userId", window.styliqueSection.user.id);
+      }
 
       // Client-side timeout warning
       clientTimeout = setTimeout(() => {
@@ -920,19 +1134,19 @@
 
     function applyStoreRow(s) {
       window.styliqueSection.storeStatus = s;
-      window.styliqueSection.storeUuid = s.id; // [NEW] Capture Store UUID
+      window.styliqueSection.storeUuid = s.id;
       window.styliqueSection.storePlan = s.subscription_name || null;
 
-      let active = false;
+      let active = true;
       const hasDates = !!s.subscription_start_at && !!s.subscription_end_at;
       if (hasDates) {
         const today = new Date();
-        const start = new Date(s.subscription_start_at);
         const end = new Date(s.subscription_end_at);
-        active = today >= start && today <= end;
-      } else if (s.subscription_name) {
-        // Assumption: if plan exists but no dates, considered active or handle logic
-        active = true;
+        active = today <= end;
+      }
+      // If subscription_active is explicitly provided by the API, use it
+      if (typeof s.subscription_active === "boolean") {
+        active = s.subscription_active;
       }
 
       window.styliqueSection.planActive = active;
@@ -992,6 +1206,10 @@
   // ANALYTICS & TRACKING
   // ==========================================
 
+  function isUUID(v) {
+    return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+  }
+
   async function trackUserAction(actionType, productId = null) {
       if (!styliqueConfig.storeId) {
         console.warn('Analytics: Store ID missing, cannot track.');
@@ -999,20 +1217,27 @@
       }
 
       try {
-          // Resolve Product ID (Prefer UUID if available/matching)
+          // Resolve Product ID — only use UUIDs for analytics (DB columns are uuid type)
           let pid = productId;
           
-          // If no ID passed, or it matches current WC ID, try to use UUID
           if ((!pid || String(pid) === String(styliqueConfig.product.id)) && window.styliqueSection.productUuid) {
               pid = window.styliqueSection.productUuid;
           } else if (!pid && styliqueConfig.product && styliqueConfig.product.id) {
-              // Fallback to WC ID
               pid = styliqueConfig.product.id;
+          }
+          // Only pass UUID-formatted product IDs to analytics
+          if (pid && !isUUID(String(pid))) {
+            console.log('Analytics: productId "' + pid + '" is not UUID — sending null');
+            pid = null;
           }
 
           // Resolve Store ID (Prefer UUID)
           const storeIdToUse = window.styliqueSection.storeUuid || styliqueConfig.storeId;
-          const currentUserId = window.styliqueSection.user?.id || null;
+          const rawUserId = window.styliqueSection.user?.id || null;
+          const currentUserId = rawUserId && isUUID(String(rawUserId)) ? rawUserId : null;
+          if (rawUserId && !currentUserId) {
+            console.log('Analytics: userId "' + rawUserId + '" is not UUID — sending null');
+          }
 
           // 1. General Analytics Tracking
           const payload = {
@@ -1131,10 +1356,23 @@
     const used = window.styliqueSection.tryonsUsed || 0;
     const remaining = Math.max(0, quota - used);
 
-    const quotaOK = remaining > 0;
+    // If store status never loaded, don't block on quota — allow try-on
+    const storeLoaded = !!window.styliqueSection.storeStatus;
+    const quotaOK = !storeLoaded || remaining > 0;
+
+    const canTryOn = imageSelected && quotaOK && active;
+
+    console.log("Stylique button state:", {
+      imageSelected, active, storeLoaded, quota, used, remaining, quotaOK, canTryOn,
+    });
 
     if (start2D) {
-      start2D.disabled = !imageSelected || !quotaOK || !active;
+      start2D.disabled = !canTryOn;
+      if (canTryOn) {
+        start2D.classList.remove("stylique-btn-disabled");
+      } else {
+        start2D.classList.add("stylique-btn-disabled");
+      }
     }
     if (start3D) {
       const plan = window.styliqueSection.storePlan;
@@ -1144,7 +1382,7 @@
         start3D.style.display = "none";
       } else {
         start3D.style.display = "inline-block";
-        start3D.disabled = !imageSelected || !quotaOK || !active;
+        start3D.disabled = !canTryOn;
       }
     }
   }
@@ -1187,6 +1425,7 @@
 
     const userData = {
       userId: user.id,
+      email: user.email,
       token: token,
       name: document.getElementById("stylique-inline-name").value,
       phone: document.getElementById("stylique-inline-phone").value,
@@ -1233,7 +1472,7 @@
     console.log("Saving profile data:", userData);
 
     // Update via API
-    fetch("https://www.styliquetechnologies.com/api/plugin/update-profile", {
+    fetch(`${API_BASE_URL}/plugin/update-profile`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1368,6 +1607,7 @@
 
     const userData = {
       userId: user.id,
+      email: user.email,
       token: token,
       name: document.getElementById("stylique-onboarding-name")?.value || "",
       phone: document.getElementById("stylique-onboarding-phone")?.value || "",
@@ -1460,7 +1700,7 @@
       formData.append("image", file);
 
       const response = await fetch(
-        "https://www.styliquetechnologies.com/api/detect-skin-tone",
+        `${API_BASE_URL}/plugin/detect-skin-tone`,
         {
           method: "POST",
           body: formData,
@@ -1558,7 +1798,7 @@
     // Deprecated: logic moved to window.selectInlineBodyType
   }
 
-  // RECCOMENDATIONS
+  // SIZE RECOMMENDATIONS
   async function loadSizeRecommendation(productId, containerId) {
     if (!containerId)
       containerId = "stylique-plugin-size-recommendation-content";
@@ -1566,22 +1806,50 @@
     if (!container) return;
 
     const userId = window.styliqueSection.user?.id;
-    if (!userId) return;
+    if (!userId) {
+      console.log("Stylique size-rec: skipped — no user ID (not logged in)");
+      return;
+    }
+
+    // Prefer the inventory UUID resolved from check-product; fall back to the
+    // WooCommerce numeric ID passed as argument (the backend will try both).
+    const resolvedProductId = window.styliqueSection.productUuid || productId;
+
+    const payload = {
+      storeId: styliqueConfig.storeId,
+      productId: resolvedProductId,
+      userId: userId,
+      currentUrl: window.styliqueSection.currentUrl,
+    };
+
+    console.log("=== Stylique Size Recommendation Request ===");
+    console.log("Endpoint:", API_BASE_URL + "/plugin/size-recommendation");
+    console.log("productId (resolved):", resolvedProductId);
+    console.log("productId (original):", productId);
+    console.log("productUuid:", window.styliqueSection.productUuid);
+    console.log("userId:", userId);
+    console.log("Payload:", JSON.stringify(payload));
 
     try {
       const resp = await fetch(`${API_BASE_URL}/plugin/size-recommendation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          storeId: styliqueConfig.storeId,
-          productId: productId,
-          userId: userId,
-          currentUrl: window.styliqueSection.currentUrl,
-        }),
+        body: JSON.stringify(payload),
       });
+
       const data = await resp.json();
+
+      console.log("=== Stylique Size Recommendation Response ===");
+      console.log("Status:", resp.status, resp.statusText);
+      console.log("Body:", JSON.stringify(data));
+
+      if (!resp.ok) {
+        console.error("Stylique size-rec: server error", data.error || data);
+      }
+
       if (data.success && data.recommendation) {
         const rec = data.recommendation;
+        console.log("Stylique size-rec: bestFit=" + rec.bestFit, "confidence=" + rec.confidence + "%");
         container.innerHTML = `
                   <div style="padding:10px; background:#f0f9ff; border-radius:8px;">
                     <strong>Best Fit: ${rec.bestFit}</strong> (${rec.confidence}% Confidence)
@@ -1591,9 +1859,11 @@
         document.getElementById(
           "stylique-plugin-recommendations",
         ).style.display = "block";
+      } else {
+        console.warn("Stylique size-rec: no recommendation in response", data);
       }
     } catch (e) {
-      console.warn("Size rec failed", e);
+      console.error("Stylique size-rec: fetch failed", e);
     }
   }
 

@@ -4,7 +4,7 @@ export class ApiClient {
   private baseUrl: string;
 
   constructor(baseUrl: string = BACKEND_URL) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    this.baseUrl = baseUrl.replace(/\/$/, '');
   }
 
   private async request<T>(
@@ -18,6 +18,7 @@ export class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
     };
 
     if (body) {
@@ -39,12 +40,10 @@ export class ApiClient {
     }
   }
 
-  // Store endpoints
   async getStoreConfig(storeId: string) {
     return this.request(`/api/store/${storeId}/config`);
   }
 
-  // Inventory endpoints
   async getInventory(storeId: string, limit: number = 50, offset: number = 0) {
     return this.request(
       `/api/inventory?store_id=${storeId}&limit=${limit}&offset=${offset}`
@@ -55,7 +54,6 @@ export class ApiClient {
     return this.request(`/api/inventory/${productId}`, 'PATCH', data);
   }
 
-  // Images endpoints
   async processImages(productId: string, images: Array<{ url: string; alt?: string }>) {
     return this.request('/api/process-images', 'POST', {
       product_id: productId,
@@ -63,40 +61,15 @@ export class ApiClient {
     });
   }
 
-  // Analytics endpoints
-  async trackTryon(storeId: string, productId?: string, tryonType: string = 'virtual', userId?: string) {
-    return this.request('/api/track-tryon', 'POST', {
-      store_id: storeId,
-      product_id: productId,
-      tryon_type: tryonType,
-      user_id: userId,
-    });
+  async getAnalytics(storeId: string, limit: number = 100, from?: string, to?: string) {
+    let url = `/api/analytics?store_id=${storeId}&limit=${limit}`;
+    if (from) url += `&from=${encodeURIComponent(from)}`;
+    if (to) url += `&to=${encodeURIComponent(to)}`;
+    return this.request(url);
   }
 
-  async getAnalytics(storeId: string, limit: number = 100) {
-    return this.request(
-      `/api/analytics?store_id=${storeId}&limit=${limit}`
-    );
-  }
-
-  // Recommendations endpoints
-  async getRecommendedSize(
-    productId: string,
-    measurements: {
-      chest?: number;
-      waist?: number;
-      hips?: number;
-      height?: number;
-      inseam?: number;
-      bust?: number;
-      shoulder?: number;
-      sleeve?: number;
-    }
-  ) {
-    return this.request('/api/recommend-size', 'POST', {
-      product_id: productId,
-      measurements,
-    });
+  async getConversions(storeId: string) {
+    return this.request(`/api/analytics/conversions?store_id=${storeId}`);
   }
 }
 

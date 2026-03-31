@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { BarChart3, Users, Eye, Download, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart3, Download, Loader2, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { apiClient } from '@/lib/api';
 import { TryonAnalytics } from '@/types/api';
+
+const fade = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function AnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<TryonAnalytics[]>([]);
@@ -13,42 +18,48 @@ export default function AnalyticsDashboard() {
   const [timeRange, setTimeRange] = useState('7d');
   const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    const loadAnalytics = async () => {
-      try {
-        setIsLoading(true);
-        // Get store session
-        const sessionResponse = await fetch('/api/get-store-session');
-        const sessionData = await sessionResponse.json();
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError('');
 
-        if (!sessionData.authenticated || !sessionData.store?.id) {
-          setError('Not authenticated');
-          return;
-        }
+      const sessionResponse = await fetch('/api/get-store-session');
+      const sessionData = await sessionResponse.json();
 
-        // Fetch analytics from backend
-        try {
-          const data = await apiClient.getAnalytics(sessionData.store.id, 100);
-          setAnalytics(data.analytics || []);
-        } catch (apiError) {
-          console.warn('Backend analytics endpoint not yet available');
-          setAnalytics([]);
-        }
-      } catch (err) {
-        console.error('Error loading analytics:', err);
-        setError('Failed to load analytics');
-      } finally {
-        setIsLoading(false);
+      if (!sessionData.authenticated || !sessionData.store?.id) {
+        setError('Not authenticated');
+        return;
       }
-    };
 
-    loadAnalytics();
+      let fromDate: string | undefined;
+      if (timeRange !== 'all') {
+        const now = new Date();
+        const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
+        const past = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        fromDate = past.toISOString();
+      }
+
+      try {
+        const data: any = await apiClient.getAnalytics(sessionData.store.id, 100, fromDate);
+        setAnalytics(data.analytics || []);
+      } catch {
+        setAnalytics([]);
+      }
+    } catch (err) {
+      console.error('Error loading analytics:', err);
+      setError('Failed to load analytics');
+    } finally {
+      setIsLoading(false);
+    }
   }, [timeRange]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      // Create CSV content
       const headers = ['Date', 'Product ID', 'User ID', 'Try-on Type', 'Redirected'];
       const csvContent = [
         headers.join(','),
@@ -63,15 +74,12 @@ export default function AnalyticsDashboard() {
         ),
       ].join('\n');
 
-      // Download
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
-    } catch (err) {
-      console.error('Export failed:', err);
     } finally {
       setIsExporting(false);
     }
@@ -93,24 +101,20 @@ export default function AnalyticsDashboard() {
       className="space-y-6"
       initial="hidden"
       animate="visible"
-      variants={{
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: { staggerChildren: 0.1 },
-        },
-      }}
+      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } }}
     >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <motion.div
+        variants={fade}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      >
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Analytics Dashboard</h1>
-          <p className="text-gray-400">Track your virtual try-on performance</p>
+          <h1 className="text-3xl font-bold text-white mb-1">Analytics Dashboard</h1>
+          <p className="text-gray-400 text-sm">Track your virtual try-on performance</p>
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 rounded-lg border border-gray-800 text-gray-300 hover:border-gray-700 transition-colors flex items-center gap-2"
+            onClick={loadAnalytics}
+            className="px-4 py-2 rounded-lg border border-gray-800 text-gray-300 hover:border-gray-700 transition-colors flex items-center gap-2 text-sm"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -118,16 +122,16 @@ export default function AnalyticsDashboard() {
           <button
             onClick={handleExport}
             disabled={isExporting || analytics.length === 0}
-            className="px-4 py-2 rounded-lg bg-[#642FD7] text-white hover:bg-[#542FCF] disabled:opacity-50 transition-colors flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-[#642FD7] text-white hover:bg-[#542FCF] disabled:opacity-50 transition-colors flex items-center gap-2 text-sm"
           >
             <Download className="w-4 h-4" />
             {isExporting ? 'Exporting...' : 'Export CSV'}
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Time Range Filter */}
-      <div className="flex gap-2">
+      {/* Time range */}
+      <motion.div variants={fade} className="flex gap-2">
         {['7d', '30d', '90d', 'all'].map((range) => (
           <button
             key={range}
@@ -135,7 +139,7 @@ export default function AnalyticsDashboard() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               timeRange === range
                 ? 'bg-[#642FD7] text-white'
-                : 'bg-gray-900/50 text-gray-300 border border-gray-800 hover:border-gray-700'
+                : 'bg-gray-900/50 text-gray-400 border border-gray-800 hover:border-gray-700'
             }`}
           >
             {range === '7d' && 'Last 7 Days'}
@@ -144,35 +148,37 @@ export default function AnalyticsDashboard() {
             {range === 'all' && 'All Time'}
           </button>
         ))}
-      </div>
+      </motion.div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-900/20 border border-red-900/50 text-red-300">
+        <div className="p-4 rounded-lg bg-red-900/20 border border-red-900/50 text-red-300 text-sm">
           {error}
         </div>
       )}
 
       {analytics.length === 0 ? (
-        <div className="p-8 rounded-2xl bg-gray-900/50 border border-gray-800 text-center">
-          <BarChart3 className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+        <motion.div
+          variants={fade}
+          className="p-12 rounded-2xl bg-gray-900/30 border border-gray-800/60 text-center"
+        >
+          <BarChart3 className="w-12 h-12 text-gray-700 mx-auto mb-4" />
           <p className="text-gray-400">No analytics data yet</p>
-        </div>
+        </motion.div>
       ) : (
         <>
-          {/* Summary Stats */}
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-6">
-              <p className="text-gray-400 text-sm mb-2">Total Try-ons</p>
+          <motion.div variants={fade} className="grid md:grid-cols-3 gap-4">
+            <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
+              <p className="text-gray-400 text-xs mb-1">Total Try-ons</p>
               <p className="text-white text-3xl font-bold">{analytics.length}</p>
             </div>
-            <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-6">
-              <p className="text-gray-400 text-sm mb-2">Unique Products</p>
+            <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
+              <p className="text-gray-400 text-xs mb-1">Unique Products</p>
               <p className="text-white text-3xl font-bold">
                 {new Set(analytics.map((a) => a.product_id)).size}
               </p>
             </div>
-            <div className="rounded-2xl bg-gray-900/50 border border-gray-800 p-6">
-              <p className="text-gray-400 text-sm mb-2">Conversion Rate</p>
+            <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
+              <p className="text-gray-400 text-xs mb-1">Conversion Rate</p>
               <p className="text-white text-3xl font-bold">
                 {analytics.length > 0
                   ? `${Math.round(
@@ -183,38 +189,38 @@ export default function AnalyticsDashboard() {
                   : '—'}
               </p>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Analytics Table */}
-          <div className="rounded-2xl bg-gray-900/50 border border-gray-800 overflow-hidden">
+          <motion.div
+            variants={fade}
+            className="rounded-2xl bg-gray-900/40 border border-gray-800/60 overflow-hidden"
+          >
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="border-b border-gray-800 bg-gray-800/50">
+                <thead className="border-b border-gray-800 bg-gray-800/30">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400">
-                      Try-on Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-400">Status</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-400">Date</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-400">Try-on Type</th>
+                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-400">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-gray-800/50">
                   {analytics.slice(0, 50).map((entry, idx) => (
-                    <tr key={idx} className="hover:bg-gray-800/30 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-300">
+                    <tr key={idx} className="hover:bg-gray-800/20 transition-colors">
+                      <td className="px-5 py-3.5 text-sm text-gray-300">
                         {new Date(entry.created_at).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-300">
-                        <span className="px-2 py-1 rounded-full bg-[#642FD7]/20 text-[#B4A5E0] text-xs">
+                      <td className="px-5 py-3.5 text-sm">
+                        <span className="px-2 py-0.5 rounded-full bg-[#642FD7]/15 text-[#B4A5E0] text-[11px] font-medium">
                           {entry.tryon_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-5 py-3.5 text-sm">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
                             entry.redirect_status
-                              ? 'bg-green-900/20 text-green-300'
-                              : 'bg-gray-900/50 text-gray-400'
+                              ? 'bg-emerald-900/30 text-emerald-300'
+                              : 'bg-gray-800/50 text-gray-500'
                           }`}
                         >
                           {entry.redirect_status ? 'Converted' : 'Viewed'}
@@ -225,7 +231,7 @@ export default function AnalyticsDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </motion.div>
         </>
       )}
     </motion.div>

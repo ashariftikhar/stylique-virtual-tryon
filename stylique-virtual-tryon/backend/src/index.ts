@@ -5,58 +5,234 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import { requireAuth } from './middleware/auth.ts';
+import authRoutes from './routes/auth.ts';
 import productRoutes from './routes/products.ts';
 import woocommerceRoutes from './routes/woocommerce.ts';
 import imagesRoutes from './routes/images.ts';
 import recommendationsRoutes from './routes/recommendations.ts';
 import storeRoutes from './routes/store.ts';
 import analyticsRoutes from './routes/analytics.ts';
+import inventoryRoutes from './routes/inventory.ts';
+import multer from 'multer';
+import pluginRoutes from './routes/plugin.ts';
+import shopifyRoutes, { shopifyWebhookHandler } from './routes/shopify.ts';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// ──────────────────────────────────────────────
+// CORS — applied first so every response (and OPTIONS) gets headers when allowed
+// ──────────────────────────────────────────────
+/** Theme editor / storefront preview (https://…shopifypreview.com) */
+const RE_SHOPIFY_PREVIEW_ORIGIN = /^https:\/\/[^\s/]+\.shopifypreview\.com\/?$/i;
+
+const STATIC_CORS_ORIGINS = new Set([
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3003',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'http://127.0.0.1:3002',
+  'http://127.0.0.1:3003',
+  'http://stylique.local',
+  'https://stylique.local',
+]);
+
+function isShopifyStorefrontHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return (
+    h.endsWith('.myshopify.com') ||
+    h === 'myshopify.com' ||
+    h.endsWith('.shopifypreview.com') ||
+    h === 'shopifypreview.com'
+  );
+}
+
+function isNgrokDevHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h.includes('ngrok-free.') || h.endsWith('.ngrok.io') || h.endsWith('.ngrok.app');
+}
+
+function corsDecision(
+  origin: string | undefined,
+  mode: 'development' | 'production',
+  panelOrigin: string,
+): { allow: boolean; reason: string } {
+  if (!origin) {
+    return { allow: true, reason: 'no-origin (same-site or non-browser)' };
+  }
+  const trimmed = origin.replace(/\/$/, '');
+  if (STATIC_CORS_ORIGINS.has(trimmed)) {
+    return { allow: true, reason: 'static-allowlist' };
+  }
+  if (mode === 'production' && trimmed === panelOrigin) {
+    return { allow: true, reason: 'FRONTEND_URL panel' };
+  }
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    if (RE_SHOPIFY_PREVIEW_ORIGIN.test(origin.trim())) {
+      return { allow: true, reason: 'regex shopifypreview.com' };
+    }
+    if (isShopifyStorefrontHost(host)) {
+      return { allow: true, reason: 'shopify storefront host' };
+    }
+    if (isNgrokDevHost(host)) {
+      return { allow: true, reason: 'ngrok dev host' };
+    }
+  } catch {
+    return { allow: false, reason: 'invalid Origin URL' };
+  }
+  return { allow: false, reason: 'not in policy' };
+}
+
+const CORS_METHODS = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
+const CORS_HEADERS =
+  'Content-Type, Authorization, X-Current-URL, X-Store-ID, ngrok-skip-browser-warning';
+
+/** Runs before all routes: reflect Origin + handle OPTIONS preflight */
+function attachEarlyCors(panelOrigin: string, mode: 'development' | 'production') {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const origin = req.get('Origin');
+    const { allow, reason } = corsDecision(origin, mode, panelOrigin);
+    console.log(
+      `[CORS] ${req.method} ${req.originalUrl || req.url} origin=${origin ?? '(none)'} allowed=${allow} (${reason})`,
+    );
+
+    if (allow && origin) {
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+
+    if (req.method === 'OPTIONS') {
+      if (allow && origin) {
+        res.setHeader('Access-Control-Allow-Methods', CORS_METHODS);
+        res.setHeader('Access-Control-Allow-Headers', CORS_HEADERS);
+        res.setHeader('Access-Control-Max-Age', '86400');
+        return res.status(204).end();
+      }
+      return res.status(403).json({ error: 'CORS preflight denied' });
+    }
+
+    next();
+  };
+}
+
+const panelOrigin = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+const corsMode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+app.use(attachEarlyCors(panelOrigin, corsMode));
+
+app.use(
+  cors({
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      const { allow, reason } = corsDecision(origin, corsMode, panelOrigin);
+      console.log(`[CORS:cors pkg] origin=${origin ?? '(none)'} allowed=${allow} (${reason})`);
+      if (allow) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Current-URL', 'X-Store-ID', 'ngrok-skip-browser-warning'],
+  }),
+);
+console.log(`[CORS] Early + cors() middleware for ${corsMode.toUpperCase()}`);
+
+// Shopify webhooks need the raw body for HMAC verification — must run before express.json()
+app.post(
+  '/api/webhooks/shopify',
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    void shopifyWebhookHandler(req, res).catch(next);
+  },
+);
+
 app.use(express.json());
 
-console.log('Registering routes...');
-app.use('/api', productRoutes);
-console.log('✓ Product routes registered');
-app.use('/api', woocommerceRoutes);
-console.log('✓ Woocommerce routes registered');
-app.use('/api', imagesRoutes);
-console.log('✓ Images routes registered');
-app.use('/api', recommendationsRoutes);
-console.log('✓ Recommendations routes registered');
-app.use('/api', storeRoutes);
-console.log('✓ Store routes registered');
-app.use('/api', analyticsRoutes);
-console.log('✓ Analytics routes registered');
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// ──────────────────────────────────────────────
+// Health check (unauthenticated)
+// ──────────────────────────────────────────────
+app.get('/api/health', (_req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Stylique Virtual Try-On API is running',
     timestamp: new Date().toISOString(),
   });
 });
+app.get('/api/cors-test', (_req, res) => {
+  res.json({ success: true, cors: true, message: 'CORS probe' });
+});
+app.get('/api/ping', (_req, res) => {
+  res.json({ ping: true, ts: Date.now() });
+});
+console.log('✓ Health check + /api/ping registered');
 
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+// ──────────────────────────────────────────────
+// Public routes – no JWT required
+// ──────────────────────────────────────────────
+app.use('/api', authRoutes);
+console.log('✓ Auth routes          (POST /api/auth/register, /api/auth/login)');
+
+app.use('/plugin', pluginRoutes);
+app.use('/api/plugin', pluginRoutes);
+
+const skinUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+app.post('/api/detect-skin-tone', skinUpload.single('image'), (_req, res) => {
+  console.log('[detect-skin-tone] stub response');
+  res.json({ success: true, skinTone: '#C68642', label: 'Medium', message: 'Stub — connect real provider for production.' });
+});
+console.log('✓ Plugin routes        (/plugin/*, /api/plugin/*, /api/detect-skin-tone)');
+
+// Webhook sync endpoints called by external platforms
+app.use('/api', productRoutes);
+console.log('✓ Product sync routes  (POST /api/sync/shopify, /api/sync/products)');
+
+app.use('/api', woocommerceRoutes);
+console.log('✓ WooCommerce sync     (POST /api/sync/woocommerce)');
+
+app.use('/api', shopifyRoutes);
+console.log('✓ Shopify OAuth        (GET /api/shopify/oauth, /api/shopify/callback)');
+console.log('✓ Shopify webhooks     (POST /api/webhooks/shopify)');
+
+// ──────────────────────────────────────────────
+// Protected routes – JWT required
+// All mounted under /api with requireAuth applied per-group
+// ──────────────────────────────────────────────
+const protectedApi = express.Router();
+protectedApi.use(requireAuth);
+protectedApi.use(inventoryRoutes);
+protectedApi.use(imagesRoutes);
+protectedApi.use(recommendationsRoutes);
+protectedApi.use(storeRoutes);
+protectedApi.use(analyticsRoutes);
+
+app.use('/api', protectedApi);
+console.log('✓ Protected routes     (inventory, images, recommendations, store, analytics)');
+
+// ──────────────────────────────────────────────
+// Error handling
+// ──────────────────────────────────────────────
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Internal Server Error',
   });
 });
 
+// ──────────────────────────────────────────────
 // Start server
+// ──────────────────────────────────────────────
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`\n🚀 Server is running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🔑 Auth:         POST http://localhost:${PORT}/api/auth/login`);
+  console.log(`🔌 Plugin:       POST http://localhost:${PORT}/plugin/auth\n`);
 });
 
-// Handle server errors
 server.on('error', (error: any) => {
   console.error('Server error:', error);
   process.exit(1);

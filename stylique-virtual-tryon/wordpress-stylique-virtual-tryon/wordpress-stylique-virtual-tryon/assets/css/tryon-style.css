@@ -3525,3 +3525,96 @@
   margin-bottom: 0.5rem;
   line-height: 1.4;
 }
+
+/* Button spinner and disabled state */
+.stylique-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: stylique-spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes stylique-spin {
+  to { transform: rotate(360deg); }
+}
+
+.stylique-btn-tryon:disabled,
+.stylique-btn-tryon.stylique-btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Styling / Outfit Suggestions Section */
+.stylique-styling-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.stylique-styling-section .stylique-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f0f0f0;
+  background: linear-gradient(135deg, #fdf2f8 0%, #faf5ff 100%);
+}
+
+.stylique-styling-section .stylique-section-header h5 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+}
+
+.stylique-styling-content {
+  padding: 24px 18px;
+}
+
+.stylique-styling-placeholder {
+  text-align: center;
+  color: #6b7280;
+}
+
+.stylique-styling-placeholder svg {
+  color: #d1d5db;
+  margin-bottom: 12px;
+}
+
+.stylique-styling-placeholder h6 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.stylique-styling-placeholder p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6b7280;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* Tier Badge */
+.stylique-tier-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #642FD7, #F4536F);
+  color: #fff;
+}

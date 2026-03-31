@@ -5,16 +5,14 @@ export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('store_session');
   const pathname = request.nextUrl.pathname;
 
-  // Allow auth pages
-  if (pathname.startsWith('/auth')) {
+  // Allow login page and API routes
+  if (pathname.startsWith('/login') || pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
 
-  // Protect dashboard routes
-  if (pathname.startsWith('/dashboard')) {
-    if (!sessionCookie) {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
-    }
+  // Protect all other routes (dashboard pages)
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
