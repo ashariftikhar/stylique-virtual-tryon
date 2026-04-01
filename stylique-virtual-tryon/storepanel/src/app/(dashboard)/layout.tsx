@@ -67,6 +67,9 @@ export default function StorePanelLayout({
     } catch {
       // Best-effort
     }
+    // Clear localStorage tokens
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('store_id');
     router.replace('/login');
   };
 

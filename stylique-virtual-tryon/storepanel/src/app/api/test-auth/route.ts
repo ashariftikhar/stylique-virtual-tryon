@@ -115,7 +115,11 @@ export async function POST(request: NextRequest) {
 
     console.log('[test-auth POST] Creating session cookie with store_id:', data.store.store_id);
 
-    const response = NextResponse.json({ success: true, store: data.store });
+    const response = NextResponse.json({ 
+      success: true, 
+      store: data.store,
+      token: data.token 
+    });
 
     response.cookies.set('store_session', sessionValue, {
       httpOnly: true,
