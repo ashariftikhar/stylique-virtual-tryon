@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+import { apiClient } from '@/lib/api';
 
 const fade = {
   hidden: { opacity: 0, y: 16 },
@@ -30,16 +29,14 @@ export default function UploadItem() {
     setSuccess(false);
 
     try {
-      const sessionResponse = await fetch('/api/get-store-session');
-      const sessionData = await sessionResponse.json();
-
-      if (!sessionData.authenticated || !sessionData.store?.id) {
-        setError('Not authenticated — please sign in again');
+      const storeId = localStorage.getItem('store_id');
+      if (!storeId) {
+        setError('Store ID not found — please sign in again');
         return;
       }
 
       const productData = {
-        store_id: sessionData.store.id,
+        store_id: storeId,
         product_name: productName,
         description,
         price: parseFloat(price) || 0,
@@ -47,20 +44,8 @@ export default function UploadItem() {
         sizes,
       };
 
-      const response = await fetch(`${BACKEND_URL}/api/inventory`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(productData),
-      });
-
-      const responseData = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(
-          responseData?.error || responseData?.message || 'Failed to upload product'
-        );
-      }
+      // Use apiClient which includes Authorization header
+      await (apiClient as any).request('/api/inventory', 'POST', productData);
 
       setSuccess(true);
       setProductName('');
