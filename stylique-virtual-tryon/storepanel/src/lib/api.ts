@@ -20,6 +20,8 @@ export class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getAuthToken();
     
+    console.log(`[API] ${method} ${endpoint} - Token present: ${!!token}`);
+    
     const options: RequestInit = {
       method,
       headers: {
@@ -30,6 +32,9 @@ export class ApiClient {
     // Add Authorization header if token exists
     if (token) {
       (options.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      console.log(`[API] Authorization header added`);
+    } else {
+      console.warn(`[API] No token found in localStorage for ${endpoint}`);
     }
 
     if (body) {
