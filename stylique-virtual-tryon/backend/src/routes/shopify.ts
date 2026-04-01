@@ -51,12 +51,12 @@ function webhookBaseUrl(): string {
 
 function successRedirectUrl(): string {
   const base = process.env.FRONTEND_URL || 'http://localhost:3000';
-  return `${base.replace(/\/$/, '')}/dashboard?shopify=connected`;
+  return `${base.replace(/\/$/, '')}/?shopify=connected`;
 }
 
 function errorRedirectUrl(message: string): string {
   const base = process.env.FRONTEND_URL || 'http://localhost:3000';
-  return `${base.replace(/\/$/, '')}/dashboard?shopify=error&reason=${encodeURIComponent(message)}`;
+  return `${base.replace(/\/$/, '')}/?shopify=error&reason=${encodeURIComponent(message)}`;
 }
 
 interface OAuthStatePayload {
