@@ -8,6 +8,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { getSupabase } from './supabase.ts';
 
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2024-10';
@@ -17,6 +18,9 @@ const PRODUCT_TEMPLATE_JSON = 'templates/product.json';
 const PRODUCT_TEMPLATE_LIQUID = 'templates/product.liquid';
 
 const TAG = '[ThemeInjector]';
+
+const __filename_esm = fileURLToPath(import.meta.url);
+const __dirname_esm = path.dirname(__filename_esm);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -60,11 +64,17 @@ function readLiquidSectionContent(): string {
   if (_liquidContentCache) return _liquidContentCache;
 
   const candidates = [
-    path.resolve(__dirname, '..', '..', '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
-    path.resolve(__dirname, '..', '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
+    // ESM-compatible __dirname (works with tsx on Render)
+    path.resolve(__dirname_esm, '..', '..', '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
+    path.resolve(__dirname_esm, '..', '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
+    // CWD-based (works when cwd is the backend folder)
     path.resolve(process.cwd(), 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
     path.resolve(process.cwd(), '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
+    // Render-specific: rootDir is stylique-virtual-tryon/backend
+    path.resolve(process.cwd(), '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
   ];
+
+  console.log(`${TAG} Searching for Liquid file. CWD: ${process.cwd()}, __dirname_esm: ${__dirname_esm}`);
 
   for (const p of candidates) {
     try {
@@ -78,6 +88,7 @@ function readLiquidSectionContent(): string {
     }
   }
 
+  console.error(`${TAG} Liquid file not found. Tried: ${candidates.join(', ')}`);
   throw new Error(`${TAG} Cannot find Shopify_new_tryon_upload_first.liquid in any expected location`);
 }
 
@@ -118,8 +129,13 @@ interface ShopifyTheme {
 
 async function getMainTheme(shop: string, token: string): Promise<ShopifyTheme> {
   const { res, json } = await shopifyGet(shop, token, '/themes.json');
+  if (res.status === 403) {
+    throw new Error(
+      'Missing read_themes scope. Re-install the app with SHOPIFY_SCOPES=read_products,write_products,read_themes,write_themes'
+    );
+  }
   if (!res.ok) {
-    throw new Error(`Failed to list themes: HTTP ${res.status}`);
+    throw new Error(`Failed to list themes: HTTP ${res.status} – ${JSON.stringify(json).slice(0, 300)}`);
   }
   const themes: ShopifyTheme[] = (json as any).themes || [];
   const main = themes.find((t) => t.role === 'main');

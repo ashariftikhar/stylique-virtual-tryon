@@ -49,9 +49,10 @@ function webhookBaseUrl(): string {
     `http://localhost:${process.env.PORT || 5000}`;
 }
 
-function successRedirectUrl(): string {
+function successRedirectUrl(storeUuid: string, storeId: string): string {
   const base = process.env.FRONTEND_URL || 'http://localhost:3000';
-  return `${base.replace(/\/$/, '')}/?shopify=connected`;
+  const token = jwt.sign({ storeId: storeUuid, store_id: storeId }, JWT_SECRET, { expiresIn: '7d' });
+  return `${base.replace(/\/$/, '')}/?shopify=connected&token=${encodeURIComponent(token)}&store_id=${encodeURIComponent(storeId)}`;
 }
 
 function errorRedirectUrl(message: string): string {
@@ -253,7 +254,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     console.error('[Shopify OAuth] Theme injection error (non-fatal):', e.message);
   }
 
-  res.redirect(302, successRedirectUrl());
+  res.redirect(302, successRedirectUrl(storeUuid!, normalizedShop));
 });
 
 function verifyShopifyWebhookHmac(rawBody: Buffer, hmacHeader: string | undefined): boolean {

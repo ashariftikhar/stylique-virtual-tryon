@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Store as StoreType } from '@/types/api';
 import {
@@ -33,29 +33,33 @@ export default function StorePanelLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/get-store-session');
-        const data = await response.json();
+    // Check for token in URL params (auto-login after Shopify OAuth)
+    const urlToken = searchParams.get('token');
+    const urlStoreId = searchParams.get('store_id');
+    if (urlToken) {
+      localStorage.setItem('auth_token', urlToken);
+      if (urlStoreId) localStorage.setItem('store_id', urlStoreId);
+      // Clean the URL by removing query params
+      window.history.replaceState({}, '', pathname);
+    }
 
-        if (!data.authenticated || !data.store) {
-          router.push('/login');
-          return;
-        }
+    // Check localStorage for existing auth
+    const token = localStorage.getItem('auth_token');
+    const storeId = localStorage.getItem('store_id');
 
-        setStore(data.store);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        router.push('/login');
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!token || !storeId) {
+      setLoading(false);
+      router.push('/login');
+      return;
+    }
 
-    checkAuth();
-  }, [router]);
+    // We have a token — set minimal store info for the sidebar
+    setStore({ store_id: storeId, store_name: storeId.replace('.myshopify.com', '') } as StoreType);
+    setLoading(false);
+  }, [router, pathname, searchParams]);
 
   useEffect(() => {
     setSidebarOpen(false);
