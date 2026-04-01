@@ -2,10 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd stylique-virtual-tryon/backend && npm install && npm run build"
+    "buildCommand": "npm install && npm run build"
   },
   "deploy": {
-    "startCommand": "cd stylique-virtual-tryon/backend && npm run start",
+    "startCommand": "npm run start",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
