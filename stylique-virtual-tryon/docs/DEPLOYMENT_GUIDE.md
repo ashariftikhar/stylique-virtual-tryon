@@ -86,31 +86,64 @@ SHOPIFY_SCOPES=read_products,write_products,read_themes,write_themes
 SHOPIFY_REDIRECT_URI=https://your-backend.com/api/shopify/callback
 ```
 
-### Option A: Deploy to a VPS / VM
+### Option A: Deploy to Render (Recommended)
+
+A `render.yaml` Blueprint is provided in the repo root for one-click setup.
+
+#### Quick Deploy (Blueprint)
+
+1. Go to [dashboard.render.com](https://dashboard.render.com)
+2. Click **New → Blueprint**
+3. Connect this Git repository
+4. Render reads `render.yaml` and creates the service automatically
+5. Fill in the environment variables marked as `sync: false` in the dashboard:
+   - `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
+   - `JWT_SECRET` (generate a random 64-char string)
+   - `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`
+   - `SHOPIFY_REDIRECT_URI` → `https://<your-render-app>.onrender.com/api/shopify/callback`
+   - `PUBLIC_API_URL` → `https://<your-render-app>.onrender.com`
+   - `FRONTEND_URL` → `https://<your-storepanel>.vercel.app`
+   - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (optional — mock scoring used if absent)
+6. Click **Apply**
+
+#### Manual Deploy (without Blueprint)
+
+1. Go to [dashboard.render.com](https://dashboard.render.com) → **New → Web Service**
+2. Connect your Git repository
+3. Set **Root Directory** to `stylique-virtual-tryon/backend`
+4. Set **Build Command** to `npm install && npm run build`
+5. Set **Start Command** to `npm run start`
+6. Set **Environment** to `Node`
+7. Add all environment variables listed above (make sure `NODE_ENV=production`)
+8. Click **Create Web Service**
+
+> **Note:** The backend uses `tsx` (a fast TypeScript + ESM runtime) instead of
+> compiling to JavaScript.  `npm run build` performs a type-check (`tsc --noEmit`)
+> and `npm run start` runs `tsx src/index.ts`.
+
+### Option B: Deploy to Railway
+
+1. Go to [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo**
+2. Select this repository
+3. In the service **Settings**:
+   - **Root Directory:** `stylique-virtual-tryon/backend`
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `npm run start`
+4. Add all environment variables listed above
+5. Deploy — Railway auto-assigns a public URL
+
+### Option C: Deploy to a VPS / VM
 
 ```bash
-# Clone and install
 git clone <repo-url>
 cd stylique-virtual-tryon/backend
 npm install
 
-# Build (optional for ts-node)
-npx tsc
-
 # Start with process manager
 npm install -g pm2
-pm2 start src/index.ts --interpreter ts-node --name stylique-api
+pm2 start node -- --import tsx src/index.ts --name stylique-api
 pm2 save
 ```
-
-### Option B: Deploy to Railway / Render / Fly.io
-
-1. Connect your Git repository
-2. Set the **root directory** to `stylique-virtual-tryon/backend`
-3. Set **build command** to `npm install`
-4. Set **start command** to `npx ts-node src/index.ts`
-5. Add all environment variables from above
-6. Deploy
 
 ### Verify Deployment
 

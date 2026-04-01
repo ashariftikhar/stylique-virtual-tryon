@@ -67,7 +67,7 @@ function corsDecision(
   if (STATIC_CORS_ORIGINS.has(trimmed)) {
     return { allow: true, reason: 'static-allowlist' };
   }
-  if (mode === 'production' && trimmed === panelOrigin) {
+  if (trimmed === panelOrigin) {
     return { allow: true, reason: 'FRONTEND_URL panel' };
   }
   try {
