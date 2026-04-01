@@ -6,7 +6,7 @@ export function Button({
   variant = 'primary',
   ...props
 }: any) {
-  const variants = {
+  const variants: Record<string, string> = {
     primary: 'bg-[#642FD7] hover:bg-[#542FCF] text-white',
     secondary: 'bg-gray-800 hover:bg-gray-700 text-white',
     danger: 'bg-red-900/20 hover:bg-red-900/30 text-red-300 border border-red-900/50',
@@ -14,7 +14,7 @@ export function Button({
 
   return (
     <button
-      className={`px-4 py-2 rounded-lg font-medium transition-colors ${variants[variant]} ${className}`}
+      className={`px-4 py-2 rounded-lg font-medium transition-colors ${variants[variant] ?? ''} ${className}`}
       {...props}
     >
       {children}
@@ -60,7 +60,7 @@ export function Badge({
   variant = 'default',
   className = '',
 }: any) {
-  const variants = {
+  const variants: Record<string, string> = {
     default: 'bg-gray-800 text-gray-300',
     primary: 'bg-[#642FD7]/20 text-[#B4A5E0]',
     success: 'bg-green-900/20 text-green-300',
@@ -69,7 +69,7 @@ export function Badge({
 
   return (
     <span
-      className={`px-3 py-1 rounded-full text-xs font-medium ${variants[variant]} ${className}`}
+      className={`px-3 py-1 rounded-full text-xs font-medium ${variants[variant] ?? ''} ${className}`}
     >
       {children}
     </span>
