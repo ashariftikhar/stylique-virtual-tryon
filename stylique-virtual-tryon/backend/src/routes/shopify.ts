@@ -13,6 +13,7 @@ import {
   syncShopifyProductToInventory,
   type ShopifyRestProduct,
 } from '../services/shopifySync.ts';
+import { injectStyliqueSectionIntoTheme } from '../services/shopifyThemeInjector.ts';
 
 const router: Router = express.Router();
 
@@ -244,6 +245,12 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     await registerShopifyProductWebhooks(normalizedShop, access_token, webhookBaseUrl());
   } catch (e: any) {
     console.error('[Shopify OAuth] Webhook registration error:', e.message);
+  }
+
+  try {
+    await injectStyliqueSectionIntoTheme(normalizedShop, access_token, storeUuid!);
+  } catch (e: any) {
+    console.error('[Shopify OAuth] Theme injection error (non-fatal):', e.message);
   }
 
   res.redirect(302, successRedirectUrl());
