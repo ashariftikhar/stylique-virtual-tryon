@@ -55,6 +55,11 @@ function isNgrokDevHost(host: string): boolean {
   return h.includes('ngrok-free.') || h.endsWith('.ngrok.io') || h.endsWith('.ngrok.app');
 }
 
+function isVercelDeployment(host: string): boolean {
+  const h = host.toLowerCase();
+  return h.endsWith('.vercel.app');
+}
+
 function corsDecision(
   origin: string | undefined,
   mode: 'development' | 'production',
@@ -80,6 +85,9 @@ function corsDecision(
     }
     if (isNgrokDevHost(host)) {
       return { allow: true, reason: 'ngrok dev host' };
+    }
+    if (isVercelDeployment(host)) {
+      return { allow: true, reason: 'vercel deployment' };
     }
   } catch {
     return { allow: false, reason: 'invalid Origin URL' };
