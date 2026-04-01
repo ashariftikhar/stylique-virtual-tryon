@@ -13,22 +13,26 @@ export function useAuth() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/get-store-session');
-        const data = await response.json();
+        // Check if we have a token in localStorage
+        const token = localStorage.getItem('auth_token');
+        const storeId = localStorage.getItem('store_id');
 
-        if (data.authenticated && data.store) {
-          setStore(data.store);
-          setIsAuthenticated(true);
-        } else {
+        if (!token || !storeId) {
           setIsAuthenticated(false);
+          setIsLoading(false);
           router.push('/login');
+          return;
         }
+
+        // Token exists, consider user authenticated
+        // Store ID can be used to fetch store details if needed
+        setIsAuthenticated(true);
+        setIsLoading(false);
       } catch (error) {
         console.error('Auth check failed:', error);
         setIsAuthenticated(false);
-        router.push('/login');
-      } finally {
         setIsLoading(false);
+        router.push('/login');
       }
     };
 
@@ -41,6 +45,11 @@ export function useAuth() {
     } catch {
       // Best-effort
     }
+    
+    // Clear token and store ID from localStorage
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('store_id');
+    
     setStore(null);
     setIsAuthenticated(false);
     router.push('/login');

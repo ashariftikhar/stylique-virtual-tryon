@@ -45,6 +45,13 @@ export default function StoreLogin() {
         return;
       }
 
+      // Save token and store ID to localStorage for cross-origin requests
+      if (result.token) {
+        localStorage.setItem('auth_token', result.token);
+        localStorage.setItem('store_id', store_id);
+        console.log('Token saved to localStorage');
+      }
+
       console.log('Authentication successful, redirecting...');
       router.push('/');
     } catch (error) {

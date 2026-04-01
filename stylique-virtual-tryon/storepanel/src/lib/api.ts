@@ -7,19 +7,30 @@ export class ApiClient {
     this.baseUrl = baseUrl.replace(/\/$/, '');
   }
 
+  private getAuthToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('auth_token');
+  }
+
   private async request<T>(
     endpoint: string,
     method: string = 'GET',
     body?: any
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const token = this.getAuthToken();
+    
     const options: RequestInit = {
       method,
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include',
     };
+
+    // Add Authorization header if token exists
+    if (token) {
+      (options.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
 
     if (body) {
       options.body = JSON.stringify(body);
