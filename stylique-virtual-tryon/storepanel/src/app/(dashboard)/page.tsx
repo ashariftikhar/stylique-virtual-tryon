@@ -14,6 +14,8 @@ import {
   Layers,
   CheckCircle,
   Star,
+  AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { StoreConfig, InventoryItem } from '@/types/api';
@@ -29,24 +31,24 @@ export default function StorePanelHome() {
   const [tryonCount, setTryonCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [themeInjection, setThemeInjection] = useState<{ done: boolean; status: string | null; shopDomain: string | null } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const sessionResponse = await fetch('/api/get-store-session');
-        const sessionData = await sessionResponse.json();
-
-        if (!sessionData.authenticated || !sessionData.store?.id) {
+        const storeId = typeof window !== 'undefined' ? localStorage.getItem('store_id') : null;
+        if (!storeId) {
           router.push('/login');
           return;
         }
 
-        const storeId = sessionData.store.id;
-
         try {
-          const config: any = await apiClient.getStoreConfig(storeId);
-          setStoreConfig(config.config);
+          const configRes: any = await apiClient.getStoreConfig(storeId);
+          setStoreConfig(configRes.config);
+          if (configRes.themeInjection) {
+            setThemeInjection(configRes.themeInjection);
+          }
         } catch {
           // config endpoint may not be ready
         }
@@ -126,6 +128,68 @@ export default function StorePanelHome() {
           Manage your inventory and track customer engagement
         </p>
       </motion.div>
+
+      {/* Theme injection status banner */}
+      {themeInjection && !themeInjection.done && themeInjection.status && (
+        <motion.div variants={fade}>
+          <div className="rounded-2xl bg-amber-950/30 border border-amber-800/50 p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-amber-300">
+                  Widget Setup Required
+                </h3>
+                <p className="text-xs text-amber-400/80 mt-1">
+                  Automatic theme injection could not complete. Please add the Stylique Virtual Try-On section to your theme manually.
+                </p>
+                {themeInjection.shopDomain && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href={`https://${themeInjection.shopDomain}/admin/themes`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 text-amber-200 text-xs font-medium transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Open Theme Editor
+                    </a>
+                    <a
+                      href={`https://${themeInjection.shopDomain}/admin/themes/current/editor?context=apps`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#642FD7]/20 hover:bg-[#642FD7]/30 text-[#B794F6] text-xs font-medium transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Theme Customizer
+                    </a>
+                  </div>
+                )}
+                <details className="mt-3">
+                  <summary className="text-xs text-amber-500/60 cursor-pointer hover:text-amber-400/80">
+                    View detailed instructions
+                  </summary>
+                  <pre className="mt-2 p-3 rounded-lg bg-black/40 text-xs text-gray-300 whitespace-pre-wrap overflow-x-auto max-h-48">
+                    {themeInjection.status}
+                  </pre>
+                </details>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {themeInjection && themeInjection.done && (
+        <motion.div variants={fade}>
+          <div className="rounded-2xl bg-emerald-950/30 border border-emerald-800/50 p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
+              <p className="text-sm text-emerald-300">
+                Widget installed in your Shopify theme
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Primary stats */}
       <motion.div variants={fade} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">

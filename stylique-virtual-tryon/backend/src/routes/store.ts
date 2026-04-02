@@ -37,7 +37,7 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select(
-        'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used'
+        'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used, shopify_theme_injection_done, shopify_theme_injection_status, shopify_shop_domain'
       )
       .eq(lookupCol, storeId)
       .maybeSingle();
@@ -76,6 +76,11 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
       status: 'success',
       config,
       subscriptionActive,
+      themeInjection: {
+        done: store.shopify_theme_injection_done ?? false,
+        status: store.shopify_theme_injection_status ?? null,
+        shopDomain: store.shopify_shop_domain ?? null,
+      },
     });
   } catch (error: any) {
     console.error('Error fetching store config:', error);

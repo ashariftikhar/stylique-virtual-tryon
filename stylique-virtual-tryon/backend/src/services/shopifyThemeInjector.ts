@@ -4,6 +4,11 @@
  * After OAuth, automatically uploads the Stylique Liquid section into the
  * merchant's active theme and wires it into the product template so the
  * try-on widget appears without any manual theme editing.
+ *
+ * Both REST Asset PUT and GraphQL themeFilesUpsert require a Shopify-granted
+ * exemption for write_themes.  We attempt both, and when neither succeeds we
+ * store clear manual-install instructions (with a deep link to the theme
+ * code editor) so the merchant can paste the section themselves.
  */
 
 import fs from 'fs';
@@ -11,7 +16,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getSupabase } from './supabase.ts';
 
-const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-10';
+const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-01';
 const SECTION_KEY = 'sections/stylique-virtual-try-on.liquid';
 const SECTION_ID = 'stylique-virtual-try-on';
 const PRODUCT_TEMPLATE_JSON = 'templates/product.json';
@@ -23,11 +28,15 @@ const __filename_esm = fileURLToPath(import.meta.url);
 const __dirname_esm = path.dirname(__filename_esm);
 
 // ---------------------------------------------------------------------------
-// Helpers
+// REST helpers
 // ---------------------------------------------------------------------------
 
 function shopifyAdminUrl(shop: string, endpoint: string): string {
   return `https://${shop}/admin/api/${SHOPIFY_API_VERSION}${endpoint}`;
+}
+
+function shopifyGraphqlUrl(shop: string): string {
+  return `https://${shop}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
 }
 
 async function shopifyGet(shop: string, token: string, endpoint: string) {
@@ -68,13 +77,56 @@ async function shopifyPut(shop: string, token: string, endpoint: string, body: u
     rawText = await res.text();
     json = rawText ? JSON.parse(rawText) : {};
   } catch {
-    console.warn(`${TAG} shopifyPut: failed to parse JSON from ${endpoint} — raw: ${rawText.slice(0, 300)}`);
+    console.warn(`${TAG} shopifyPut: failed to parse JSON — raw: ${rawText.slice(0, 300)}`);
   }
   if (!res.ok) {
     console.warn(`${TAG} PUT ${endpoint} → ${res.status} ${res.statusText} — body: ${rawText.slice(0, 500)}`);
   }
   return { res, json };
 }
+
+// ---------------------------------------------------------------------------
+// GraphQL helpers
+// ---------------------------------------------------------------------------
+
+async function shopifyGraphql(shop: string, token: string, query: string, variables: Record<string, unknown>) {
+  const url = shopifyGraphqlUrl(shop);
+  console.log(`${TAG} POST ${url} (GraphQL)`);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Shopify-Access-Token': token,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  let json: any = {};
+  let rawText = '';
+  try {
+    rawText = await res.text();
+    json = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    console.warn(`${TAG} GraphQL: failed to parse JSON — raw: ${rawText.slice(0, 300)}`);
+  }
+  if (!res.ok) {
+    console.warn(`${TAG} GraphQL → ${res.status} ${res.statusText} — body: ${rawText.slice(0, 500)}`);
+  }
+  return { res, json };
+}
+
+const UPSERT_MUTATION = `
+mutation themeFilesUpsert($files: [OnlineStoreThemeFilesUpsertFileInput!]!, $themeId: ID!) {
+  themeFilesUpsert(files: $files, themeId: $themeId) {
+    upsertedThemeFiles {
+      filename
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}`;
 
 function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -90,13 +142,9 @@ function readLiquidSectionContent(): string {
   if (_liquidContentCache) return _liquidContentCache;
 
   const candidates = [
-    // ESM-compatible __dirname (works with tsx on Render)
     path.resolve(__dirname_esm, '..', '..', '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
     path.resolve(__dirname_esm, '..', '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
-    // CWD-based (works when cwd is the backend folder)
     path.resolve(process.cwd(), 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
-    path.resolve(process.cwd(), '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
-    // Render-specific: rootDir is stylique-virtual-tryon/backend
     path.resolve(process.cwd(), '..', 'shopify', 'Shopify_new_tryon_upload_first.liquid'),
   ];
 
@@ -115,7 +163,7 @@ function readLiquidSectionContent(): string {
   }
 
   console.error(`${TAG} Liquid file not found. Tried: ${candidates.join(', ')}`);
-  throw new Error(`${TAG} Cannot find Shopify_new_tryon_upload_first.liquid in any expected location`);
+  throw new Error(`Cannot find Shopify_new_tryon_upload_first.liquid in any expected location`);
 }
 
 // ---------------------------------------------------------------------------
@@ -157,7 +205,7 @@ async function getMainTheme(shop: string, token: string): Promise<ShopifyTheme> 
   const { res, json } = await shopifyGet(shop, token, '/themes.json');
   if (res.status === 403) {
     throw new Error(
-      'Missing read_themes scope. Re-install the app with SHOPIFY_SCOPES=read_products,write_products,read_themes,write_themes'
+      'Missing read_themes scope. Re-install the app with SHOPIFY_SCOPES including read_themes,write_themes'
     );
   }
   if (!res.ok) {
@@ -181,34 +229,96 @@ async function sectionExistsInTheme(
   themeId: number,
 ): Promise<boolean> {
   const endpoint = `/themes/${themeId}/assets.json?asset[key]=${encodeURIComponent(SECTION_KEY)}`;
-  const { res } = await shopifyGet(shop, token, endpoint);
-  return res.ok;
+  try {
+    const { res } = await shopifyGet(shop, token, endpoint);
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: Upload the Liquid section
+// Step 3: Upload the Liquid section (REST → GraphQL fallback)
 // ---------------------------------------------------------------------------
+
+async function uploadSectionViaRest(
+  shop: string,
+  token: string,
+  themeId: number,
+  content: string,
+): Promise<boolean> {
+  console.log(`${TAG} Attempting REST PUT for section upload…`);
+  const { res, json } = await shopifyPut(shop, token, `/themes/${themeId}/assets.json`, {
+    asset: { key: SECTION_KEY, value: content },
+  });
+
+  if (res.ok) {
+    console.log(`${TAG} REST PUT succeeded — section uploaded to theme ${themeId}`);
+    return true;
+  }
+
+  const errMsg = (json as any)?.errors || JSON.stringify(json).slice(0, 500);
+  console.warn(`${TAG} REST PUT failed (HTTP ${res.status}): ${errMsg}`);
+  return false;
+}
+
+async function uploadSectionViaGraphql(
+  shop: string,
+  token: string,
+  themeId: number,
+  content: string,
+): Promise<boolean> {
+  console.log(`${TAG} Attempting GraphQL themeFilesUpsert for section upload…`);
+  const gid = `gid://shopify/OnlineStoreTheme/${themeId}`;
+  const { res, json } = await shopifyGraphql(shop, token, UPSERT_MUTATION, {
+    themeId: gid,
+    files: [{
+      filename: SECTION_KEY,
+      body: { type: 'TEXT', value: content },
+    }],
+  });
+
+  if (!res.ok) {
+    console.warn(`${TAG} GraphQL HTTP error: ${res.status}`);
+    return false;
+  }
+
+  const userErrors = json?.data?.themeFilesUpsert?.userErrors;
+  if (userErrors && userErrors.length > 0) {
+    console.warn(`${TAG} GraphQL userErrors:`, JSON.stringify(userErrors));
+    return false;
+  }
+
+  const upserted = json?.data?.themeFilesUpsert?.upsertedThemeFiles;
+  if (upserted && upserted.length > 0) {
+    console.log(`${TAG} GraphQL themeFilesUpsert succeeded — files: ${JSON.stringify(upserted)}`);
+    return true;
+  }
+
+  console.warn(`${TAG} GraphQL themeFilesUpsert: no upsertedThemeFiles in response`);
+  return false;
+}
 
 async function uploadSectionAsset(
   shop: string,
   token: string,
   themeId: number,
-): Promise<void> {
+): Promise<'rest' | 'graphql' | 'failed'> {
   const content = readLiquidSectionContent();
 
-  const { res, json } = await shopifyPut(shop, token, `/themes/${themeId}/assets.json`, {
-    asset: {
-      key: SECTION_KEY,
-      value: content,
-    },
-  });
-
-  if (!res.ok) {
-    const errMsg = (json as any)?.errors || JSON.stringify(json).slice(0, 500);
-    throw new Error(`Upload section failed (HTTP ${res.status}): ${errMsg}`);
+  // Try REST first
+  if (await uploadSectionViaRest(shop, token, themeId, content)) {
+    return 'rest';
   }
 
-  console.log(`${TAG} Section asset uploaded to theme ${themeId}`);
+  await delay(500);
+
+  // Fallback to GraphQL
+  if (await uploadSectionViaGraphql(shop, token, themeId, content)) {
+    return 'graphql';
+  }
+
+  return 'failed';
 }
 
 // ---------------------------------------------------------------------------
@@ -241,19 +351,38 @@ async function putThemeAsset(
   themeId: number,
   key: string,
   value: string,
-): Promise<void> {
-  const { res, json } = await shopifyPut(shop, token, `/themes/${themeId}/assets.json`, {
+): Promise<boolean> {
+  // Try REST
+  const { res: restRes } = await shopifyPut(shop, token, `/themes/${themeId}/assets.json`, {
     asset: { key, value },
   });
-  if (!res.ok) {
-    const errMsg = (json as any)?.errors || JSON.stringify(json).slice(0, 500);
-    throw new Error(`Put asset ${key} failed (HTTP ${res.status}): ${errMsg}`);
+  if (restRes.ok) return true;
+
+  console.warn(`${TAG} REST PUT for ${key} failed (${restRes.status}), trying GraphQL…`);
+  await delay(300);
+
+  // Fallback to GraphQL
+  const gid = `gid://shopify/OnlineStoreTheme/${themeId}`;
+  const { res: gqlRes, json: gqlJson } = await shopifyGraphql(shop, token, UPSERT_MUTATION, {
+    themeId: gid,
+    files: [{ filename: key, body: { type: 'TEXT', value } }],
+  });
+
+  if (!gqlRes.ok) {
+    console.warn(`${TAG} GraphQL PUT for ${key} also failed (${gqlRes.status})`);
+    return false;
   }
+
+  const userErrors = gqlJson?.data?.themeFilesUpsert?.userErrors;
+  if (userErrors && userErrors.length > 0) {
+    console.warn(`${TAG} GraphQL userErrors for ${key}:`, JSON.stringify(userErrors));
+    return false;
+  }
+
+  console.log(`${TAG} GraphQL upsert succeeded for ${key}`);
+  return true;
 }
 
-/**
- * OS 2.0 JSON template: add a section reference to templates/product.json
- */
 async function wireIntoJsonTemplate(
   shop: string,
   token: string,
@@ -284,7 +413,6 @@ async function wireIntoJsonTemplate(
     return false;
   }
 
-  // Some themes use a wrapper layout; ensure sections object exists
   if (!template.sections || typeof template.sections !== 'object') {
     console.warn(`${TAG} product.json has no sections object — creating one`);
     template.sections = {};
@@ -305,14 +433,15 @@ async function wireIntoJsonTemplate(
   }
 
   const updated = JSON.stringify(template, null, 2);
-  await putThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_JSON, updated);
+  const ok = await putThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_JSON, updated);
+  if (!ok) {
+    console.warn(`${TAG} Failed to write product.json — asset write blocked`);
+    return false;
+  }
   console.log(`${TAG} Section added to product.json`);
   return true;
 }
 
-/**
- * Legacy Liquid template: inject {% section %} tag into templates/product.liquid
- */
 async function wireIntoLiquidTemplate(
   shop: string,
   token: string,
@@ -325,14 +454,13 @@ async function wireIntoLiquidTemplate(
   }
 
   const raw = (asset.value || '').trim();
-  if (!raw) {
-    console.warn(`${TAG} product.liquid exists but is empty — appending section tag`);
-    const sectionTag = `{% section '${SECTION_ID}' %}`;
-    await putThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_LIQUID, sectionTag);
-    return true;
-  }
-
   const sectionTag = `{% section '${SECTION_ID}' %}`;
+
+  if (!raw) {
+    console.warn(`${TAG} product.liquid exists but is empty — writing section tag`);
+    const ok = await putThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_LIQUID, sectionTag);
+    return ok;
+  }
 
   if (raw.includes(sectionTag) || raw.includes(`section '${SECTION_ID}'`)) {
     console.log(`${TAG} Section tag already present in product.liquid`);
@@ -350,9 +478,44 @@ async function wireIntoLiquidTemplate(
     content += `\n${sectionTag}\n`;
   }
 
-  await putThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_LIQUID, content);
+  const ok = await putThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_LIQUID, content);
+  if (!ok) {
+    console.warn(`${TAG} Failed to write product.liquid — asset write blocked`);
+    return false;
+  }
   console.log(`${TAG} Section tag injected into product.liquid`);
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Manual-install instructions builder
+// ---------------------------------------------------------------------------
+
+function buildManualInstallInstructions(shop: string, themeId: number, themeName: string): string {
+  const editorUrl = `https://${shop}/admin/themes/${themeId}`;
+  const customizerUrl = `https://${shop}/admin/themes/${themeId}/editor`;
+  return [
+    `Automatic theme injection could not complete (Shopify requires an exemption for programmatic theme writes).`,
+    ``,
+    `To add the Stylique Virtual Try-On widget manually:`,
+    ``,
+    `Option A — Theme Customizer (recommended for OS 2.0 themes):`,
+    `  1. Go to: ${customizerUrl}`,
+    `  2. Navigate to a Product page template`,
+    `  3. Click "Add section" → search for "Stylique Virtual Try-On"`,
+    `  4. Position it where you want the try-on button to appear`,
+    `  5. Save`,
+    ``,
+    `Option B — Code Editor (all themes):`,
+    `  1. Go to: ${editorUrl}`,
+    `  2. Under "sections/", create a new file: stylique-virtual-try-on.liquid`,
+    `  3. Paste the Stylique section code (available in your store panel under Settings)`,
+    `  4. Open templates/product.json (or product.liquid) and add the section reference`,
+    `  5. Save`,
+    ``,
+    `Theme: "${themeName}" (ID: ${themeId})`,
+    `Timestamp: ${new Date().toISOString()}`,
+  ].join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -365,8 +528,8 @@ export async function injectStyliqueSectionIntoTheme(
   storeUuid: string,
 ): Promise<void> {
   console.log(`${TAG} Starting theme injection for ${shopDomain} (store=${storeUuid})`);
+  console.log(`${TAG} Using Shopify API version: ${SHOPIFY_API_VERSION}`);
 
-  // Idempotency: skip if already done
   if (await isAlreadyInjected(storeUuid)) {
     console.log(`${TAG} Already injected for store ${storeUuid} — skipping`);
     return;
@@ -380,7 +543,7 @@ export async function injectStyliqueSectionIntoTheme(
 
     await delay(300);
 
-    // Step 2: Check if section asset already exists
+    // Step 2: Check if section already exists
     console.log(`${TAG} [Step 2] Checking if section asset already exists…`);
     let sectionAlreadyExists = false;
     try {
@@ -388,13 +551,26 @@ export async function injectStyliqueSectionIntoTheme(
     } catch (checkErr: any) {
       console.warn(`${TAG} [Step 2] sectionExistsInTheme threw: ${checkErr.message} — treating as "not exists"`);
     }
+
     if (sectionAlreadyExists) {
-      console.log(`${TAG} Section asset already exists in theme — checking template wiring`);
+      console.log(`${TAG} Section asset already exists in theme — skipping upload`);
     } else {
-      // Step 3: Upload the section
-      console.log(`${TAG} [Step 3] Uploading section asset…`);
+      // Step 3: Upload the section (REST → GraphQL)
+      console.log(`${TAG} [Step 3] Uploading section asset (REST → GraphQL fallback)…`);
       await delay(300);
-      await uploadSectionAsset(shopDomain, accessToken, theme.id);
+      const uploadResult = await uploadSectionAsset(shopDomain, accessToken, theme.id);
+
+      if (uploadResult === 'failed') {
+        console.warn(`${TAG} [Step 3] Both REST and GraphQL asset upload failed`);
+        console.warn(`${TAG} This usually means the app needs a Shopify "write_themes" exemption.`);
+        console.warn(`${TAG} Request it at: https://docs.google.com/forms/d/e/1FAIpQLSfZTB1vxFC5d1-GPdqYunWRGUoDcOheHQzfK2RoEFEHrknt5g/viewform`);
+
+        const instructions = buildManualInstallInstructions(shopDomain, theme.id, theme.name);
+        await markInjectionResult(storeUuid, false, instructions);
+        return;
+      }
+
+      console.log(`${TAG} Section uploaded via ${uploadResult}`);
     }
 
     // Step 4: Wire into product template
@@ -422,18 +598,18 @@ export async function injectStyliqueSectionIntoTheme(
       return;
     }
 
-    // Neither template found — section is uploaded but not wired
-    const msg = `Section uploaded to theme "${theme.name}" but no product template found ` +
-      `(neither product.json nor product.liquid). Merchant must add it manually via the ` +
-      `theme customizer. Theme ID: ${theme.id}. Timestamp: ${new Date().toISOString()}`;
-    await markInjectionResult(storeUuid, false, msg);
-    console.warn(`${TAG} ${msg}`);
+    // Asset writes blocked — section was uploaded but template wiring failed
+    const instructions = buildManualInstallInstructions(shopDomain, theme.id, theme.name);
+    await markInjectionResult(storeUuid, false, instructions);
+    console.warn(`${TAG} Section uploaded but template wiring failed — manual install needed`);
 
   } catch (err: any) {
-    const msg = `Injection failed at step: ${err.message}. ` +
-      `The merchant can install manually. Timestamp: ${new Date().toISOString()}`;
-    console.error(`${TAG} ${msg}`);
-    console.error(`${TAG} Stack trace:`, err.stack);
-    await markInjectionResult(storeUuid, false, msg).catch(() => {});
+    console.error(`${TAG} Injection error: ${err.message}`);
+    console.error(`${TAG} Stack:`, err.stack);
+
+    const fallback = `Injection failed: ${err.message}. ` +
+      `The merchant can install the widget manually via the theme editor. ` +
+      `Timestamp: ${new Date().toISOString()}`;
+    await markInjectionResult(storeUuid, false, fallback).catch(() => {});
   }
 }
