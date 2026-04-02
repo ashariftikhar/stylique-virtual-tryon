@@ -437,7 +437,7 @@ Clean minimal login like get-started page with light theme
           </div>
 
 
-          <!-- Recommendations Section (ULTIMATE only, shown when image is uploaded) -->
+          <!-- Recommendations Section (shown when image is uploaded, or immediately for tier 3) -->
           <div id="stylique-plugin-recommendations" style="display: none; margin-top: 2rem;">
             <!-- Size Recommendation Section -->
             <div class="stylique-size-recommendation-section" id="stylique-plugin-size-recommendation-section">
@@ -452,8 +452,35 @@ Clean minimal login like get-started page with light theme
                 </div>
               </div>
             </div>
-
           </div>
+
+          <!-- Styling / Outfit Suggestions Section -->
+          <div id="stylique-styling-suggestions" class="stylique-styling-section" style="display: none; margin-top: 1.5rem;">
+            <div class="stylique-section-header">
+              <h5>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: text-bottom; margin-right: 4px;">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                Complete the Look
+              </h5>
+              <div class="stylique-ai-badge">AI Styling</div>
+            </div>
+            <div class="stylique-styling-content">
+              <div class="stylique-styling-placeholder">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <h6>Outfit Suggestions Coming Soon</h6>
+                <p>Our AI will suggest complementary items to complete your look — matching bottoms, accessories, and shoes based on your style and body type.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tier Badge (shown after product check) -->
+          <div style="text-align: center; margin-top: 1rem;">
+            <span id="stylique-tier-badge" class="stylique-tier-badge" style="display: none;"></span>
+          </div>
+
         </div>
       </div>
     </div>
@@ -3828,6 +3855,62 @@ Clean minimal login like get-started page with light theme
       width: 40px;
     }
   }
+
+  /* Styling / Outfit Suggestions */
+  .stylique-styling-section .stylique-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .stylique-styling-section .stylique-section-header h5 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--stylique-text-primary, #1a1a1a);
+    margin: 0;
+  }
+  .stylique-styling-content {
+    background: var(--stylique-bg-card, #f8f9fa);
+    border: 1px solid var(--stylique-border, #e5e7eb);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .stylique-styling-placeholder {
+    text-align: center;
+    padding: 16px 8px;
+  }
+  .stylique-styling-placeholder svg {
+    color: var(--stylique-primary, #642FD7);
+    opacity: 0.5;
+    margin-bottom: 12px;
+  }
+  .stylique-styling-placeholder h6 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--stylique-text-primary, #1a1a1a);
+    margin: 0 0 8px 0;
+  }
+  .stylique-styling-placeholder p {
+    font-size: 12px;
+    color: var(--stylique-text-secondary, #6b7280);
+    margin: 0;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+  }
+
+  /* Tier Badge */
+  .stylique-tier-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, var(--stylique-primary, #642FD7), var(--stylique-secondary, #F4536F));
+    color: #fff;
+  }
 </style>
 
 {% assign _stylique_backend = section.settings.backend_url | strip %}
@@ -4037,31 +4120,45 @@ Clean minimal login like get-started page with light theme
     }
 
     function updateTryOnButtonsState() {
-      const start2DButton = document.getElementById('stylique-start-2d-tryon');
-      const start3DButton = document.getElementById('stylique-start-3d-tryon');
-      const imageSelected = !!window.styliqueSection.selectedImage;
-      const plan = window.styliqueSection.storePlan;
-      const active = window.styliqueSection.planActive;
-      const remaining = Math.max(0, window.styliqueSection.tryonsQuota - window.styliqueSection.tryonsUsed);
+      var start2DButton = document.getElementById('stylique-start-2d-tryon');
+      var start3DButton = document.getElementById('stylique-start-3d-tryon');
+      var imageSelected = !!window.styliqueSection.selectedImage;
+      var plan = window.styliqueSection.storePlan;
+      var active = window.styliqueSection.planActive !== false;
+      var quota = window.styliqueSection.tryonsQuota || 0;
+      var used = window.styliqueSection.tryonsUsed || 0;
+      var remaining = Math.max(0, quota - used);
 
-      const quotaOK = remaining > 0;
-      const isUltimate = plan === 'ULTIMATE';
+      // If store status never loaded, don't block on quota — allow try-on
+      var storeLoaded = !!window.styliqueSection.storeStatus;
+      var quotaOK = !storeLoaded || remaining > 0;
+
+      var canTryOn = imageSelected && quotaOK && active;
+
+      console.log('Stylique button state:', {
+        imageSelected: imageSelected, active: active, storeLoaded: storeLoaded,
+        quota: quota, used: used, remaining: remaining, quotaOK: quotaOK, canTryOn: canTryOn
+      });
 
       // 2D button: always visible, enabled when image selected + quota OK + plan active
       if (start2DButton) {
-        start2DButton.disabled = !imageSelected || !quotaOK || !active;
+        start2DButton.disabled = !canTryOn;
+        if (canTryOn) {
+          start2DButton.classList.remove('stylique-btn-disabled');
+        } else {
+          start2DButton.classList.add('stylique-btn-disabled');
+        }
       }
 
-      // 3D button: visible only for ULTIMATE plan AND if product has 3D images
+      // 3D button: visible only for ULTIMATE plan
       if (start3DButton) {
-        const product = window.styliqueSection.currentProduct;
-        const has3DImages = product && product['3d_front_image'] && product['3d_back_image'];
-        
-        // Show/hide based on plan AND product eligibility
-        start3DButton.style.display = (isUltimate && has3DImages) ? '' : 'none';
-        
-        // Enable/disable based on image selection (after plan/product check)
-        start3DButton.disabled = !imageSelected || !quotaOK || !active;
+        var isUltimate = plan === 'ULTIMATE';
+        if (!isUltimate) {
+          start3DButton.style.display = 'none';
+        } else {
+          start3DButton.style.display = 'inline-block';
+          start3DButton.disabled = !canTryOn;
+        }
       }
     }
 
@@ -4149,47 +4246,111 @@ Clean minimal login like get-started page with light theme
       if (uploadSection) uploadSection.style.display = 'block';
       if (tryonOptions) tryonOptions.style.display = 'block';
 
+      const payload = {
+        storeId: window.styliqueSection.storeId,
+        currentUrl: window.styliqueSection.currentUrl,
+        shopifyProductId: {% if product %}{{ product.id }}{% else %}null{% endif %}
+      };
+      console.log('Stylique check-product payload:', payload);
+
       try {
         const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/check-product', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            storeId: window.styliqueSection.storeId,
-            currentUrl: window.styliqueSection.currentUrl,
-            shopifyProductId: {% if product %}{{ product.id }}{% else %}null{% endif %}
-          })
+          body: JSON.stringify(payload)
         });
 
         const data = await response.json();
-        console.log('📦 Product availability check:', data);
+        console.log('Stylique check-product response:', data);
 
         if (data.available === true && data.product) {
           // Product is available - store product info
           window.styliqueSection.currentProduct = data.product;
           window.styliqueSection.internalProductId = data.product.id;
-          console.log('✅ Product available for try-on (Internal ID):', data.product.id);
-          
-          // Update UI state based on product availability
-          updateTryOnButtonsState();
 
-          // Show upload section
+          // Capture Product UUID for analytics
+          if (data.product.id) {
+            window.styliqueSection.productUuid = data.product.id;
+            console.log('Stylique: Product UUID resolved:', data.product.id);
+          }
+
+          // Capture product tier (1, 2, or 3) — default to 3 if missing
+          var tier = (data.product && data.product.tier) ? Number(data.product.tier) : 3;
+          window.styliqueSection.productTier = tier;
+          console.log('Stylique: Product tier:', tier);
+
+          // Hide unavailable message
           if (unavailableSection) unavailableSection.style.display = 'none';
           if (uploadSection) uploadSection.style.display = 'block';
-          if (tryonOptions) tryonOptions.style.display = 'block';
+
+          // Apply tier-based routing (hides buttons for tier 3)
+          applyTierRouting(tier);
+
+          // Update UI state based on product availability
+          updateTryOnButtonsState();
         } else {
           // Product not available - show unavailable message
-          console.log('⚠️ Product not available for try-on:', data.message || data.reason);
+          console.log('Stylique: Product not available for try-on:', data.message || data.reason);
 
           if (unavailableSection) unavailableSection.style.display = 'block';
           if (uploadSection) uploadSection.style.display = 'none';
           if (tryonOptions) tryonOptions.style.display = 'none';
         }
       } catch (error) {
-        console.error('❌ Error checking product availability:', error);
-        // On error, default to showing upload section (let try-on handle the error)
-        if (unavailableSection) unavailableSection.style.display = 'none';
+        console.error('Stylique: Error checking product availability:', error);
+        if (unavailableSection) {
+          unavailableSection.style.display = 'block';
+          var msg = unavailableSection.querySelector('p');
+          if (msg) {
+            msg.textContent = 'Could not reach Stylique. Check your network and backend URL. If the issue persists, contact support.';
+          }
+        }
+        if (uploadSection) uploadSection.style.display = 'none';
+        if (tryonOptions) tryonOptions.style.display = 'none';
+      }
+    }
+
+    /**
+     * Show/hide UI sections based on the product tier.
+     * Tier 1-2: full try-on experience (2D/3D buttons visible).
+     * Tier 3: only size recommendation and styling suggestions.
+     */
+    function applyTierRouting(tier) {
+      var tryOnOptions = document.querySelector('.stylique-tryon-options');
+      var uploadSection = document.querySelector('.stylique-upload-section');
+      var stylingSection = document.getElementById('stylique-styling-suggestions');
+      var recsSection = document.getElementById('stylique-plugin-recommendations');
+      var tierBadge = document.getElementById('stylique-tier-badge');
+
+      if (tier === 3) {
+        console.log('Stylique: Tier 3 — hiding try-on buttons, showing size rec + styling only');
+
+        if (tryOnOptions) tryOnOptions.style.display = 'none';
+        if (uploadSection) uploadSection.style.display = 'none';
+
+        // Show recommendations and styling for tier 3 immediately
+        if (recsSection) recsSection.style.display = 'block';
+        if (stylingSection) stylingSection.style.display = 'block';
+        if (tierBadge) {
+          tierBadge.textContent = 'Size & Style Only';
+          tierBadge.style.display = 'inline-block';
+        }
+
+        // Auto-load size recommendation if product ID available
+        var productId = window.styliqueSection.productUuid || window.styliqueSection.internalProductId;
+        if (productId) {
+          loadSizeRecommendation(productId, 'stylique-plugin-size-recommendation-content');
+        }
+      } else {
+        console.log('Stylique: Tier ' + tier + ' — full try-on experience available');
+
+        if (tryOnOptions) tryOnOptions.style.display = 'block';
         if (uploadSection) uploadSection.style.display = 'block';
-        if (tryonOptions) tryonOptions.style.display = 'block';
+        if (stylingSection) stylingSection.style.display = 'block';
+        if (tierBadge) {
+          tierBadge.textContent = tier === 1 ? 'Premium' : 'Standard';
+          tierBadge.style.display = 'inline-block';
+        }
       }
     }
 
@@ -5658,29 +5819,39 @@ Clean minimal login like get-started page with light theme
     async function loadSizeRecommendation(productId, containerId = 'stylique-size-recommendation-content') {
       const container = document.getElementById(containerId);
       if (!container) {
-        console.warn('📊 Size recommendation container not found:', containerId);
+        console.warn('Stylique size-rec: container not found:', containerId);
         return;
       }
 
-      console.log('📊 Loading size recommendation for product:', productId, 'container:', containerId);
+      const userId = window.styliqueSection.user?.id;
+      if (!userId) {
+        console.log('Stylique size-rec: skipped — no user ID (not logged in)');
+        return;
+      }
+
+      // Prefer the inventory UUID resolved from check-product; fall back to the
+      // Shopify numeric ID passed as argument (the backend will try both).
+      const resolvedProductId = window.styliqueSection.productUuid || productId;
+
+      const payload = {
+        storeId: window.styliqueSection.storeId,
+        productId: resolvedProductId,
+        userId: userId,
+        currentUrl: window.styliqueSection.currentUrl
+      };
+
+      console.log('=== Stylique Size Recommendation Request ===');
+      console.log('Endpoint:', STYLIQUE_API_BASE + '/api/plugin/size-recommendation');
+      console.log('productId (resolved):', resolvedProductId);
+      console.log('productId (original):', productId);
+      console.log('productUuid:', window.styliqueSection.productUuid);
+      console.log('userId:', userId);
 
       try {
-        const userId = window.styliqueSection.user?.id;
-        if (!userId) {
-          console.warn('📊 User not logged in, cannot load size recommendations');
-          container.innerHTML = '<p class="stylique-error-text">Please log in to get size recommendations</p>';
-          return;
-        }
-
         const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/size-recommendation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            storeId: window.styliqueSection.storeId,
-            productId: productId,
-            userId: userId,
-            currentUrl: window.styliqueSection.currentUrl
-          })
+          body: JSON.stringify(payload)
         });
 
         const data = await response.json();
@@ -6048,15 +6219,36 @@ Clean minimal login like get-started page with light theme
     // Reset try-on
     function resetTryOn() {
       window.styliqueSection.selectedImage = null;
-      window.styliqueSection.currentProduct = null;
       window.styliqueSection.garmentImage = null;
       document.getElementById('stylique-image-preview').style.display = 'none';
-      // Disable try-on buttons
-      const start2DButton = document.getElementById('stylique-start-2d-tryon');
-      const start3DButton = document.getElementById('stylique-start-3d-tryon');
-      if (start2DButton) start2DButton.disabled = true;
-      if (start3DButton) start3DButton.disabled = true;
       document.getElementById('stylique-file-input').value = '';
+
+      // Reset 2D result
+      var result2D = document.getElementById('stylique-inline-result');
+      if (result2D) result2D.style.display = 'none';
+
+      // Reset 3D result
+      var result3D = document.getElementById('stylique-inline-3d-result');
+      if (result3D) result3D.style.display = 'none';
+      var container3D = document.getElementById('stylique-3d-inline-container');
+      if (container3D) container3D.innerHTML = '';
+
+      // Restore upload area
+      var uploadArea = document.getElementById('stylique-upload-area');
+      if (uploadArea) uploadArea.style.display = 'block';
+
+      // Re-apply tier routing to restore correct visibility
+      var tier = window.styliqueSection.productTier;
+      if (tier) {
+        applyTierRouting(tier);
+      } else {
+        var uploadSection = document.querySelector('.stylique-upload-section');
+        if (uploadSection) uploadSection.style.display = 'block';
+        var options = document.querySelector('.stylique-tryon-options');
+        if (options) options.style.display = 'block';
+      }
+
+      updateTryOnButtonsState();
       hideResultsModal();
       hide3DResultsModal();
     }
