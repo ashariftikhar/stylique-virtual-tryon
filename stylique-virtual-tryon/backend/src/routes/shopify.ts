@@ -122,14 +122,16 @@ router.get('/shopify/oauth', (req: Request, res: Response) => {
   if (linkStoreId) statePayload.linkStoreId = linkStoreId;
   const state = signOAuthState(statePayload);
   const rd = redirectUri();
-  const scopes = encodeURIComponent(DEFAULT_SCOPES);
   const authorizeUrl =
     `https://${shop}/admin/oauth/authorize?` +
     `client_id=${encodeURIComponent(apiKey)}` +
-    `&scope=${scopes}` +
+    `&scope=${encodeURIComponent(DEFAULT_SCOPES)}` +
     `&redirect_uri=${encodeURIComponent(rd)}` +
     `&state=${encodeURIComponent(state)}`;
 
+  console.log('[Shopify OAuth] Scopes requested:', DEFAULT_SCOPES);
+  console.log('[Shopify OAuth] Redirect URI:', rd);
+  console.log('[Shopify OAuth] Authorize URL:', authorizeUrl);
   console.log('[Shopify OAuth] Redirecting to authorize for shop:', shop, linkStoreId ? `(link store ${linkStoreId})` : '');
   res.redirect(302, authorizeUrl);
 });
@@ -165,6 +167,16 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     const exchanged = await exchangeShopifyOAuthCode(normalizedShop, code);
     access_token = exchanged.access_token;
     console.log('[Shopify OAuth] Token exchanged for', normalizedShop);
+    console.log('[Shopify OAuth] Granted scopes:', exchanged.scope);
+    
+    const requiredScopes = ['read_products', 'write_products', 'read_themes', 'write_themes'];
+    const grantedSet = new Set(exchanged.scope.split(',').map(s => s.trim()));
+    const missing = requiredScopes.filter(s => !grantedSet.has(s));
+    if (missing.length > 0) {
+      console.warn('[Shopify OAuth] WARNING: Missing scopes:', missing.join(', '));
+      console.warn('[Shopify OAuth] Granted only:', exchanged.scope);
+      console.warn('[Shopify OAuth] The app may not have these scopes configured in the Shopify Partner Dashboard.');
+    }
   } catch (e: any) {
     console.error('[Shopify OAuth] Token exchange failed:', e.message);
     return res.redirect(302, errorRedirectUrl(e.message || 'token_exchange_failed'));
