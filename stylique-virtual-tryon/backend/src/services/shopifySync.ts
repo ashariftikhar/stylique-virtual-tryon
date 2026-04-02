@@ -1,7 +1,7 @@
 import { getSupabase } from './supabase.ts';
 import { processProductImages } from '../routes/images.ts';
 
-const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2024-10';
+const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-10';
 
 export interface ShopifyRestProduct {
   id: number;

@@ -11,7 +11,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getSupabase } from './supabase.ts';
 
-const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2024-10';
+const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-10';
 const SECTION_KEY = 'sections/stylique-virtual-try-on.liquid';
 const SECTION_ID = 'stylique-virtual-try-on';
 const PRODUCT_TEMPLATE_JSON = 'templates/product.json';
@@ -31,7 +31,9 @@ function shopifyAdminUrl(shop: string, endpoint: string): string {
 }
 
 async function shopifyGet(shop: string, token: string, endpoint: string) {
-  const res = await fetch(shopifyAdminUrl(shop, endpoint), {
+  const url = shopifyAdminUrl(shop, endpoint);
+  console.log(`${TAG} GET ${url}`);
+  const res = await fetch(url, {
     headers: { 'X-Shopify-Access-Token': token, Accept: 'application/json' },
   });
   let json: unknown = {};
@@ -41,25 +43,35 @@ async function shopifyGet(shop: string, token: string, endpoint: string) {
   } catch {
     console.warn(`${TAG} shopifyGet: failed to parse JSON from ${endpoint}`);
   }
+  if (!res.ok) {
+    console.warn(`${TAG} GET ${endpoint} → ${res.status} ${res.statusText}`);
+  }
   return { res, json };
 }
 
 async function shopifyPut(shop: string, token: string, endpoint: string, body: unknown) {
-  const res = await fetch(shopifyAdminUrl(shop, endpoint), {
+  const url = shopifyAdminUrl(shop, endpoint);
+  const payload = JSON.stringify(body);
+  console.log(`${TAG} PUT ${url} (${payload.length} bytes)`);
+  const res = await fetch(url, {
     method: 'PUT',
     headers: {
       'X-Shopify-Access-Token': token,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify(body),
+    body: payload,
   });
   let json: unknown = {};
+  let rawText = '';
   try {
-    const text = await res.text();
-    json = text ? JSON.parse(text) : {};
+    rawText = await res.text();
+    json = rawText ? JSON.parse(rawText) : {};
   } catch {
-    console.warn(`${TAG} shopifyPut: failed to parse JSON from ${endpoint}`);
+    console.warn(`${TAG} shopifyPut: failed to parse JSON from ${endpoint} — raw: ${rawText.slice(0, 300)}`);
+  }
+  if (!res.ok) {
+    console.warn(`${TAG} PUT ${endpoint} → ${res.status} ${res.statusText} — body: ${rawText.slice(0, 500)}`);
   }
   return { res, json };
 }
