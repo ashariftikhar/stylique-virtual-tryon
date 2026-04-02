@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Store as StoreType } from '@/types/api';
 import {
@@ -33,16 +33,16 @@ export default function StorePanelLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Check for token in URL params (auto-login after Shopify OAuth)
-    const urlToken = searchParams.get('token');
-    const urlStoreId = searchParams.get('store_id');
+    // Check for token in URL params (auto-login after Shopify OAuth redirect)
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    const urlStoreId = params.get('store_id');
     if (urlToken) {
       localStorage.setItem('auth_token', urlToken);
       if (urlStoreId) localStorage.setItem('store_id', urlStoreId);
-      // Clean the URL by removing query params
+      console.log('[Layout] OAuth auto-login: token saved to localStorage');
       window.history.replaceState({}, '', pathname);
     }
 
@@ -56,10 +56,9 @@ export default function StorePanelLayout({
       return;
     }
 
-    // We have a token — set minimal store info for the sidebar
     setStore({ store_id: storeId, store_name: storeId.replace('.myshopify.com', '') } as StoreType);
     setLoading(false);
-  }, [router, pathname, searchParams]);
+  }, [router, pathname]);
 
   useEffect(() => {
     setSidebarOpen(false);
