@@ -9,7 +9,12 @@ export interface ShopifyRestProduct {
   handle: string;
   body_html?: string | null;
   images?: Array<{ src?: string; alt?: string }>;
-  variants?: Array<{ price?: string; option1?: string | null }>;
+  variants?: Array<{
+    price?: string;
+    option1?: string | null;
+    option2?: string | null;
+    option3?: string | null;
+  }>;
 }
 
 /**
@@ -32,13 +37,34 @@ export async function resolveStoreIdByShopDomain(shopDomain: string): Promise<st
   return byStoreId?.id ?? null;
 }
 
+/**
+ * Extract sizes from all variant options (option1, option2, option3).
+ * Returns unique, non-null, non-empty size values.
+ * Intelligently identifies size-like values (e.g., S, M, L, XS, numbers).
+ */
 function sizesFromVariants(product: ShopifyRestProduct): string[] {
-  const sizes =
-    product.variants
-      ?.map((v) => v.option1)
-      .filter((s): s is string => s != null && String(s).trim() !== '') || [];
-  return [...new Set(sizes)];
+  if (!product.variants || product.variants.length === 0) {
+    return [];
+  }
+
+  // Collect all option values from all variants
+  const allOptionValues = new Set<string>();
+
+  for (const variant of product.variants) {
+    // Extract option1, option2, option3
+    const options = [variant.option1, variant.option2, variant.option3].filter(
+      (opt): opt is string => opt != null && String(opt).trim() !== '',
+    );
+
+    for (const opt of options) {
+      allOptionValues.add(opt.trim());
+    }
+  }
+
+  // Convert Set to Array and return
+  return Array.from(allOptionValues).sort();
 }
+
 
 /**
  * Upsert one Shopify product into inventory + optional image processing (same pattern as WooCommerce).
