@@ -21,7 +21,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'stylique-dev-secret-change-me';
 const SALT_ROUNDS = 10;
 
 const DEFAULT_SCOPES =
-  process.env.SHOPIFY_SCOPES || 'read_products,write_products';
+  process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_themes,write_themes';
 
 function normalizeShopParam(shop: string): string | null {
   const host = shop
@@ -49,10 +49,12 @@ function webhookBaseUrl(): string {
     `http://localhost:${process.env.PORT || 5000}`;
 }
 
-function successRedirectUrl(storeUuid: string, storeId: string): string {
+function successRedirectUrl(storeUuid: string, storeId: string, password?: string): string {
   const base = process.env.FRONTEND_URL || 'http://localhost:3000';
   const token = jwt.sign({ storeId: storeUuid, store_id: storeId }, JWT_SECRET, { expiresIn: '7d' });
-  return `${base.replace(/\/$/, '')}/?shopify=connected&token=${encodeURIComponent(token)}&store_id=${encodeURIComponent(storeId)}`;
+  let url = `${base.replace(/\/$/, '')}/?shopify=connected&token=${encodeURIComponent(token)}&store_id=${encodeURIComponent(storeId)}`;
+  if (password) url += `&password=${encodeURIComponent(password)}`;
+  return url;
 }
 
 function errorRedirectUrl(message: string): string {
@@ -170,6 +172,11 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
 
   const supabase = getSupabase();
   let storeUuid: string | null = null;
+  let generatedPassword: string | undefined;
+
+  // Generate a human-readable password for the merchant
+  const plainPassword = crypto.randomBytes(6).toString('hex'); // 12-char hex
+  const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
 
   if (statePayload.linkStoreId) {
     const { data: row, error } = await supabase
@@ -185,6 +192,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
       .update({
         shopify_access_token: access_token,
         shopify_shop_domain: normalizedShop,
+        password_hash: hashedPassword,
       })
       .eq('id', row.id);
     if (upErr) {
@@ -192,6 +200,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
       return res.redirect(302, errorRedirectUrl('db_update_failed'));
     }
     storeUuid = row.id;
+    generatedPassword = plainPassword;
     console.log('[Shopify OAuth] Linked Shopify to existing store', storeUuid);
   } else {
     const { data: existing } = await supabase
@@ -206,19 +215,20 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
         .update({
           shopify_access_token: access_token,
           shopify_shop_domain: normalizedShop,
+          password_hash: hashedPassword,
         })
         .eq('id', existing.id);
       storeUuid = existing.id;
+      generatedPassword = plainPassword;
       console.log('[Shopify OAuth] Updated existing store by store_id match');
     } else {
-      const randomHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS);
       const name = normalizedShop.replace('.myshopify.com', '');
       const { data: created, error: insErr } = await supabase
         .from('stores')
         .insert({
           store_name: name,
           store_id: normalizedShop,
-          password_hash: randomHash,
+          password_hash: hashedPassword,
           shopify_access_token: access_token,
           shopify_shop_domain: normalizedShop,
           subscription_name: 'FREE',
@@ -232,6 +242,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
         return res.redirect(302, errorRedirectUrl('create_store_failed'));
       }
       storeUuid = created.id;
+      generatedPassword = plainPassword;
       console.log('[Shopify OAuth] Created new store for Shopify shop');
     }
   }
@@ -254,7 +265,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     console.error('[Shopify OAuth] Theme injection error (non-fatal):', e.message);
   }
 
-  res.redirect(302, successRedirectUrl(storeUuid!, normalizedShop));
+  res.redirect(302, successRedirectUrl(storeUuid!, normalizedShop, generatedPassword));
 });
 
 function verifyShopifyWebhookHmac(rawBody: Buffer, hmacHeader: string | undefined): boolean {

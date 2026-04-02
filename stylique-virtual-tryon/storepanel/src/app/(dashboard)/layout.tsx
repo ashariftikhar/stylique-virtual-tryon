@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Store as StoreType } from '@/types/api';
@@ -13,6 +13,8 @@ import {
   LogOut,
   Menu,
   X,
+  CheckCircle,
+  Copy,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -31,22 +33,31 @@ export default function StorePanelLayout({
   const [store, setStore] = useState<StoreType | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [oauthBanner, setOauthBanner] = useState<{ storeId: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Check for token in URL params (auto-login after Shopify OAuth redirect)
+    // 1. Capture token from URL (auto-login after Shopify OAuth)
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     const urlStoreId = params.get('store_id');
-    if (urlToken) {
+    const urlPassword = params.get('password');
+
+    if (urlToken && urlStoreId) {
       localStorage.setItem('auth_token', urlToken);
-      if (urlStoreId) localStorage.setItem('store_id', urlStoreId);
-      console.log('[Layout] OAuth auto-login: token saved to localStorage');
+      localStorage.setItem('store_id', urlStoreId);
+      console.log('[Layout] OAuth auto-login: token + store_id saved to localStorage');
+
+      if (urlPassword) {
+        setOauthBanner({ storeId: urlStoreId, password: urlPassword });
+      }
+
       window.history.replaceState({}, '', pathname);
     }
 
-    // Check localStorage for existing auth
+    // 2. Check localStorage for auth
     const token = localStorage.getItem('auth_token');
     const storeId = localStorage.getItem('store_id');
 
@@ -56,7 +67,10 @@ export default function StorePanelLayout({
       return;
     }
 
-    setStore({ store_id: storeId, store_name: storeId.replace('.myshopify.com', '') } as StoreType);
+    setStore({
+      store_id: storeId,
+      store_name: storeId.replace('.myshopify.com', ''),
+    } as StoreType);
     setLoading(false);
   }, [router, pathname]);
 
@@ -70,10 +84,17 @@ export default function StorePanelLayout({
     } catch {
       // Best-effort
     }
-    // Clear localStorage tokens
     localStorage.removeItem('auth_token');
     localStorage.removeItem('store_id');
     router.replace('/login');
+  };
+
+  const handleCopyPassword = () => {
+    if (oauthBanner) {
+      navigator.clipboard.writeText(oauthBanner.password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   if (loading) {
@@ -165,7 +186,7 @@ export default function StorePanelLayout({
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar (mobile hamburger + page title) */}
+        {/* Top bar */}
         <header className="h-16 flex items-center gap-4 px-4 lg:px-8 border-b border-gray-800/60 bg-gray-950/50 backdrop-blur-sm shrink-0">
           <button
             className="p-2 -ml-2 text-gray-400 hover:text-white lg:hidden"
@@ -182,6 +203,41 @@ export default function StorePanelLayout({
             )?.label ?? 'Dashboard'}
           </h1>
         </header>
+
+        {/* OAuth success banner with credentials */}
+        {oauthBanner && (
+          <div className="mx-4 lg:mx-8 mt-4 p-4 rounded-xl bg-emerald-900/30 border border-emerald-700/50">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-emerald-300">Shopify App Installed Successfully!</p>
+                <p className="text-xs text-emerald-400/80 mt-1">
+                  Your login credentials for future access:
+                </p>
+                <div className="mt-2 p-3 rounded-lg bg-black/40 font-mono text-xs text-white space-y-1">
+                  <p>Store ID: <span className="text-emerald-300">{oauthBanner.storeId}</span></p>
+                  <div className="flex items-center gap-2">
+                    <p>Password: <span className="text-emerald-300">{oauthBanner.password}</span></p>
+                    <button
+                      onClick={handleCopyPassword}
+                      className="p-1 rounded hover:bg-gray-700/50 text-gray-400 hover:text-white"
+                      title="Copy password"
+                    >
+                      {copied ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-emerald-400/60 mt-2">Save these credentials. You can use them to log in at the login page.</p>
+              </div>
+              <button
+                onClick={() => setOauthBanner(null)}
+                className="p-1 text-emerald-400/60 hover:text-emerald-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-auto p-4 lg:p-8">{children}</main>
