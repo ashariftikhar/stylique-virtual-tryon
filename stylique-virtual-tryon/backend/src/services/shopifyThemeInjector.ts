@@ -34,7 +34,14 @@ async function shopifyGet(shop: string, token: string, endpoint: string) {
   const res = await fetch(shopifyAdminUrl(shop, endpoint), {
     headers: { 'X-Shopify-Access-Token': token, Accept: 'application/json' },
   });
-  return { res, json: await res.json() };
+  let json: unknown = {};
+  try {
+    const text = await res.text();
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    console.warn(`${TAG} shopifyGet: failed to parse JSON from ${endpoint}`);
+  }
+  return { res, json };
 }
 
 async function shopifyPut(shop: string, token: string, endpoint: string, body: unknown) {
@@ -47,7 +54,14 @@ async function shopifyPut(shop: string, token: string, endpoint: string, body: u
     },
     body: JSON.stringify(body),
   });
-  return { res, json: await res.json() };
+  let json: unknown = {};
+  try {
+    const text = await res.text();
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    console.warn(`${TAG} shopifyPut: failed to parse JSON from ${endpoint}`);
+  }
+  return { res, json };
 }
 
 function delay(ms: number) {
@@ -197,8 +211,16 @@ async function getThemeAsset(
 ): Promise<{ value: string } | null> {
   const endpoint = `/themes/${themeId}/assets.json?asset[key]=${encodeURIComponent(key)}`;
   const { res, json } = await shopifyGet(shop, token, endpoint);
-  if (!res.ok) return null;
-  return (json as any).asset || null;
+  if (!res.ok) {
+    console.log(`${TAG} getThemeAsset(${key}): HTTP ${res.status}`);
+    return null;
+  }
+  const asset = (json as any)?.asset;
+  if (!asset || typeof asset.value !== 'string') {
+    console.warn(`${TAG} getThemeAsset(${key}): asset exists but value is missing or not a string`);
+    return null;
+  }
+  return asset;
 }
 
 async function putThemeAsset(
@@ -226,19 +248,34 @@ async function wireIntoJsonTemplate(
   themeId: number,
 ): Promise<boolean> {
   const asset = await getThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_JSON);
-  if (!asset) return false;
-
-  let template: any;
-  try {
-    template = JSON.parse(asset.value);
-  } catch {
-    console.warn(`${TAG} product.json exists but is not valid JSON — skipping`);
+  if (!asset) {
+    console.log(`${TAG} product.json not found — not an OS 2.0 theme or asset missing`);
     return false;
   }
 
-  if (!template.sections || typeof template.sections !== 'object') {
-    console.warn(`${TAG} product.json has no sections object — skipping`);
+  const raw = (asset.value || '').trim();
+  if (!raw) {
+    console.warn(`${TAG} product.json exists but is empty — skipping JSON wiring`);
     return false;
+  }
+
+  let template: any;
+  try {
+    template = JSON.parse(raw);
+  } catch (e: any) {
+    console.warn(`${TAG} product.json is not valid JSON (${e.message}) — skipping`);
+    return false;
+  }
+
+  if (!template || typeof template !== 'object') {
+    console.warn(`${TAG} product.json parsed but is not an object — skipping`);
+    return false;
+  }
+
+  // Some themes use a wrapper layout; ensure sections object exists
+  if (!template.sections || typeof template.sections !== 'object') {
+    console.warn(`${TAG} product.json has no sections object — creating one`);
+    template.sections = {};
   }
 
   if (template.sections[SECTION_ID]) {
@@ -270,18 +307,27 @@ async function wireIntoLiquidTemplate(
   themeId: number,
 ): Promise<boolean> {
   const asset = await getThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_LIQUID);
-  if (!asset) return false;
+  if (!asset) {
+    console.log(`${TAG} product.liquid not found — not a legacy Liquid theme`);
+    return false;
+  }
+
+  const raw = (asset.value || '').trim();
+  if (!raw) {
+    console.warn(`${TAG} product.liquid exists but is empty — appending section tag`);
+    const sectionTag = `{% section '${SECTION_ID}' %}`;
+    await putThemeAsset(shop, token, themeId, PRODUCT_TEMPLATE_LIQUID, sectionTag);
+    return true;
+  }
 
   const sectionTag = `{% section '${SECTION_ID}' %}`;
 
-  if (asset.value.includes(sectionTag) || asset.value.includes(`section '${SECTION_ID}'`)) {
+  if (raw.includes(sectionTag) || raw.includes(`section '${SECTION_ID}'`)) {
     console.log(`${TAG} Section tag already present in product.liquid`);
     return true;
   }
 
-  let content = asset.value;
-
-  // Strategy 1: Insert before the last </div> that likely closes the main product container
+  let content = raw;
   const lastDivClose = content.lastIndexOf('</div>');
   if (lastDivClose > 0) {
     content =
@@ -289,7 +335,6 @@ async function wireIntoLiquidTemplate(
       `\n  ${sectionTag}\n` +
       content.slice(lastDivClose);
   } else {
-    // Strategy 2: Append at the end
     content += `\n${sectionTag}\n`;
   }
 
