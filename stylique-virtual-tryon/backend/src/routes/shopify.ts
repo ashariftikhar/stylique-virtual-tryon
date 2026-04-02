@@ -169,13 +169,19 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     console.log('[Shopify OAuth] Token exchanged for', normalizedShop);
     console.log('[Shopify OAuth] Granted scopes:', exchanged.scope);
     
+    const grantedSet = new Set(exchanged.scope.split(',').map((s: string) => s.trim()));
+    // Shopify: write_X implies read_X, so normalise before checking
+    const effectiveScopes = new Set(grantedSet);
+    if (effectiveScopes.has('write_products')) effectiveScopes.add('read_products');
+    if (effectiveScopes.has('write_themes')) effectiveScopes.add('read_themes');
     const requiredScopes = ['read_products', 'write_products', 'read_themes', 'write_themes'];
-    const grantedSet = new Set(exchanged.scope.split(',').map(s => s.trim()));
-    const missing = requiredScopes.filter(s => !grantedSet.has(s));
+    const missing = requiredScopes.filter(s => !effectiveScopes.has(s));
     if (missing.length > 0) {
       console.warn('[Shopify OAuth] WARNING: Missing scopes:', missing.join(', '));
       console.warn('[Shopify OAuth] Granted only:', exchanged.scope);
       console.warn('[Shopify OAuth] The app may not have these scopes configured in the Shopify Partner Dashboard.');
+    } else {
+      console.log('[Shopify OAuth] All required scopes present (granted:', exchanged.scope, ')');
     }
   } catch (e: any) {
     console.error('[Shopify OAuth] Token exchange failed:', e.message);
@@ -205,6 +211,8 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
         shopify_access_token: access_token,
         shopify_shop_domain: normalizedShop,
         password_hash: hashedPassword,
+        shopify_theme_injection_done: false,
+        shopify_theme_injection_status: null,
       })
       .eq('id', row.id);
     if (upErr) {
@@ -228,6 +236,8 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
           shopify_access_token: access_token,
           shopify_shop_domain: normalizedShop,
           password_hash: hashedPassword,
+          shopify_theme_injection_done: false,
+          shopify_theme_injection_status: null,
         })
         .eq('id', existing.id);
       storeUuid = existing.id;

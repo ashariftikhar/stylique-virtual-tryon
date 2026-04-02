@@ -362,23 +362,31 @@ export async function injectStyliqueSectionIntoTheme(
 
   try {
     // Step 1: Find the main theme
+    console.log(`${TAG} [Step 1] Finding main theme…`);
     const theme = await getMainTheme(shopDomain, accessToken);
     console.log(`${TAG} Main theme: "${theme.name}" (id=${theme.id})`);
 
-    // Small delay to stay well within Shopify rate limits
     await delay(300);
 
     // Step 2: Check if section asset already exists
-    const exists = await sectionExistsInTheme(shopDomain, accessToken, theme.id);
-    if (exists) {
+    console.log(`${TAG} [Step 2] Checking if section asset already exists…`);
+    let sectionAlreadyExists = false;
+    try {
+      sectionAlreadyExists = await sectionExistsInTheme(shopDomain, accessToken, theme.id);
+    } catch (checkErr: any) {
+      console.warn(`${TAG} [Step 2] sectionExistsInTheme threw: ${checkErr.message} — treating as "not exists"`);
+    }
+    if (sectionAlreadyExists) {
       console.log(`${TAG} Section asset already exists in theme — checking template wiring`);
     } else {
       // Step 3: Upload the section
+      console.log(`${TAG} [Step 3] Uploading section asset…`);
       await delay(300);
       await uploadSectionAsset(shopDomain, accessToken, theme.id);
     }
 
     // Step 4: Wire into product template
+    console.log(`${TAG} [Step 4] Wiring into product template…`);
     await delay(300);
 
     const jsonDone = await wireIntoJsonTemplate(shopDomain, accessToken, theme.id);
@@ -390,6 +398,7 @@ export async function injectStyliqueSectionIntoTheme(
       return;
     }
 
+    console.log(`${TAG} [Step 4b] JSON template not available, trying Liquid template…`);
     await delay(300);
 
     const liquidDone = await wireIntoLiquidTemplate(shopDomain, accessToken, theme.id);
@@ -409,9 +418,10 @@ export async function injectStyliqueSectionIntoTheme(
     console.warn(`${TAG} ${msg}`);
 
   } catch (err: any) {
-    const msg = `Injection failed: ${err.message}. ` +
+    const msg = `Injection failed at step: ${err.message}. ` +
       `The merchant can install manually. Timestamp: ${new Date().toISOString()}`;
     console.error(`${TAG} ${msg}`);
+    console.error(`${TAG} Stack trace:`, err.stack);
     await markInjectionResult(storeUuid, false, msg).catch(() => {});
   }
 }
