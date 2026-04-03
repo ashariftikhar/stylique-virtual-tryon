@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
 const fade = {
@@ -168,6 +168,16 @@ export default function UploadItem() {
               </button>
             ))}
           </div>
+        </motion.div>
+
+        <motion.div
+          variants={fade}
+          className="p-4 rounded-lg bg-amber-900/20 border border-amber-900/50 flex items-start gap-3"
+        >
+          <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-300" />
+          <p className="text-sm text-amber-300">
+            <strong>Note:</strong> Products added here will not sync to your Shopify/WooCommerce store. To add live products, please create them directly in your store – they will then sync automatically.
+          </p>
         </motion.div>
 
         <motion.button
