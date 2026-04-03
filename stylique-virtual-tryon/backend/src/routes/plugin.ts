@@ -106,23 +106,28 @@ async function findInventoryForCheckProduct(
 
   if (wooStr) {
     try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select(inventorySelect)
-        .eq('store_id', storeUUID)
-        .eq('woocommerce_product_id', wooStr)
-        .limit(1)
-        .maybeSingle();
+      // Try to match by integer woocommerce_product_id
+      const wooNum = Number(wooStr);
+      if (Number.isFinite(wooNum) && wooNum > 0) {
+        const { data, error } = await supabase
+          .from('inventory')
+          .select(inventorySelect)
+          .eq('store_id', storeUUID)
+          .eq('woocommerce_product_id', wooNum)
+          .limit(1)
+          .maybeSingle();
 
-      if (!error && data) {
-        console.log(`[Plugin] check-product: matched by woocommerce_product_id=${wooStr}`);
-        return data as Record<string, unknown>;
-      }
-      if (error && !/woocommerce_product_id|schema|column/i.test(error.message)) {
-        console.warn('[Plugin] check-product woo id lookup:', error.message);
+        if (!error && data) {
+          console.log(`[Plugin] check-product: matched by woocommerce_product_id=${wooNum} (numeric match)`);
+          return data as Record<string, unknown>;
+        }
+        if (error && !/woocommerce_product_id|schema|column/i.test(error.message)) {
+          console.warn('[Plugin] check-product woo id lookup:', error.message);
+        }
       }
     } catch {
       /* column may not exist yet — fall through to URL matching */
+      console.log('[Plugin] check-product: woocommerce_product_id column not found or error during lookup');
     }
   }
 
@@ -408,11 +413,12 @@ router.post('/check-product', async (req: Request, res: Response) => {
       if (Number.isFinite(n) && n > 0) wooNum = n;
     }
 
+    console.log(`[Plugin] check-product: attempting to find product for store=${storeId}, wooProductId=${wooNum ?? 'none'}, shopifyProductId=${shopifyProductId ?? 'none'}`);
     const product = await findInventoryForCheckProduct(storeUUID, currentUrl, wooNum, shopifyProductId);
 
     if (!product) {
       console.log(
-        `[Plugin] check-product: no row for url=${String(currentUrl).slice(0, 120)} woo=${wooNum ?? 'none'} shopify=${shopifyProductId ?? 'none'}`,
+        `[Plugin] check-product: NO MATCH for url=${String(currentUrl).slice(0, 120)} woo=${wooNum ?? 'none'} shopify=${shopifyProductId ?? 'none'}`,
       );
       return res.json({ success: true, available: false, message: 'Product not found in inventory' });
     }

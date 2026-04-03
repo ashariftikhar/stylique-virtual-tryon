@@ -103,13 +103,16 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
         .from('inventory')
         .select('id')
         .eq('store_id', store.id)
-        .eq('woocommerce_product_id', String(product.id))
+        .eq('woocommerce_product_id', product.id)
         .maybeSingle();
       if (wooErr && /woocommerce_product_id|schema|column/i.test(wooErr.message)) {
         hasWooColumn = false;
         console.log('[WooCommerce Sync] woocommerce_product_id column not in DB — run migration 003');
       } else {
         existing = byWoo;
+        if (existing) {
+          console.log('[WooCommerce Sync] Found existing product by woocommerce_product_id:', product.id);
+        }
       }
     } catch {
       hasWooColumn = false;
@@ -125,15 +128,16 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
       existing = byLink;
     }
 
+    console.log('[WooCommerce Sync] Setting woocommerce_product_id = ' + product.id + ' (type: ' + typeof product.id + ')');
     const inventoryRecord = hasWooColumn
-      ? { ...baseRecord, woocommerce_product_id: String(product.id) }
+      ? { ...baseRecord, woocommerce_product_id: product.id }
       : baseRecord;
 
     let data: { id: string } | null = null;
     let error: any = null;
 
     if (existing) {
-      console.log('[WooCommerce Sync] Existing product found, updating id:', existing.id);
+      console.log('[WooCommerce Sync] Existing product found, updating id:', existing.id, 'with woocommerce_product_id:', product.id);
       const result = await supabase
         .from('inventory')
         .update(inventoryRecord)
