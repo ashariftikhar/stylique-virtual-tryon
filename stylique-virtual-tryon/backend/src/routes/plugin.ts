@@ -436,8 +436,12 @@ router.post('/check-product', async (req: Request, res: Response) => {
     }
     // Fallback: use tryon_image_url and image_url if no images array
     if (images.length === 0) {
-      if (product.tryon_image_url) images.push(product.tryon_image_url);
-      if (product.image_url && product.image_url !== product.tryon_image_url) images.push(product.image_url);
+      if (product.tryon_image_url && typeof product.tryon_image_url === 'string') {
+        images.push(product.tryon_image_url);
+      }
+      if (product.image_url && typeof product.image_url === 'string' && product.image_url !== product.tryon_image_url) {
+        images.push(product.image_url as string);
+      }
     }
 
     res.json({

@@ -244,6 +244,9 @@ Clean minimal login like get-started page with light theme
         </div>
       </div>
 
+      <!-- Image Carousel Container (for Tier 1 & 2 products) -->
+      <div id="stylique-product-image-carousel" style="display: none;"></div>
+
       <!-- Try-On Controls -->
       <div class="stylique-tryon-controls">
         <!-- Product Not Available State -->
@@ -3911,6 +3914,128 @@ Clean minimal login like get-started page with light theme
     background: linear-gradient(135deg, var(--stylique-primary, #642FD7), var(--stylique-secondary, #F4536F));
     color: #fff;
   }
+
+  /* Stylique Image Carousel Styles */
+  .stylique-carousel-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .stylique-carousel-main {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    aspect-ratio: 1;
+    background: #f8f7f4;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .stylique-carousel-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .stylique-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #642FD7;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+  }
+
+  .stylique-carousel-nav:hover {
+    background: white;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .stylique-carousel-nav:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  .stylique-carousel-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .stylique-carousel-prev {
+    left: 12px;
+  }
+
+  .stylique-carousel-next {
+    right: 12px;
+  }
+
+  @media (max-width: 480px) {
+    .stylique-carousel-nav {
+      width: 36px;
+      height: 36px;
+    }
+
+    .stylique-carousel-nav svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .stylique-carousel-prev {
+      left: 8px;
+    }
+
+    .stylique-carousel-next {
+      right: 8px;
+    }
+  }
+
+  .stylique-carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .stylique-carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+  }
+
+  .stylique-carousel-dot:hover {
+    background: #aaa;
+    transform: scale(1.2);
+  }
+
+  .stylique-carousel-dot.active {
+    background: linear-gradient(135deg, #642FD7, #F4536F);
+    width: 24px;
+    border-radius: 4px;
+    transform: scaleX(1.5);
+  }
+
 </style>
 
 {% assign _stylique_backend = section.settings.backend_url | strip %}
@@ -4311,6 +4436,159 @@ Clean minimal login like get-started page with light theme
     }
 
     /**
+     * Stylique Image Carousel Module
+     * Supports: Tier 1 (5+ images), Tier 2 (2-4 images)
+     * Features: Touch swipe, arrow navigation, keyboard navigation, dot indicators
+     */
+    const StyleiqueCarousel = (function() {
+      let state = {
+        currentIndex: 0,
+        images: [],
+        container: null,
+        touchStartX: 0
+      };
+
+      function init(imagesArray, containerId) {
+        if (!imagesArray || imagesArray.length === 0) {
+          console.warn('[Carousel] No images provided');
+          return;
+        }
+
+        state.images = imagesArray;
+        state.currentIndex = 0;
+        state.container = document.getElementById(containerId);
+
+        if (!state.container) {
+          console.warn('[Carousel] Container not found:', containerId);
+          return;
+        }
+
+        // Clear any existing carousel
+        state.container.innerHTML = '';
+
+        // Build carousel HTML
+        const carouselHTML = `
+          <div class="stylique-carousel-wrapper">
+            <div class="stylique-carousel-main">
+              <img id="stylique-carousel-image" src="${imagesArray[0]}" alt="Product image" class="stylique-carousel-image">
+              ${imagesArray.length > 1 ? `
+                <button class="stylique-carousel-nav stylique-carousel-prev" onclick="StyleiqueCarousel.goToPrevious()" aria-label="Previous image">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+                <button class="stylique-carousel-nav stylique-carousel-next" onclick="StyleiqueCarousel.goToNext()" aria-label="Next image">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+            ${imagesArray.length > 1 ? `
+              <div class="stylique-carousel-dots">
+                ${imagesArray.map((_, i) => `
+                  <button class="stylique-carousel-dot ${i === 0 ? 'active' : ''}" onclick="StyleiqueCarousel.selectImage(${i})" aria-label="Image ${i + 1}"></button>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+        state.container.innerHTML = carouselHTML;
+
+        // Attach event listeners
+        const carouselImage = document.getElementById('stylique-carousel-image');
+        if (carouselImage) {
+          carouselImage.addEventListener('touchstart', handleTouchStart, false);
+          carouselImage.addEventListener('touchend', handleTouchEnd, false);
+        }
+        document.addEventListener('keydown', handleKeydown);
+
+        console.log('[Carousel] Initialized with', state.images.length, 'images');
+      }
+
+      function handleTouchStart(e) {
+        state.touchStartX = e.touches[0].clientX;
+      }
+
+      function handleTouchEnd(e) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = state.touchStartX - touchEndX;
+
+        if (Math.abs(diff) > 50) { // Minimum swipe distance
+          if (diff > 0) {
+            goToNext();
+          } else {
+            goToPrevious();
+          }
+        }
+      }
+
+      function handleKeydown(e) {
+        if (!state.container || !state.container.offsetParent) return; // Check if visible
+
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          goToPrevious();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          goToNext();
+        }
+      }
+
+      function selectImage(index) {
+        if (index < 0 || index >= state.images.length) return;
+
+        state.currentIndex = index;
+        const img = document.getElementById('stylique-carousel-image');
+        if (img) {
+          img.src = state.images[index];
+        }
+
+        // Update dots
+        document.querySelectorAll('.stylique-carousel-dot').forEach((dot, i) => {
+          dot.classList.toggle('active', i === index);
+        });
+
+        console.log('[Carousel] Selected image', index + 1, 'of', state.images.length);
+      }
+
+      function goToNext() {
+        const nextIndex = (state.currentIndex + 1) % state.images.length;
+        selectImage(nextIndex);
+      }
+
+      function goToPrevious() {
+        const prevIndex = (state.currentIndex - 1 + state.images.length) % state.images.length;
+        selectImage(prevIndex);
+      }
+
+      function getCurrentImage() {
+        return state.images[state.currentIndex] || null;
+      }
+
+      function destroy() {
+        const img = document.getElementById('stylique-carousel-image');
+        if (img) {
+          img.removeEventListener('touchstart', handleTouchStart);
+          img.removeEventListener('touchend', handleTouchEnd);
+        }
+        document.removeEventListener('keydown', handleKeydown);
+        state = { currentIndex: 0, images: [], container: null, touchStartX: 0 };
+      }
+
+      // Public API
+      return {
+        init: init,
+        selectImage: selectImage,
+        goToNext: goToNext,
+        goToPrevious: goToPrevious,
+        getCurrentImage: getCurrentImage,
+        destroy: destroy
+      };
+    })();
+
+    /**
      * Show/hide UI sections based on the product tier.
      * Tier 1-2: full try-on experience (2D/3D buttons visible).
      * Tier 3: only size recommendation and styling suggestions.
@@ -4350,6 +4628,15 @@ Clean minimal login like get-started page with light theme
         if (tierBadge) {
           tierBadge.textContent = tier === 1 ? 'Premium' : 'Standard';
           tierBadge.style.display = 'inline-block';
+        }
+
+        // Initialize carousel for Tier 1 (5+ images) and Tier 2 (2-4 images)
+        if ((tier === 1 || tier === 2) && window.styliqueSection.currentProduct && window.styliqueSection.currentProduct.images) {
+          var imagesArray = window.styliqueSection.currentProduct.images;
+          if (Array.isArray(imagesArray) && imagesArray.length > 0) {
+            console.log('Stylique: Initializing carousel with', imagesArray.length, 'images for Tier', tier);
+            StyleiqueCarousel.init(imagesArray, 'stylique-product-image-carousel');
+          }
         }
       }
     }
@@ -4880,6 +5167,19 @@ Clean minimal login like get-started page with light theme
         formData.append('userImage', window.styliqueSection.selectedImage);
         formData.append('garmentType', 'upper_body');
 
+        // Add product image URL (from carousel selection or fallback to product image)
+        const carouselImage = StyleiqueCarousel.getCurrentImage();
+        if (carouselImage) {
+          formData.append('productImageUrl', carouselImage);
+          console.log('Carousel image selected:', carouselImage);
+        } else if (window.styliqueSection.currentProduct && window.styliqueSection.currentProduct.tryon_image_url) {
+          formData.append('productImageUrl', window.styliqueSection.currentProduct.tryon_image_url);
+          console.log('Using product tryon_image_url:', window.styliqueSection.currentProduct.tryon_image_url);
+        } else if (window.styliqueSection.currentProduct && window.styliqueSection.currentProduct.image_url) {
+          formData.append('productImageUrl', window.styliqueSection.currentProduct.image_url);
+          console.log('Using product image_url:', window.styliqueSection.currentProduct.image_url);
+        }
+
         // Add user authentication
         if (window.styliqueSection.user && window.styliqueSection.user.id) {
           formData.append('userId', window.styliqueSection.user.id);
@@ -5063,6 +5363,19 @@ Clean minimal login like get-started page with light theme
         formData.append('storeId', window.styliqueSection.storeId);
         formData.append('userImage', window.styliqueSection.selectedImage);
         formData.append('userId', window.styliqueSection.user?.id || '');
+        
+        // Add product image URL (from carousel selection or fallback to product image)
+        const carouselImage = StyleiqueCarousel.getCurrentImage();
+        if (carouselImage) {
+          formData.append('productImageUrl', carouselImage);
+          console.log('3D: Carousel image selected:', carouselImage);
+        } else if (window.styliqueSection.currentProduct && window.styliqueSection.currentProduct.tryon_image_url) {
+          formData.append('productImageUrl', window.styliqueSection.currentProduct.tryon_image_url);
+          console.log('3D: Using product tryon_image_url:', window.styliqueSection.currentProduct.tryon_image_url);
+        } else if (window.styliqueSection.currentProduct && window.styliqueSection.currentProduct.image_url) {
+          formData.append('productImageUrl', window.styliqueSection.currentProduct.image_url);
+          console.log('3D: Using product image_url:', window.styliqueSection.currentProduct.image_url);
+        }
         
         // Pass current product ID if available
         if (window.styliqueSection.currentProduct && window.styliqueSection.currentProduct.id) {
