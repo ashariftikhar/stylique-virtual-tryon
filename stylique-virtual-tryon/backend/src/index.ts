@@ -5,6 +5,7 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { requireAuth } from './middleware/auth.ts';
 import authRoutes from './routes/auth.ts';
 import productRoutes from './routes/products.ts';
@@ -20,6 +21,31 @@ import shopifyRoutes, { shopifyWebhookHandler } from './routes/shopify.ts';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ──────────────────────────────────────────────
+// Rate Limiting — 10 requests per minute per IP
+// ──────────────────────────────────────────────
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 requests per windowMs
+  message: 'Too many login attempts, please try again later',
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown',
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.method === 'GET';
+  },
+});
+
+const pluginLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 requests per windowMs
+  message: 'Too many requests to plugin API, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown',
+});
 
 // ──────────────────────────────────────────────
 // CORS — applied first so every response (and OPTIONS) gets headers when allowed
@@ -182,9 +208,14 @@ console.log('✓ Health check + /api/ping registered');
 // ──────────────────────────────────────────────
 // Public routes – no JWT required
 // ──────────────────────────────────────────────
+// Apply login rate limit BEFORE routing to auth endpoints
+app.post('/api/auth/login', loginLimiter);
 app.use('/api', authRoutes);
-console.log('✓ Auth routes          (POST /api/auth/register, /api/auth/login)');
+console.log('✓ Auth routes          (POST /api/auth/register, /api/auth/login with rate limiting)');
 
+// Apply plugin rate limit to all plugin endpoints
+app.use('/plugin', pluginLimiter);
+app.use('/api/plugin', pluginLimiter);
 app.use('/plugin', pluginRoutes);
 app.use('/api/plugin', pluginRoutes);
 
@@ -193,7 +224,7 @@ app.post('/api/detect-skin-tone', skinUpload.single('image'), (_req, res) => {
   console.log('[detect-skin-tone] stub response');
   res.json({ success: true, skinTone: '#C68642', label: 'Medium', message: 'Stub — connect real provider for production.' });
 });
-console.log('✓ Plugin routes        (/plugin/*, /api/plugin/*, /api/detect-skin-tone)');
+console.log('✓ Plugin routes        (/plugin/*, /api/plugin/* with rate limiting)');
 
 // Webhook sync endpoints called by external platforms
 app.use('/api', productRoutes);
