@@ -195,6 +195,10 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
   // Generate a human-readable password for the merchant
   const plainPassword = crypto.randomBytes(6).toString('hex'); // 12-char hex
   const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
+  
+  // Log password to console for admin visibility
+  console.log(`[Shopify OAuth] ⚠️  GENERATED PASSWORD FOR MERCHANT: ${plainPassword}`);
+  console.log(`[Shopify OAuth] This will be displayed on success page for store: ${normalizedShop}`);
 
   if (statePayload.linkStoreId) {
     const { data: row, error } = await supabase
@@ -221,6 +225,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     }
     storeUuid = row.id;
     generatedPassword = plainPassword;
+    console.log(`[Shopify OAuth] ✓ Password stored in session for linking: ${plainPassword}`);
     console.log('[Shopify OAuth] Linked Shopify to existing store', storeUuid);
   } else {
     const { data: existing } = await supabase
@@ -242,6 +247,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
         .eq('id', existing.id);
       storeUuid = existing.id;
       generatedPassword = plainPassword;
+      console.log(`[Shopify OAuth] ✓ Password stored in session for existing store: ${plainPassword}`);
       console.log('[Shopify OAuth] Updated existing store by store_id match');
     } else {
       const name = normalizedShop.replace('.myshopify.com', '');
@@ -265,6 +271,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
       }
       storeUuid = created.id;
       generatedPassword = plainPassword;
+      console.log(`[Shopify OAuth] ✓ Password stored in session for new store: ${plainPassword}`);
       console.log('[Shopify OAuth] Created new store for Shopify shop');
     }
   }
