@@ -10,12 +10,6 @@ const router: Router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'stylique-dev-secret-change-me';
 
 // ──────────────────────────────────────────────
-// In-memory OTP store (fallback when DB columns are missing)
-// Map<email, { code: string, expiresAt: Date }>
-// ──────────────────────────────────────────────
-const otpStore = new Map<string, { code: string; expiresAt: Date }>();
-
-// ──────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────
 
@@ -220,11 +214,7 @@ router.post('/auth', async (req: Request, res: Response) => {
 
       console.log(`[Plugin Auth] send_otp: email=${email} code=${code} expires=${expiresAt.toISOString()}`);
 
-      // Store OTP in memory (always works, no DB dependency)
-      otpStore.set(email.toLowerCase(), { code, expiresAt });
-      console.log(`[Plugin Auth] OTP stored in memory for ${email}: code=${code}`);
-
-      // Ensure user row exists in DB (just email + id, no OTP columns needed)
+      // Ensure user row exists in DB
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
@@ -236,21 +226,24 @@ router.post('/auth', async (req: Request, res: Response) => {
           .from('users')
           .insert({ email });
         if (insertErr) {
-          console.warn(`[Plugin Auth] Could not create user row: ${insertErr.message} (OTP still works via memory)`);
-        } else {
-          console.log(`[Plugin Auth] Created user row for ${email}`);
+          console.error(`[Plugin Auth] Could not create user row: ${insertErr.message}`);
+          return res.status(500).json({ success: false, error: 'Failed to create user' });
         }
+        console.log(`[Plugin Auth] Created user row for ${email}`);
       }
 
-      // Also try to persist OTP to DB (works after migration is applied)
-      try {
-        await supabase
-          .from('users')
-          .update({ otp_code: code, otp_expires_at: expiresAt.toISOString() })
-          .eq('email', email);
-      } catch {
-        console.log(`[Plugin Auth] DB OTP persist skipped (otp_code column may not exist yet)`);
+      // Store OTP in database only
+      const { error: updateErr } = await supabase
+        .from('users')
+        .update({ otp_code: code, otp_expires_at: expiresAt.toISOString() })
+        .eq('email', email);
+
+      if (updateErr) {
+        console.error(`[Plugin Auth] Failed to store OTP in DB: ${updateErr.message}`);
+        return res.status(500).json({ success: false, error: 'Failed to send OTP' });
       }
+
+      console.log(`[Plugin Auth] OTP stored in DB for ${email}: code=${code}`);
 
       // In production, send email via SendGrid / SES / etc.
       console.log(`[Plugin Auth] OTP for ${email}: ${code}  (dev-mode, would email in production)`);
@@ -266,98 +259,58 @@ router.post('/auth', async (req: Request, res: Response) => {
       const normalizedEmail = email.toLowerCase();
       const receivedCode = String(otp).trim();
 
-      console.log(`[Plugin Auth] verify_otp: email=${email} received_otp=${receivedCode} (type: ${typeof otp})`);
+      console.log(`[Plugin Auth] verify_otp: email=${email} received_otp=${receivedCode}`);
 
-      // Check in-memory store first
-      const memEntry = otpStore.get(normalizedEmail);
-      console.log(`[Plugin Auth] Memory store lookup:`);
-      console.log(`  has_entry    = ${!!memEntry}`);
-      if (memEntry) {
-        console.log(`  stored_code  = "${memEntry.code}"`);
-        console.log(`  received_code= "${receivedCode}"`);
-        console.log(`  codes_match  = ${memEntry.code === receivedCode}`);
-        console.log(`  expires_at   = ${memEntry.expiresAt.toISOString()}`);
-        console.log(`  is_expired   = ${memEntry.expiresAt <= new Date()}`);
-      }
-
-      let verified = false;
-
-      if (memEntry) {
-        if (memEntry.code === receivedCode && memEntry.expiresAt > new Date()) {
-          verified = true;
-          otpStore.delete(normalizedEmail);
-          console.log(`[Plugin Auth] OTP VERIFIED via memory store`);
-        } else if (memEntry.code !== receivedCode) {
-          console.log(`[Plugin Auth] REJECTED: memory code mismatch`);
-        } else {
-          console.log(`[Plugin Auth] REJECTED: memory code expired`);
-        }
-      }
-
-      // Fallback: check DB (works after migration)
-      if (!verified) {
-        console.log(`[Plugin Auth] Trying DB fallback...`);
-        const { data: user } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', email)
-          .maybeSingle();
-
-        if (user?.otp_code) {
-          const storedCode = String(user.otp_code);
-          const expiresAt = user.otp_expires_at ? new Date(user.otp_expires_at) : null;
-          const isExpired = !expiresAt || expiresAt <= new Date();
-
-          console.log(`[Plugin Auth] DB OTP comparison:`);
-          console.log(`  stored_code  = "${storedCode}"`);
-          console.log(`  received_code= "${receivedCode}"`);
-          console.log(`  codes_match  = ${storedCode === receivedCode}`);
-          console.log(`  is_expired   = ${isExpired}`);
-
-          if (storedCode === receivedCode && !isExpired) {
-            verified = true;
-            console.log(`[Plugin Auth] OTP VERIFIED via DB fallback`);
-            await supabase
-              .from('users')
-              .update({ otp_code: null, otp_expires_at: null })
-              .eq('id', user.id);
-          }
-        }
-      }
-
-      if (!verified) {
-        console.log(`[Plugin Auth] OTP verification FAILED for ${email}`);
-        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
-      }
-
-      // Fetch or create user for JWT
-      let { data: user } = await supabase
+      // Check OTP from database only
+      const { data: user } = await supabase
         .from('users')
         .select('*')
-        .eq('email', email)
+        .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (!user) {
-        const { data: newUser } = await supabase
-          .from('users')
-          .insert({ email })
-          .select('*')
-          .single();
-        user = newUser;
+        console.log(`[Plugin Auth] User not found for email: ${email}`);
+        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
       }
 
-      if (!user) {
-        console.error(`[Plugin Auth] Could not find or create user for ${email}`);
-        return res.status(500).json({ success: false, error: 'User creation failed' });
+      if (!user.otp_code) {
+        console.log(`[Plugin Auth] No OTP found for user ${email}`);
+        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
       }
 
-      console.log(`[Plugin Auth] OTP VERIFIED for ${email}, user.id=${user.id}`);
+      const storedCode = String(user.otp_code);
+      const expiresAt = user.otp_expires_at ? new Date(user.otp_expires_at) : null;
+      const isExpired = !expiresAt || expiresAt <= new Date();
+
+      console.log(`[Plugin Auth] DB OTP verification:`);
+      console.log(`  stored_code  = "${storedCode}"`);
+      console.log(`  received_code= "${receivedCode}"`);
+      console.log(`  codes_match  = ${storedCode === receivedCode}`);
+      console.log(`  is_expired   = ${isExpired}`);
+
+      if (storedCode !== receivedCode) {
+        console.log(`[Plugin Auth] REJECTED: code mismatch for ${email}`);
+        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
+      }
+
+      if (isExpired) {
+        console.log(`[Plugin Auth] REJECTED: code expired for ${email}`);
+        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
+      }
+
+      // OTP verified - clear it from database
+      await supabase
+        .from('users')
+        .update({ otp_code: null, otp_expires_at: null })
+        .eq('id', user.id);
+
+      console.log(`[Plugin Auth] OTP VERIFIED for ${email}`);
 
       const isNewUser = !user.name && !user.height;
 
       const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
 
-      // Strip sensitive fields (they may or may not exist depending on schema)
+      // Strip sensitive fields
       const safeUser = { ...user };
       delete safeUser.otp_code;
       delete safeUser.otp_expires_at;
