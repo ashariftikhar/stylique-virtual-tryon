@@ -29,7 +29,7 @@ async function lookupStoreUUID(storeId: string): Promise<string | null> {
 }
 
 const inventorySelect =
-  'id, product_name, tryon_image_url, image_url, tier, sizes, product_link, images';
+  'id, product_name, tryon_image_url, image_url, tier, sizes, product_link';
 
 /**
  * Build URL path variants for matching product_link (trailing slash, encoding).
