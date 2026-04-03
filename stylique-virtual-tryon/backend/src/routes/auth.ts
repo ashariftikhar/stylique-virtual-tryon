@@ -12,7 +12,7 @@ const SALT_ROUNDS = 10;
 interface RegisterPayload {
   store_name: string;
   store_id: string;
-  email: string;
+  email?: string | null;
   password: string;
 }
 
@@ -27,9 +27,10 @@ router.post('/auth/register', async (req: Request, res: Response) => {
     const supabase = getSupabase();
     const payload: RegisterPayload = req.body;
 
-    if (!payload.store_name || !payload.store_id || !payload.email || !payload.password) {
+    // Validate required fields
+    if (!payload.store_name || !payload.store_id || !payload.password) {
       return res.status(400).json({
-        error: 'Missing required fields: store_name, store_id, email, password',
+        error: 'Missing required fields: store_name, store_id, password',
       });
     }
 
@@ -55,7 +56,7 @@ router.post('/auth/register', async (req: Request, res: Response) => {
       .insert({
         store_name: payload.store_name,
         store_id: payload.store_id,
-        email: payload.email,
+        email: payload.email || null,
         password_hash: passwordHash,
         subscription_name: 'FREE',
         tryons_quota: 100,

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Loader2,
   AlertCircle,
@@ -182,7 +183,15 @@ export default function StoreLogin() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-gray-500 mt-6">
+          {/* Registration Link */}
+          <p className="text-center text-xs text-gray-500 mt-6 pt-6 border-t border-gray-800">
+            Don't have a store account?{' '}
+            <Link href="/register" className="text-[#642FD7] hover:text-[#F4536F] font-medium transition-colors">
+              Register a new store
+            </Link>
+          </p>
+
+          <p className="text-center text-xs text-gray-500 mt-4">
             Protected by secure authentication
           </p>
         </div>
