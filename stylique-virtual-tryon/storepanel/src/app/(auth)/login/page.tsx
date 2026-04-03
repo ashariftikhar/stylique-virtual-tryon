@@ -30,7 +30,7 @@ export default function StoreLogin() {
       console.log('Attempting to authenticate store:', store_id);
 
       // Use API endpoint for authentication
-      const response = await fetch('/api/test-auth', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +185,7 @@ export default function StoreLogin() {
 
           {/* Registration Link */}
           <p className="text-center text-xs text-gray-500 mt-6 pt-6 border-t border-gray-800">
-            Don't have a store account?{' '}
+            Don&apos;t have a store account?{' '}
             <Link href="/register" className="text-[#642FD7] hover:text-[#F4536F] font-medium transition-colors">
               Register a new store
             </Link>

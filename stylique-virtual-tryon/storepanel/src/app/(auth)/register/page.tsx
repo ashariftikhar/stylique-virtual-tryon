@@ -103,7 +103,8 @@ export default function StoreRegister() {
     try {
       console.log('Attempting to register store:', store_id);
 
-      const response = await fetch('/api/register', {
+      // Step 1: Register the store
+      const registerResponse = await fetch('/api/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,23 +117,52 @@ export default function StoreRegister() {
         }),
       });
 
-      const result = await response.json();
-      console.log('Registration result:', result);
+      const registerResult = await registerResponse.json();
+      console.log('Registration result:', registerResult);
 
-      if (!result.success) {
-        setError(result.error || 'Registration failed');
+      if (!registerResult.success) {
+        setError(registerResult.error || 'Registration failed');
+        setIsLoading(false);
         return;
       }
 
-      // Registration successful - we're already logged in due to automatic session creation
-      console.log('Registration successful, redirecting to dashboard...');
-      
-      // Redirect to dashboard
+      console.log('Registration successful, attempting automatic login...');
+
+      // Step 2: Automatically login with the same credentials to get token
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ store_id, password }),
+      });
+
+      const loginResult = await loginResponse.json();
+      console.log('Automatic login result:', loginResult);
+
+      if (!loginResult.success) {
+        // Login failed, fall back to login page with registration success message
+        console.warn('Automatic login failed, redirecting to login page');
+        localStorage.setItem('registration_success', 'true');
+        localStorage.setItem('registered_store_id', store_id);
+        router.push('/login');
+        return;
+      }
+
+      // Step 3: Store token in localStorage for direct API calls
+      if (loginResult.token) {
+        localStorage.setItem('auth_token', loginResult.token);
+        localStorage.setItem('store_id', store_id);
+        console.log('Auth token stored in localStorage');
+      }
+
+      console.log('Automatic login successful, redirecting to dashboard...');
+
+      // Redirect to dashboard - user is already logged in via session cookie + localStorage token
       router.push('/');
     } catch (error) {
       console.error('Registration error:', error);
       setError('An error occurred during registration');
-    } finally {
       setIsLoading(false);
     }
   };
