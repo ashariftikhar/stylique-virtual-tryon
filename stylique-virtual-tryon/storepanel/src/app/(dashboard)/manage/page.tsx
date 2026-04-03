@@ -459,6 +459,18 @@ export default function ManageInventory() {
                                     : '—'}
                                 </p>
                               </div>
+                              <div className="rounded-lg bg-gray-800/40 px-3 py-2">
+                                <p className="text-[10px] text-gray-500 uppercase">Quality Score</p>
+                                <div className="mt-1">
+                                  <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden mb-1">
+                                    <div
+                                      className="h-full bg-gradient-to-r from-[#642FD7] to-emerald-500 transition-all"
+                                      style={{ width: `${item.quality_score ?? 0}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-white font-medium text-xs">{item.quality_score ?? 0}%</p>
+                                </div>
+                              </div>
                             </div>
 
                             {item.product_link && (

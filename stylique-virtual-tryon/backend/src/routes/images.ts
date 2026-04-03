@@ -193,15 +193,16 @@ export async function processProductImages(
   console.log(`[Images] Scores summary: ${scoredImages.map(i => i.score).join(', ')} | usable(≥40): ${usable.length}/${scoredImages.length} → tier=${tier}`);
 
   // Persist to inventory
+  const bestScore = sorted[0]?.score ?? 0;
   const { error } = await supabase
     .from('inventory')
-    .update({ tryon_image_url: bestUrl, tier })
+    .update({ tryon_image_url: bestUrl, tier, quality_score: bestScore })
     .eq('id', productId);
 
   if (error) {
     console.error(`[Images] Failed to update product ${productId}:`, error.message);
   } else {
-    console.log(`[Images] product=${productId} best=${bestUrl.slice(0, 60)}… tier=${tier} usable=${scoredImages.filter(i => i.score >= 40).length}`);
+    console.log(`[Images] product=${productId} best=${bestUrl.slice(0, 60)}… tier=${tier} quality_score=${bestScore} usable=${scoredImages.filter(i => i.score >= 40).length}`);
   }
 
   return { bestUrl, tier, scoredImages: sorted };

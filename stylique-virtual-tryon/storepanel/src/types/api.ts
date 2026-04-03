@@ -27,6 +27,7 @@ export interface InventoryItem {
   category?: string;
   brand?: string;
   tier?: number;
+  quality_score?: number;
   shopify_product_id?: string;
   woocommerce_product_id?: string;
   sync_status?: 'success' | 'pending' | 'failed';
