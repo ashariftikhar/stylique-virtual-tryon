@@ -413,6 +413,16 @@
         window.styliqueSection.productTier = tier;
         console.log('Stylique: Product tier:', tier);
 
+        // Store images for carousel (Tier 1 & 2)
+        if (data.product && data.product.images && Array.isArray(data.product.images)) {
+          window.styliqueSection.productImages = data.product.images;
+          window.styliqueSection.selectedProductImageUrl = data.product.images[0] || data.product.tryon_image_url;
+          console.log('Stylique: Stored', data.product.images.length, 'product images for carousel');
+        } else {
+          window.styliqueSection.productImages = [data.product ? data.product.tryon_image_url : null].filter(Boolean);
+          window.styliqueSection.selectedProductImageUrl = data.product ? data.product.tryon_image_url : null;
+        }
+
         document.getElementById("stylique-product-unavailable").style.display =
           "none";
         document.querySelector(".stylique-upload-section").style.display =
@@ -443,7 +453,7 @@
 
   /**
    * Show/hide UI sections based on the product tier.
-   * Tier 1-2: full try-on experience (2D/3D buttons visible).
+   * Tier 1-2: full try-on experience with image carousel.
    * Tier 3: only size recommendation and styling suggestions.
    */
   function applyTierRouting(tier) {
@@ -478,8 +488,20 @@
       if (uploadSection) uploadSection.style.display = "block";
       if (stylingSection) stylingSection.style.display = "block";
       if (tierBadge) {
-        tierBadge.textContent = tier === 1 ? "Premium" : "Standard";
+        tierBadge.textContent = tier === 1 ? "Premium Try-On" : "Standard Try-On";
         tierBadge.style.display = "inline-block";
+      }
+
+      // Initialize carousel for Tier 1 & 2 if images available
+      if ((tier === 1 || tier === 2) && window.styliqueSection.productImages && window.styliqueSection.productImages.length > 0) {
+        const carouselContainer = document.getElementById("stylique-product-image-carousel");
+        if (carouselContainer && typeof window.StyleiqueCarousel !== 'undefined') {
+          console.log('Stylique: Initializing carousel for Tier', tier, 'with', window.styliqueSection.productImages.length, 'images');
+          window.styliqueSection.carousel = window.StyleiqueCarousel.init(
+            window.styliqueSection.productImages,
+            "stylique-product-image-carousel"
+          );
+        }
       }
     }
   }
@@ -659,7 +681,20 @@
       const storeId = styliqueConfig.storeId;
       const currentUrl = window.location.href;
       const productId = styliqueConfig.product && styliqueConfig.product.id ? String(styliqueConfig.product.id) : null;
-      const imageUrl = styliqueConfig.product && styliqueConfig.product.image ? styliqueConfig.product.image : null;
+      
+      // Use currently selected carousel image if available, otherwise fallback
+      let imageUrl = null;
+      if (window.styliqueSection.carousel && typeof window.styliqueSection.carousel.getCurrentImage === 'function') {
+        imageUrl = window.styliqueSection.carousel.getCurrentImage();
+        console.log('Stylique: Using carousel-selected image:', imageUrl);
+      } else if (window.styliqueSection.selectedProductImageUrl) {
+        imageUrl = window.styliqueSection.selectedProductImageUrl;
+        console.log('Stylique: Using stored product image:', imageUrl);
+      } else if (styliqueConfig.product && styliqueConfig.product.image) {
+        imageUrl = styliqueConfig.product.image;
+        console.log('Stylique: Using config product image:', imageUrl);
+      }
+      
       const userId = window.styliqueSection.user && window.styliqueSection.user.id ? window.styliqueSection.user.id : null;
 
       console.log("=== Stylique 2D Try-On Debug ===");

@@ -29,7 +29,7 @@ async function lookupStoreUUID(storeId: string): Promise<string | null> {
 }
 
 const inventorySelect =
-  'id, product_name, tryon_image_url, image_url, tier, sizes, product_link';
+  'id, product_name, tryon_image_url, image_url, tier, sizes, product_link, images';
 
 /**
  * Build URL path variants for matching product_link (trailing slash, encoding).
@@ -426,6 +426,20 @@ router.post('/check-product', async (req: Request, res: Response) => {
     })();
     console.log(`[Plugin] check-product: found product=${product.id} for ${pathname}`);
 
+    // Build images array for carousel (Tier 1/2)
+    let images: string[] = [];
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      // Use stored images array (if populated)
+      images = product.images.map((img: any) => 
+        typeof img === 'string' ? img : img.url || img
+      ).filter((url: string) => url && url.startsWith('http'));
+    }
+    // Fallback: use tryon_image_url and image_url if no images array
+    if (images.length === 0) {
+      if (product.tryon_image_url) images.push(product.tryon_image_url);
+      if (product.image_url && product.image_url !== product.tryon_image_url) images.push(product.image_url);
+    }
+
     res.json({
       success: true,
       available: true,
@@ -435,6 +449,7 @@ router.post('/check-product', async (req: Request, res: Response) => {
         tryon_image_url: product.tryon_image_url || product.image_url,
         tier: product.tier || 3,
         sizes: product.sizes || [],
+        images: images, // Array of image URLs for carousel (Tier 1/2)
       },
     });
   } catch (err: any) {

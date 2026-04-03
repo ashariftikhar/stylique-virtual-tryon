@@ -277,6 +277,9 @@
 
     <!-- Upload Section (hidden when product unavailable) -->
     <div class="stylique-upload-section">
+      <!-- Product Image Carousel (Tier 1 & 2) -->
+      <div id="stylique-product-image-carousel" class="stylique-product-carousel-container"></div>
+
       <div class="stylique-upload-area" id="stylique-upload-area" onclick="document.getElementById('stylique-file-input').click()">
         <div class="stylique-upload-content">
           <div class="stylique-upload-icon">
@@ -304,7 +307,7 @@
           <button class="stylique-btn-icon" onclick="document.getElementById('stylique-file-input').click()"
             title="Change photo">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M1 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </button>

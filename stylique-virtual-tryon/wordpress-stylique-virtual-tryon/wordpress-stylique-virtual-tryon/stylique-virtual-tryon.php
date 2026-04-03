@@ -146,7 +146,11 @@ class Stylique_Virtual_TryOn {
 		wp_enqueue_script( 'three-js', 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js', array(), '0.128.0', true );
 		wp_enqueue_script( 'three-obj-loader', 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js', array('three-js'), '0.128.0', true );
 
-		wp_enqueue_script('stylique-tryon-script', plugin_dir_url(__FILE__) . 'assets/js/tryon-script.js', array('jquery'), '1.9.6', true);
+		// Enqueue carousel assets
+		wp_enqueue_style('stylique-carousel-style', plugin_dir_url(__FILE__) . 'assets/css/carousel.css', array(), '1.0.0');
+		wp_enqueue_script('stylique-carousel-js', plugin_dir_url(__FILE__) . 'assets/js/carousel.js', array(), '1.0.0', true);
+
+		wp_enqueue_script('stylique-tryon-script', plugin_dir_url(__FILE__) . 'assets/js/tryon-script.js', array('jquery', 'stylique-carousel-js'), '1.9.6', true);
 		wp_enqueue_script('stylique-backend-integration', plugin_dir_url(__FILE__) . 'assets/js/tryon-backend-integration.js', array('stylique-tryon-script'), '1.9.6', true);
 		wp_enqueue_style('stylique-tryon-style', plugin_dir_url(__FILE__) . 'assets/css/tryon-style.css', array(), '1.9.6');
 
