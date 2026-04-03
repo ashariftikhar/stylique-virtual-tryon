@@ -67,6 +67,7 @@ function productPathCandidates(currentUrl: string): string[] {
 
 /**
  * Find one inventory row for the storefront product page (avoid .maybeSingle() when multiple LIKE matches).
+ * Includes comprehensive debug logging for troubleshooting.
  */
 async function findInventoryForCheckProduct(
   storeUUID: string,
@@ -75,6 +76,8 @@ async function findInventoryForCheckProduct(
   shopifyProductId?: number | string | null,
 ): Promise<Record<string, unknown> | null> {
   const supabase = getSupabase();
+  
+  console.log(`[Plugin] findInventoryForCheckProduct: store_uuid=${storeUUID}, wooProductId=${wooProductId} (type: ${typeof wooProductId}), shopifyProductId=${shopifyProductId}`);
 
   const shopifyStr =
     shopifyProductId != null && String(shopifyProductId).trim() !== ''
@@ -82,6 +85,7 @@ async function findInventoryForCheckProduct(
       : null;
 
   if (shopifyStr) {
+    console.log(`[Plugin] Attempting Shopify ID match: shopify_product_id=${shopifyStr}`);
     const { data, error } = await supabase
       .from('inventory')
       .select(inventorySelect)
@@ -91,11 +95,11 @@ async function findInventoryForCheckProduct(
       .maybeSingle();
 
     if (!error && data) {
-      console.log(`[Plugin] check-product: matched by shopify_product_id=${shopifyStr}`);
+      console.log(`[Plugin] ✓ MATCHED by shopify_product_id=${shopifyStr}, product_id=${data.id}`);
       return data as Record<string, unknown>;
     }
-    if (error && !/shopify_product_id|schema|column/i.test(error.message)) {
-      console.warn('[Plugin] check-product shopify id lookup:', error.message);
+    if (error) {
+      console.warn(`[Plugin] Shopify ID lookup error: ${error.message}`);
     }
   }
 
@@ -108,7 +112,11 @@ async function findInventoryForCheckProduct(
     try {
       // Try to match by integer woocommerce_product_id
       const wooNum = Number(wooStr);
+      console.log(`[Plugin] Attempting WooCommerce ID match: wooStr="${wooStr}" → wooNum=${wooNum} (isFinite: ${Number.isFinite(wooNum)}, > 0: ${wooNum > 0})`);
+      
       if (Number.isFinite(wooNum) && wooNum > 0) {
+        console.log(`[Plugin] Executing query: SELECT ${inventorySelect} FROM inventory WHERE store_id='${storeUUID}' AND woocommerce_product_id=${wooNum}`);
+        
         const { data, error } = await supabase
           .from('inventory')
           .select(inventorySelect)
@@ -117,23 +125,33 @@ async function findInventoryForCheckProduct(
           .limit(1)
           .maybeSingle();
 
+        console.log(`[Plugin] Query result: error=${error ? error.message : 'none'}, data=${data ? `found (id=${data.id}, woocommerce_product_id=${data.woocommerce_product_id})` : 'null'}`);
+
         if (!error && data) {
-          console.log(`[Plugin] check-product: matched by woocommerce_product_id=${wooNum} (numeric match)`);
+          console.log(`[Plugin] ✓ MATCHED by woocommerce_product_id=${wooNum} (numeric), product_id=${data.id}`);
           return data as Record<string, unknown>;
         }
-        if (error && !/woocommerce_product_id|schema|column/i.test(error.message)) {
-          console.warn('[Plugin] check-product woo id lookup:', error.message);
+        if (error) {
+          console.warn(`[Plugin] WooCommerce ID lookup error: ${error.message}`);
         }
+      } else {
+        console.log(`[Plugin] WooCommerce ID is not a valid positive integer, skipping numeric lookup`);
       }
-    } catch {
+    } catch (e: any) {
       /* column may not exist yet — fall through to URL matching */
-      console.log('[Plugin] check-product: woocommerce_product_id column not found or error during lookup');
+      console.warn(`[Plugin] Exception during WooCommerce ID lookup: ${e.message}`);
     }
   }
 
+  console.log(`[Plugin] No ID match found, attempting URL-based matching for ${currentUrl}`);
+
   const paths = productPathCandidates(currentUrl);
+  console.log(`[Plugin] URL candidates for matching: ${JSON.stringify(paths)}`);
+  
   for (const p of paths) {
     if (!p || p === '/') continue;
+    console.log(`[Plugin] Trying product_link ILIKE match for path fragment: "${p}"`);
+    
     const { data, error } = await supabase
       .from('inventory')
       .select(inventorySelect)
@@ -143,8 +161,11 @@ async function findInventoryForCheckProduct(
       .maybeSingle();
 
     if (!error && data) {
-      console.log(`[Plugin] check-product: matched by product_link ilike path fragment=${p}`);
+      console.log(`[Plugin] ✓ MATCHED by product_link ILIKE path fragment="${p}", product_id=${data.id}`);
       return data as Record<string, unknown>;
+    }
+    if (error) {
+      console.warn(`[Plugin] product_link ILIKE lookup error for "${p}": ${error.message}`);
     }
   }
 
@@ -153,6 +174,8 @@ async function findInventoryForCheckProduct(
     const segments = url.pathname.split('/').filter(Boolean);
     const slug = segments[segments.length - 1];
     if (slug && slug.length > 0) {
+      console.log(`[Plugin] Trying product_link ILIKE match for slug: "/${slug}/"`);
+      
       const { data, error } = await supabase
         .from('inventory')
         .select(inventorySelect)
@@ -162,14 +185,19 @@ async function findInventoryForCheckProduct(
         .maybeSingle();
 
       if (!error && data) {
-        console.log(`[Plugin] check-product: matched by slug ilike /${slug}/`);
+        console.log(`[Plugin] ✓ MATCHED by product_link ILIKE slug="/${slug}/", product_id=${data.id}`);
         return data as Record<string, unknown>;
       }
+      if (error) {
+        console.warn(`[Plugin] product_link ILIKE lookup error for slug "/${slug}/": ${error.message}`);
+      }
     }
-  } catch {
+  } catch (e: any) {
     /* invalid URL already handled above */
+    console.warn(`[Plugin] Error parsing URL for slug extraction: ${e.message}`);
   }
 
+  console.log(`[Plugin] ✗ NO MATCH FOUND for woo=${wooStr ?? 'none'}, shopify=${shopifyStr ?? 'none'}, url=${String(currentUrl).slice(0, 120)}`);
   return null;
 }
 
@@ -1133,6 +1161,105 @@ router.get('/consume-tryon', async (req: Request, res: Response) => {
 router.get('/tryon-analytics', async (req: Request, res: Response) => {
   console.log('[Plugin] tryon-analytics (GET):', req.query);
   res.json({ success: true, message: 'analytics received (GET fallback)' });
+});
+
+// ──────────────────────────────────────────────
+// DEBUG ENDPOINT: /api/debug/check-product
+// Direct database query for testing product lookup
+// ──────────────────────────────────────────────
+router.post('/debug/check-product', async (req: Request, res: Response) => {
+  try {
+    const { storeId, wooProductId } = req.body;
+    console.log('[DEBUG] check-product: storeId=', storeId, 'wooProductId=', wooProductId, 'type=', typeof wooProductId);
+
+    if (!storeId) {
+      return res.status(400).json({ error: 'storeId required' });
+    }
+
+    const supabase = getSupabase();
+
+    // Step 1: Resolve store UUID
+    console.log('[DEBUG] Resolving store_id to UUID...');
+    const storeUUID = await lookupStoreUUID(storeId);
+    if (!storeUUID) {
+      return res.status(404).json({ error: 'Store not found', storeId });
+    }
+    console.log('[DEBUG] Store UUID resolved to:', storeUUID);
+
+    // Step 2: Check store exists and get product count
+    const { data: storeData, error: storeError } = await supabase
+      .from('stores')
+      .select('id, store_id')
+      .eq('id', storeUUID)
+      .single();
+    console.log('[DEBUG] Store lookup:', { storeData, storeError: storeError?.message });
+
+    // Step 3: Check if ANY products exist for this store
+    const { data: allProducts, error: allError } = await supabase
+      .from('inventory')
+      .select('id, product_name, woocommerce_product_id, store_id')
+      .eq('store_id', storeUUID);
+    console.log('[DEBUG] All products for store:', { count: allProducts?.length || 0, error: allError?.message });
+    if (allProducts) {
+      allProducts.forEach((p: any) => {
+        console.log(`[DEBUG]   - id=${p.id}, name=${p.product_name}, woocommerce_product_id=${p.woocommerce_product_id} (type: ${typeof p.woocommerce_product_id}), store_id=${p.store_id}`);
+      });
+    }
+
+    // Step 4: Specific query for woocommerce_product_id
+    if (wooProductId != null) {
+      const wooNum = Number(wooProductId);
+      console.log(`[DEBUG] Looking for woocommerce_product_id: input=${wooProductId}, parsed=${wooNum}, isFinite=${Number.isFinite(wooNum)}`);
+
+      const { data: wooProduct, error: wooError } = await supabase
+        .from('inventory')
+        .select('*')
+        .eq('store_id', storeUUID)
+        .eq('woocommerce_product_id', wooNum)
+        .single();
+
+      console.log(`[DEBUG] WooCommerce ID lookup result:`, { 
+        found: !!wooProduct,
+        error: wooError?.message,
+        data: wooProduct
+      });
+
+      return res.json({
+        debug: 'Check backend logs for detailed information',
+        storeId,
+        storeUUID,
+        wooProductId,
+        wooProductIdType: typeof wooProductId,
+        wooProductIdParsed: wooNum,
+        result: {
+          found: !!wooProduct,
+          product: wooProduct,
+          error: wooError?.message,
+        },
+        allProducts: allProducts?.map((p: any) => ({
+          id: p.id,
+          name: p.product_name,
+          woocommerce_product_id: p.woocommerce_product_id,
+          store_id: p.store_id,
+        })) || [],
+      });
+    }
+
+    res.json({
+      debug: 'No wooProductId provided',
+      storeId,
+      storeUUID,
+      allProducts: allProducts?.map((p: any) => ({
+        id: p.id,
+        name: p.product_name,
+        woocommerce_product_id: p.woocommerce_product_id,
+        store_id: p.store_id,
+      })) || [],
+    });
+  } catch (err: any) {
+    console.error('[DEBUG] check-product error:', err);
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
 });
 
 export default router;
