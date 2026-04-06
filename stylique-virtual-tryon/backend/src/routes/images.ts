@@ -194,15 +194,32 @@ export async function processProductImages(
 
   // Persist to inventory
   const bestScore = sorted[0]?.score ?? 0;
+  
+  // Get current images array before updating
+  const { data: currentProduct, error: fetchError } = await supabase
+    .from('inventory')
+    .select('images')
+    .eq('id', productId)
+    .single();
+  
+  const currentImages = currentProduct?.images || [];
+  
+  console.log('[Images] Current images array before update:', currentImages);
+  
   const { error } = await supabase
     .from('inventory')
-    .update({ tryon_image_url: bestUrl, tier, quality_score: bestScore })
+    .update({ 
+      tryon_image_url: bestUrl, 
+      tier, 
+      quality_score: bestScore,
+      images: currentImages // Preserve existing images array
+    })
     .eq('id', productId);
 
   if (error) {
     console.error(`[Images] Failed to update product ${productId}:`, error.message);
   } else {
-    console.log(`[Images] product=${productId} best=${bestUrl.slice(0, 60)}… tier=${tier} quality_score=${bestScore} usable=${scoredImages.filter(i => i.score >= 40).length}`);
+    console.log(`[Images] product=${productId} best=${bestUrl.slice(0, 60)}… tier=${tier} quality_score=${bestScore} usable=${scoredImages.filter(i => i.score >= 40).length} images_count=${currentImages.length}`);
   }
 
   return { bestUrl, tier, scoredImages: sorted };

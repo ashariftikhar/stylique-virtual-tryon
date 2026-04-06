@@ -80,7 +80,7 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
       .map((img: WooCommerceImage) => img.src)
       .filter((url: string) => url && url.startsWith('http'));
     
-    console.log('[WooCommerce Sync] Found', allImageUrls.length, 'images for carousel');
+    console.log('[WooCommerce Sync] Found', allImageUrls.length, 'images for carousel:', allImageUrls);
     
     // Extract sizes from variant attributes
     const sizes: string[] = [];
@@ -141,11 +141,14 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
       ? { ...baseRecord, woocommerce_product_id: product.id }
       : baseRecord;
 
+    console.log('[WooCommerce Sync] inventoryRecord.images:', inventoryRecord.images);
+
     let data: { id: string } | null = null;
     let error: any = null;
 
     if (existing) {
       console.log('[WooCommerce Sync] Existing product found, updating id:', existing.id, 'with woocommerce_product_id:', product.id);
+      console.log('[WooCommerce Sync] Updating with images array:', inventoryRecord.images);
       const result = await supabase
         .from('inventory')
         .update(inventoryRecord)
@@ -176,6 +179,7 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
 
     if (error) {
       console.log('[WooCommerce Sync] DB operation FAILED:', error.message);
+      console.log('[WooCommerce Sync] Error details:', error);
       return res.status(500).json({
         error: 'Failed to sync product to inventory',
         details: error.message,
@@ -183,6 +187,7 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
     }
 
     console.log('[WooCommerce Sync] DB operation SUCCESS, inventory id:', data?.id);
+    console.log('[WooCommerce Sync] Product synced with', allImageUrls.length, 'images');
 
     // Auto-process images in the background
     const allImages = (product.images || []).map((img: WooCommerceImage) => ({
