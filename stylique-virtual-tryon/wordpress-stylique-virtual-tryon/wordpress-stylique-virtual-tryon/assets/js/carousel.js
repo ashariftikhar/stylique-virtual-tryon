@@ -3,27 +3,53 @@
  * Handles swipe, arrow buttons, and dot navigation
  */
 
+console.log('[Carousel] carousel.js loaded, defining window.StyleiqueCarousel');
+
 window.StyleiqueCarousel = (function() {
   const state = {
     currentIndex: 0,
     images: [],
     container: null,
+    onImageSelect: null, // Callback when image is selected
   };
 
-  function init(images, containerId) {
-    if (!images || images.length === 0) return null;
+  function init(images, containerId, options = {}) {
+    console.log('[Carousel.init] Called with:', { 
+      imagesCount: images ? images.length : 0, 
+      containerId, 
+      hasCallback: !!options.onImageSelect 
+    });
+    
+    if (!images || images.length === 0) {
+      console.warn('[Carousel.init] No images provided or empty array');
+      return null;
+    }
 
     state.images = images;
     state.currentIndex = 0;
     state.container = document.getElementById(containerId);
+    state.onImageSelect = options.onImageSelect || null;
 
     if (!state.container) {
-      console.warn('[Carousel] Container not found:', containerId);
+      console.error('[Carousel] Container not found with ID:', containerId);
+      console.log('[Carousel] Available elements:', {
+        carouselDivExists: !!document.getElementById("stylique-product-image-carousel"),
+        uploadSectionExists: !!document.querySelector(".stylique-upload-section")
+      });
       return null;
     }
 
+    console.log('[Carousel.init] Container found, rendering carousel with', images.length, 'images');
     renderCarousel();
     attachEventListeners();
+    
+    // Trigger initial callback
+    if (state.onImageSelect) {
+      console.log('[Carousel.init] Calling onImageSelect with first image');
+      state.onImageSelect(state.images[0], 0);
+    }
+    
+    console.log('[Carousel.init] Initialization complete');
     return {
       getCurrentImage: getCurrentImage,
       selectImage: selectImage,
@@ -33,7 +59,12 @@ window.StyleiqueCarousel = (function() {
 
   function renderCarousel() {
     const { images, container } = state;
-    if (images.length === 0) return;
+    console.log('[Carousel.renderCarousel] Starting render with', images.length, 'images');
+    
+    if (images.length === 0) {
+      console.warn('[Carousel.renderCarousel] No images to render');
+      return;
+    }
 
     const html = `
       <div class="stylique-carousel-wrapper">
@@ -78,23 +109,44 @@ window.StyleiqueCarousel = (function() {
     `;
 
     container.innerHTML = html;
+    console.log('[Carousel.renderCarousel] HTML rendered successfully');
   }
 
   function attachEventListeners() {
     const { container, images } = state;
-    if (!container || images.length <= 1) return;
+    console.log('[Carousel.attachEventListeners] Attaching listeners for', images.length, 'images');
+    
+    if (!container || images.length <= 1) {
+      console.log('[Carousel.attachEventListeners] Skipping: container=' + !!container + ', images.length=' + images.length);
+      return;
+    }
 
     // Arrow buttons
     const prevBtn = container.querySelector('.stylique-carousel-prev');
     const nextBtn = container.querySelector('.stylique-carousel-next');
-    if (prevBtn) prevBtn.onClick = (e) => { e.preventDefault(); goToPrevious(); };
-    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); goToNext(); });
+    console.log('[Carousel.attachEventListeners] Found buttons:', { prev: !!prevBtn, next: !!nextBtn });
+    
+    if (prevBtn) prevBtn.addEventListener('click', (e) => { 
+      console.log('[Carousel] Previous clicked');
+      e.preventDefault(); 
+      goToPrevious(); 
+    });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { 
+      console.log('[Carousel] Next clicked');
+      e.preventDefault(); 
+      goToNext(); 
+    });
 
     // Dot buttons
-    container.querySelectorAll('.stylique-carousel-dot').forEach(dot => {
+    const dots = container.querySelectorAll('.stylique-carousel-dot');
+    console.log('[Carousel.attachEventListeners] Found', dots.length, 'dot indicators');
+    
+    dots.forEach(dot => {
       dot.addEventListener('click', (e) => {
+        const index = parseInt(dot.dataset.index);
+        console.log('[Carousel] Dot clicked, index:', index);
         e.preventDefault();
-        selectImage(parseInt(dot.dataset.index));
+        selectImage(index);
       });
     });
 
@@ -103,9 +155,14 @@ window.StyleiqueCarousel = (function() {
     let endX = 0;
     const track = container.querySelector('.stylique-carousel-track');
     if (track) {
-      track.addEventListener('touchstart', (e) => { startX = e.changedTouches[0].screenX; }, false);
+      console.log('[Carousel.attachEventListeners] Attaching touch listeners');
+      track.addEventListener('touchstart', (e) => { 
+        startX = e.changedTouches[0].screenX; 
+        console.log('[Carousel] Touch start:', startX);
+      }, false);
       track.addEventListener('touchend', (e) => {
         endX = e.changedTouches[0].screenX;
+        console.log('[Carousel] Touch end:', endX, 'diff:', startX - endX);
         handleSwipe();
       }, false);
     }
@@ -113,9 +170,17 @@ window.StyleiqueCarousel = (function() {
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
       if (!isCarouselFocused()) return;
-      if (e.key === 'ArrowLeft') goToPrevious();
-      if (e.key === 'ArrowRight') goToNext();
+      if (e.key === 'ArrowLeft') {
+        console.log('[Carousel] ArrowLeft pressed');
+        goToPrevious();
+      }
+      if (e.key === 'ArrowRight') {
+        console.log('[Carousel] ArrowRight pressed');
+        goToNext();
+      }
     });
+    
+    console.log('[Carousel.attachEventListeners] Event listeners attached successfully');
   }
 
   function handleSwipe() {
@@ -141,7 +206,7 @@ window.StyleiqueCarousel = (function() {
   }
 
   function updateCarousel() {
-    const { container, currentIndex } = state;
+    const { container, currentIndex, images, onImageSelect } = state;
     if (!container) return;
 
     // Update images
@@ -153,6 +218,11 @@ window.StyleiqueCarousel = (function() {
     container.querySelectorAll('.stylique-carousel-dot').forEach((dot, idx) => {
       dot.classList.toggle('active', idx === currentIndex);
     });
+
+    // Trigger callback with current image URL and index
+    if (onImageSelect && images[currentIndex]) {
+      onImageSelect(images[currentIndex], currentIndex);
+    }
   }
 
   function getCurrentImage() {

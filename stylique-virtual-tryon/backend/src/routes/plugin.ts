@@ -29,7 +29,7 @@ async function lookupStoreUUID(storeId: string): Promise<string | null> {
 }
 
 const inventorySelect =
-  'id, product_name, tryon_image_url, image_url, tier, sizes, product_link';
+  'id, product_name, tryon_image_url, image_url, tier, sizes, product_link, images';
 
 /**
  * Build URL path variants for matching product_link (trailing slash, encoding).
@@ -478,7 +478,7 @@ router.post('/check-product', async (req: Request, res: Response) => {
       }
     }
 
-    res.json({
+    const responsePayload = {
       success: true,
       available: true,
       product: {
@@ -489,7 +489,10 @@ router.post('/check-product', async (req: Request, res: Response) => {
         sizes: product.sizes || [],
         images: images, // Array of image URLs for carousel (Tier 1/2)
       },
-    });
+    };
+
+    console.log(`[Plugin] check-product response being sent:`, JSON.stringify(responsePayload, null, 2));
+    res.json(responsePayload);
   } catch (err: any) {
     console.error('[Plugin] check-product error:', err);
     res.status(500).json({ available: false, error: 'Internal server error' });

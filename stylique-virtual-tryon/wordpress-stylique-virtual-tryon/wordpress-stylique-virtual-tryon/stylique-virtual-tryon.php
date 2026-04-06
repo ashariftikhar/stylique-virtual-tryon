@@ -451,7 +451,7 @@ class Stylique_Virtual_TryOn {
 			'product'      => array(
 				'id'          => $product->get_id(),
 				'name'        => $product->get_name(),
-				'description' => $product->get_description(),
+				'description' => wp_strip_all_tags( $product->get_description() ), // Strip HTML tags for plain text display
 				'price'       => $product->get_price(),
 				'permalink'   => $product->get_permalink(),
 				'images'      => $this->get_product_images( $product ),

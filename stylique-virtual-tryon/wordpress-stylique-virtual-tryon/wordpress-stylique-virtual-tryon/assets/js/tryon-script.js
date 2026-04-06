@@ -23,6 +23,21 @@
     console.error("Stylique Error: Store ID is missing in configuration.");
   }
 
+  // Verify carousel container exists in DOM
+  console.log("[DEBUG] Checking for carousel container:");
+  const carouselContainer = document.getElementById("stylique-product-image-carousel");
+  console.log("[DEBUG] Carousel container element:", carouselContainer ? "FOUND" : "NOT FOUND");
+  if (carouselContainer) {
+    console.log("[DEBUG] Carousel container details:", {
+      id: carouselContainer.id,
+      className: carouselContainer.className,
+      innerHTML: carouselContainer.innerHTML ? carouselContainer.innerHTML.substring(0, 100) : "empty"
+    });
+  }
+  
+  // Verify carousel JS is loaded
+  console.log("[DEBUG] window.StyleiqueCarousel defined:", typeof window.StyleiqueCarousel);
+  
   // Use configured backend URL with fallback chain
   const API_BASE_URL =
     (typeof styliqueConfig !== "undefined" && styliqueConfig.backendUrl) ||
@@ -418,9 +433,15 @@
           window.styliqueSection.productImages = data.product.images;
           window.styliqueSection.selectedProductImageUrl = data.product.images[0] || data.product.tryon_image_url;
           console.log('Stylique: Stored', data.product.images.length, 'product images for carousel');
+          console.log('[DEBUG] Product images:', data.product.images.map((img, i) => `[${i}] ${img}`).join(', '));
         } else {
+          console.warn('[Stylique] No product images array in backend response');
+          console.log('[DEBUG] data.product:', data.product);
           window.styliqueSection.productImages = [data.product ? data.product.tryon_image_url : null].filter(Boolean);
           window.styliqueSection.selectedProductImageUrl = data.product ? data.product.tryon_image_url : null;
+          if (window.styliqueSection.productImages.length > 0) {
+            console.log('Stylique: Fallback to single image URL:', window.styliqueSection.productImages[0]);
+          }
         }
 
         document.getElementById("stylique-product-unavailable").style.display =
@@ -457,17 +478,30 @@
    * Tier 3: only size recommendation and styling suggestions.
    */
   function applyTierRouting(tier) {
+    console.log('[Stylique.applyTierRouting] Called with tier:', tier);
+    
     const tryOnOptions = document.querySelector(".stylique-tryon-options");
     const uploadSection = document.querySelector(".stylique-upload-section");
+    const carouselContainer = document.getElementById("stylique-product-image-carousel");
     const stylingSection = document.getElementById("stylique-styling-suggestions");
     const recsSection = document.getElementById("stylique-plugin-recommendations");
     const tierBadge = document.getElementById("stylique-tier-badge");
+
+    console.log('[Stylique.applyTierRouting] DOM elements found:', {
+      tryOnOptions: !!tryOnOptions,
+      uploadSection: !!uploadSection,
+      carouselContainer: !!carouselContainer,
+      stylingSection: !!stylingSection,
+      recsSection: !!recsSection,
+      tierBadge: !!tierBadge
+    });
 
     if (tier === 3) {
       console.log("Stylique: Tier 3 — hiding try-on buttons, showing size rec + styling only");
 
       if (tryOnOptions) tryOnOptions.style.display = "none";
       if (uploadSection) uploadSection.style.display = "none";
+      if (carouselContainer) carouselContainer.style.display = "none";
 
       // Show recommendations and styling for tier 3 immediately
       if (recsSection) recsSection.style.display = "block";
@@ -493,15 +527,47 @@
       }
 
       // Initialize carousel for Tier 1 & 2 if images available
+      console.log('[Stylique.applyTierRouting] Checking carousel conditions:', {
+        isTier1or2: (tier === 1 || tier === 2),
+        hasProductImages: !!window.styliqueSection.productImages,
+        productImagesLength: window.styliqueSection.productImages ? window.styliqueSection.productImages.length : 0,
+        carouselComponentExists: typeof window.StyleiqueCarousel !== 'undefined',
+        hasCarouselContainer: !!carouselContainer
+      });
+
       if ((tier === 1 || tier === 2) && window.styliqueSection.productImages && window.styliqueSection.productImages.length > 0) {
-        const carouselContainer = document.getElementById("stylique-product-image-carousel");
         if (carouselContainer && typeof window.StyleiqueCarousel !== 'undefined') {
-          console.log('Stylique: Initializing carousel for Tier', tier, 'with', window.styliqueSection.productImages.length, 'images');
+          console.log('[Stylique.applyTierRouting] Initializing carousel for Tier', tier, 'with', window.styliqueSection.productImages.length, 'images');
+          
+          // Create callback to update selected image URL when carousel image is selected
+          const onImageSelect = function(imageUrl, index) {
+            console.log('[Stylique] Carousel image selected - index:', index, 'url:', imageUrl);
+            window.styliqueSection.selectedProductImageUrl = imageUrl;
+          };
+          
+          console.log('[Stylique.applyTierRouting] Calling StyleiqueCarousel.init with options');
           window.styliqueSection.carousel = window.StyleiqueCarousel.init(
             window.styliqueSection.productImages,
-            "stylique-product-image-carousel"
+            "stylique-product-image-carousel",
+            { onImageSelect: onImageSelect }
           );
+          
+          if (window.styliqueSection.carousel) {
+            console.log('[Stylique.applyTierRouting] Carousel initialized successfully');
+            carouselContainer.style.display = "block";
+          } else {
+            console.error('[Stylique.applyTierRouting] Carousel initialization returned null');
+          }
+        } else {
+          console.warn('[Stylique.applyTierRouting] Cannot init carousel:', {
+            carouselContainerExists: !!carouselContainer,
+            StyleiqueCarouselDefined: typeof window.StyleiqueCarousel
+          });
         }
+      } else if (carouselContainer) {
+        // Hide carousel if not Tier 1/2 or no images available
+        console.log('[Stylique.applyTierRouting] Hiding carousel (condition not met)');
+        carouselContainer.style.display = "none";
       }
     }
   }
@@ -903,8 +969,22 @@
       if (styliqueConfig.product && styliqueConfig.product.id) {
         formData.append("product_id", String(styliqueConfig.product.id));
       }
-      if (styliqueConfig.product && styliqueConfig.product.image) {
-        formData.append("image_url", styliqueConfig.product.image);
+      
+      // Use currently selected carousel image if available, otherwise fallback
+      let imageUrl = null;
+      if (window.styliqueSection.carousel && typeof window.styliqueSection.carousel.getCurrentImage === 'function') {
+        imageUrl = window.styliqueSection.carousel.getCurrentImage();
+        console.log('Stylique: Using carousel-selected image for 3D:', imageUrl);
+      } else if (window.styliqueSection.selectedProductImageUrl) {
+        imageUrl = window.styliqueSection.selectedProductImageUrl;
+        console.log('Stylique: Using stored product image for 3D:', imageUrl);
+      } else if (styliqueConfig.product && styliqueConfig.product.image) {
+        imageUrl = styliqueConfig.product.image;
+        console.log('Stylique: Using config product image for 3D:', imageUrl);
+      }
+      
+      if (imageUrl) {
+        formData.append("image_url", imageUrl);
       }
       if (window.styliqueSection.user && window.styliqueSection.user.id) {
         formData.append("userId", window.styliqueSection.user.id);

@@ -75,6 +75,13 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
     const price = product.price || '0';
     const imageUrl = product.images?.[0]?.src || '';
     
+    // Extract ALL image URLs for carousel (Tier 1/2)
+    const allImageUrls: string[] = (product.images || [])
+      .map((img: WooCommerceImage) => img.src)
+      .filter((url: string) => url && url.startsWith('http'));
+    
+    console.log('[WooCommerce Sync] Found', allImageUrls.length, 'images for carousel');
+    
     // Extract sizes from variant attributes
     const sizes: string[] = [];
     product.variants?.forEach((variant) => {
@@ -93,6 +100,7 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
       image_url: imageUrl,
       sizes: sizes.length > 0 ? sizes : [],
       product_link: product.permalink,
+      images: allImageUrls, // Store all image URLs for carousel
     };
 
     // Look up existing product — try woocommerce_product_id first, then permalink
