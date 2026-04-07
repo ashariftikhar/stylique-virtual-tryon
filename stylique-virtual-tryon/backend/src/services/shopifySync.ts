@@ -164,13 +164,20 @@ export async function syncShopifyProductToInventory(
     console.log(`[ShopifySync] No access token provided for product ${product.id}, skipping metafield fetch`);
   }
 
+  // If no sizes from variants but we have measurements (size chart), extract sizes from measurement keys
+  let finalSizes = sizes;
+  if (finalSizes.length === 0 && Object.keys(measurements).length > 0) {
+    finalSizes = Object.keys(measurements).sort();
+    console.log(`[ShopifySync] No variant sizes found, extracted from measurements: ${finalSizes.join(', ')}`);
+  }
+
   const inventoryRecord = {
     store_id: storeUuid,
     product_name: productName,
     description,
     price,
     image_url: imageUrl,
-    sizes: sizes.length > 0 ? sizes : [],
+    sizes: finalSizes.length > 0 ? finalSizes : [],
     measurements: Object.keys(measurements).length > 0 ? measurements : {},
     product_link: productLink,
     shopify_product_id: String(product.id),

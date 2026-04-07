@@ -1,5 +1,30 @@
-<!-- Main Content -->
-<div class="stylique-section-content">
+<!-- Try On Button (Always Visible) -->
+<button id="stylique-open-modal-btn" class="stylique-trigger-btn" onclick="openStyliqueModal()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+    <circle cx="12" cy="12" r="1"></circle>
+    <path d="M12 1v6m6.366-6.366l-4.243 4.243m6.366 6.366l-6-6"></path>
+    <path d="M1 12h6m11 0h6" />
+  </svg>
+  Try On
+</button>
+
+<!-- Modal Container (Hidden by Default) -->
+<div id="stylique-modal" class="stylique-modal-wrapper" style="display: none;">
+  <!-- Modal Backdrop (Click to Close) -->
+  <div class="stylique-modal-backdrop" onclick="closeStyliqueModal()"></div>
+
+  <!-- Modal Content -->
+  <div class="stylique-modal-content">
+    <!-- Close Button -->
+    <button class="stylique-modal-close" onclick="closeStyliqueModal()" aria-label="Close modal">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+
+    <!-- Main Content -->
+    <div class="stylique-section-content">
 
 <!-- Not Logged In State - Minimal Design -->
 <div id="stylique-login-required" class="stylique-login-prompt">
@@ -769,3 +794,8 @@
 
 </div>
 <!-- End Main Content -->
+
+    </div>
+    <!-- End Modal Content -->
+  </div>
+  <!-- End Modal Wrapper -->

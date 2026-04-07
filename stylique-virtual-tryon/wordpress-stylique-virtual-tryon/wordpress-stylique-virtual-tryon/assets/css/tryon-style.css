@@ -3618,3 +3618,205 @@
   background: linear-gradient(135deg, #642FD7, #F4536F);
   color: #fff;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MODAL POPUP STYLES
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Try On Button - Always Visible */
+.stylique-trigger-btn {
+  position: relative;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--stylique-transition);
+  box-shadow: 0 4px 16px rgba(100, 47, 215, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.stylique-trigger-btn:hover {
+  box-shadow: 0 8px 24px rgba(100, 47, 215, 0.4);
+  transform: translateY(-2px);
+}
+
+.stylique-trigger-btn:active {
+  transform: translateY(0);
+}
+
+/* Modal Wrapper - Full Screen Overlay */
+.stylique-modal-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  animation: stylique-fade-in 0.2s ease-out;
+}
+
+@keyframes stylique-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Backdrop */
+.stylique-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  animation: stylique-backdrop-fade 0.2s ease-out;
+}
+
+@keyframes stylique-backdrop-fade {
+  from {
+    background: rgba(0, 0, 0, 0);
+  }
+  to {
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Modal Content Container */
+.stylique-modal-content {
+  position: relative;
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: stylique-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10001;
+}
+
+@keyframes stylique-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Close Button */
+.stylique-modal-close {
+  position: sticky;
+  top: 12px;
+  right: 12px;
+  float: right;
+  background: rgba(100, 47, 215, 0.08);
+  border: 1px solid rgba(100, 47, 215, 0.15);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--stylique-transition);
+  color: var(--stylique-text);
+  z-index: 2;
+  margin-bottom: -40px;
+  margin-top: 12px;
+}
+
+.stylique-modal-close:hover {
+  background: rgba(100, 47, 215, 0.12);
+  border-color: rgba(100, 47, 215, 0.25);
+  transform: rotate(90deg);
+}
+
+.stylique-modal-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Modal Content Wrapper */
+.stylique-modal-content .stylique-section-content {
+  padding: 32px 24px;
+  animation: stylique-fade-in 0.3s ease-out 0.1s backwards;
+}
+
+/* Ensure modal content doesn't overflow */
+.stylique-modal-content .stylique-section-content,
+.stylique-modal-content .stylique-login-required,
+.stylique-modal-content .stylique-tryon-section {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 32px 24px;
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+  .stylique-modal-wrapper {
+    padding: 0;
+  }
+
+  .stylique-modal-content {
+    border-radius: 20px 20px 0 0;
+    max-height: 95vh;
+    width: 100%;
+    max-width: none;
+    animation: stylique-slide-up-mobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes stylique-slide-up-mobile {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stylique-modal-content .stylique-section-content {
+    padding: 24px 16px 32px 16px;
+  }
+
+  .stylique-modal-close {
+    top: 8px;
+    right: 8px;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
+/* Ensure scrolling works properly */
+.stylique-modal-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide modal when closed */
+.stylique-modal-wrapper:not([style*="display: block"]),
+.stylique-modal-wrapper[style*="display: none"] {
+  display: none !important;
+}

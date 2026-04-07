@@ -1999,6 +1999,26 @@
     });
   }
 
+  // ==========================================
+  // MODAL FUNCTIONS
+  // ==========================================
+
+  window.openStyliqueModal = function () {
+    const modal = document.getElementById('stylique-modal');
+    if (modal) {
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+  };
+
+  window.closeStyliqueModal = function () {
+    const modal = document.getElementById('stylique-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  };
+
   // Initialize
   document.addEventListener("DOMContentLoaded", function () {
     moveModalsToBody(); // Apply fix immediately
@@ -2026,7 +2046,7 @@
 
     // Make window functions avail
     window.loadSizeRecommendation = loadSizeRecommendation;
-    
+
     // Setup Tracking
     setupAddToCartTracking();
   });
