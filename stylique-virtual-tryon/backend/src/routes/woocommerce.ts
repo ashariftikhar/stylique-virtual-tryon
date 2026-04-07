@@ -2,10 +2,53 @@ import express from 'express';
 import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
 import { processProductImages } from './images.ts';
+import { stripHtmlTags, parseSizeChart } from '../utils/htmlUtils.ts';
 
 const router: Router = express.Router();
 
+/**
+ * Extract size chart from WooCommerce product meta data.
+ * Tries common meta keys: _size_chart, _wc_size_chart, size_chart, wc_size_chart
+ * Returns parsed size chart object or empty object if not found.
+ */
+function extractWooCommerceSizeChart(
+  metaData: Array<{ key: string; value: any }> | undefined,
+): Record<string, Record<string, number>> {
+  if (!metaData || !Array.isArray(metaData)) {
+    console.log('[WooCommerce] No meta_data array provided');
+    return {};
+  }
+
+  // List of keys to check for size chart data (in priority order)
+  const sizeChartKeys = ['_size_chart', '_wc_size_chart', 'size_chart', 'wc_size_chart'];
+
+  for (const key of sizeChartKeys) {
+    const metaEntry = metaData.find((m) => m.key === key);
+    if (metaEntry && metaEntry.value) {
+      console.log(`[WooCommerce] Found size chart in meta key: ${key}`);
+      const parsed = parseSizeChart(metaEntry.value);
+      if (Object.keys(parsed).length > 0) {
+        console.log(
+          `[WooCommerce] Successfully parsed size_chart with ${Object.keys(parsed).length} sizes`,
+        );
+        return parsed;
+      } else {
+        console.warn(
+          `[WooCommerce] size chart meta found at key "${key}" but could not parse: ${String(metaEntry.value).slice(
+            0,
+            100,
+          )}`,
+        );
+      }
+    }
+  }
+
+  console.log('[WooCommerce] No size chart found in meta keys:', sizeChartKeys.join(', '));
+  return {};
+}
+
 interface WooCommerceImage {
+
   src: string;
   alt?: string;
 }
@@ -23,6 +66,7 @@ interface WooCommerceProduct {
   images: WooCommerceImage[];
   variants: WooCommerceVariant[];
   permalink: string;
+  meta_data?: Array<{ key: string; value: any }>;
 }
 
 interface WooCommerceWebhookPayload {
@@ -71,7 +115,7 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
 
     // Extract product data
     const productName = product.name;
-    const description = product.description || '';
+    const description = stripHtmlTags(product.description || '');
     const price = product.price || '0';
     const imageUrl = product.images?.[0]?.src || '';
     
@@ -81,6 +125,9 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
       .filter((url: string) => url && url.startsWith('http'));
     
     console.log('[WooCommerce Sync] Found', allImageUrls.length, 'images for carousel:', allImageUrls);
+    
+    // Extract size chart from meta data
+    const measurements = extractWooCommerceSizeChart(product.meta_data);
     
     // Extract sizes from variant attributes
     const sizes: string[] = [];
@@ -99,6 +146,7 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
       price: parseFloat(price),
       image_url: imageUrl,
       sizes: sizes.length > 0 ? sizes : [],
+      measurements: Object.keys(measurements).length > 0 ? measurements : {},
       product_link: product.permalink,
       images: allImageUrls, // Store all image URLs for carousel
     };

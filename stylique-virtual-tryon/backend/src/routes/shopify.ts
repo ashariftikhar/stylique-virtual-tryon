@@ -352,7 +352,17 @@ export async function shopifyWebhookHandler(req: Request, res: Response): Promis
           res.status(404).send('Store not found');
           return;
         }
-        await syncShopifyProductToInventory(storeUuid, shopDomain, product);
+        
+        // Fetch access token for metafield retrieval
+        const supabase = getSupabase();
+        const { data: store } = await supabase
+          .from('stores')
+          .select('shopify_access_token')
+          .eq('id', storeUuid)
+          .single();
+        
+        const accessToken = store?.shopify_access_token || undefined;
+        await syncShopifyProductToInventory(storeUuid, shopDomain, product, accessToken);
       }
     } else {
       console.log('[Shopify Webhook] Ignoring topic:', topic);

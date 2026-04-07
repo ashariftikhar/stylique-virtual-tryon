@@ -1,7 +1,10 @@
 import { getSupabase } from './supabase.ts';
 import { processProductImages } from '../routes/images.ts';
+import { stripHtmlTags, parseSizeChart } from '../utils/htmlUtils.ts';
 
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-10';
+const SHOPIFY_METAFIELD_NAMESPACE = process.env.SHOPIFY_METAFIELD_NAMESPACE || 'custom';
+const SHOPIFY_METAFIELD_KEY = process.env.SHOPIFY_METAFIELD_KEY || 'size_chart';
 
 export interface ShopifyRestProduct {
   id: number;
@@ -36,6 +39,76 @@ export async function resolveStoreIdByShopDomain(shopDomain: string): Promise<st
     .maybeSingle();
   return byStoreId?.id ?? null;
 }
+
+/**
+ * Fetch size chart metafield from a Shopify product.
+ * Attempts to fetch from the configured namespace and key.
+ * Returns parsed size chart object or empty object if not found.
+ */
+async function fetchShopifySizeChartMetafield(
+  shopDomain: string,
+  accessToken: string,
+  productId: number,
+): Promise<Record<string, Record<string, number>>> {
+  try {
+    const namespace = SHOPIFY_METAFIELD_NAMESPACE;
+    const key = SHOPIFY_METAFIELD_KEY;
+    
+    // Fetch metafields for this product
+    const url = `https://${shopDomain}/admin/api/${SHOPIFY_API_VERSION}/products/${productId}/metafields.json`;
+    const res = await fetch(url, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      console.log(`[ShopifyMetafield] Failed to fetch metafields for product ${productId}: ${res.status}`);
+      return {};
+    }
+
+    const data = (await res.json()) as {
+      metafields?: Array<{ namespace: string; key: string; value: string }>;
+    };
+    const metafields = data.metafields || [];
+
+    // Look for the size chart metafield
+    const sizeChartMeta = metafields.find(
+      (m) => m.namespace === namespace && m.key === key,
+    );
+
+    if (sizeChartMeta) {
+      console.log(
+        `[ShopifyMetafield] Found size_chart in namespace="${namespace}", key="${key}"`,
+      );
+      const parsed = parseSizeChart(sizeChartMeta.value);
+      if (Object.keys(parsed).length > 0) {
+        console.log(
+          `[ShopifyMetafield] Successfully parsed size_chart with ${Object.keys(parsed).length} sizes`,
+        );
+        return parsed;
+      } else {
+        console.warn(
+          `[ShopifyMetafield] size_chart metafield found but could not parse: ${sizeChartMeta.value.slice(
+            0,
+            100,
+          )}`,
+        );
+      }
+    } else {
+      console.log(
+        `[ShopifyMetafield] No size_chart found in namespace="${namespace}", key="${key}". Configure via SHOPIFY_METAFIELD_NAMESPACE and SHOPIFY_METAFIELD_KEY.`,
+      );
+    }
+
+    return {};
+  } catch (err: any) {
+    console.error('[ShopifyMetafield] Error fetching metafields:', err.message);
+    return {};
+  }
+}
+
 
 /**
  * Extract sizes from all variant options (option1, option2, option3).
@@ -73,14 +146,23 @@ export async function syncShopifyProductToInventory(
   storeUuid: string,
   shopDomain: string,
   product: ShopifyRestProduct,
+  accessToken?: string,
 ): Promise<{ id: string } | null> {
   const supabase = getSupabase();
   const productName = product.title || 'Untitled';
-  const description = product.body_html || '';
+  const description = stripHtmlTags(product.body_html || '');
   const price = parseFloat(product.variants?.[0]?.price || '0');
   const imageUrl = product.images?.[0]?.src || '';
   const sizes = sizesFromVariants(product);
   const productLink = `https://${shopDomain}/products/${product.handle}`;
+
+  // Fetch size chart from Shopify metafields if access token is provided
+  let measurements: Record<string, Record<string, number>> = {};
+  if (accessToken) {
+    measurements = await fetchShopifySizeChartMetafield(shopDomain, accessToken, product.id);
+  } else {
+    console.log(`[ShopifySync] No access token provided for product ${product.id}, skipping metafield fetch`);
+  }
 
   const inventoryRecord = {
     store_id: storeUuid,
@@ -89,6 +171,7 @@ export async function syncShopifyProductToInventory(
     price,
     image_url: imageUrl,
     sizes: sizes.length > 0 ? sizes : [],
+    measurements: Object.keys(measurements).length > 0 ? measurements : {},
     product_link: productLink,
     shopify_product_id: String(product.id),
   };
@@ -203,7 +286,7 @@ export async function pullAllShopifyProductsAndSync(
     const data = (await res.json()) as { products?: ShopifyRestProduct[] };
     const products = data.products || [];
     for (const p of products) {
-      const row = await syncShopifyProductToInventory(storeUuid, shopDomain, p);
+      const row = await syncShopifyProductToInventory(storeUuid, shopDomain, p, accessToken);
       if (row) synced++;
       else failed++;
     }
