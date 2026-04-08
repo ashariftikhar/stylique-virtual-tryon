@@ -466,9 +466,9 @@
           </div>
 
 
-          
+
           <div id="stylique-plugin-recommendations" style="display: none; margin-top: 2rem;">
-            
+
             <div class="stylique-size-recommendation-section" id="stylique-plugin-size-recommendation-section">
               <div class="stylique-section-header">
                 <h5>AI Size Recommendation</h5>
@@ -478,6 +478,20 @@
                 <div class="stylique-loading-state">
                   <div class="stylique-spinner-small"></div>
                   <p>Analyzing your size...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Complete the Look Recommendations Section -->
+            <div id="stylique-plugin-complete-look" class="stylique-complete-look-section" style="display: none; margin-top: 1.5rem;">
+              <div class="stylique-section-header">
+                <h5>Complete the Look</h5>
+                <div class="stylique-ai-badge">AI Styling</div>
+              </div>
+              <div class="stylique-complete-look-content" id="stylique-plugin-complete-look-content">
+                <div class="stylique-loading-state">
+                  <div class="stylique-spinner-small"></div>
+                  <p>Finding perfect matches...</p>
                 </div>
               </div>
             </div>
@@ -1735,6 +1749,15 @@
         if (recommendationsSection) {
           recommendationsSection.style.display = 'block';
           loadSizeRecommendation(product.id, 'stylique-plugin-size-recommendation-content');
+
+          // Also load complete look for ULTIMATE users
+          if (planName === 'ULTIMATE') {
+            const completeLookSection = document.getElementById('stylique-plugin-complete-look');
+            if (completeLookSection) {
+              completeLookSection.style.display = 'block';
+              loadCompleteLook(product.id, 'stylique-plugin-complete-look-content');
+            }
+          }
         }
       }
     }
@@ -2106,6 +2129,15 @@
                   console.log('✅ Recommendations section shown');
                   // Load recommendations with product from try-on result
                   loadSizeRecommendation(result.product.id, 'stylique-plugin-size-recommendation-content');
+
+                  // Load complete look for ULTIMATE users
+                  if (planName === 'ULTIMATE') {
+                    const completeLookSection = document.getElementById('stylique-plugin-complete-look');
+                    if (completeLookSection) {
+                      completeLookSection.style.display = 'block';
+                      loadCompleteLook(result.product.id, 'stylique-plugin-complete-look-content');
+                    }
+                  }
                 } else {
                   console.warn('⚠️ Recommendations section element not found');
                 }
