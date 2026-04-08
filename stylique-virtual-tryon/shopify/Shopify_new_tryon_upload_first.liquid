@@ -466,7 +466,6 @@
           </div>
 
 
-
           <div id="stylique-plugin-recommendations" style="display: none; margin-top: 2rem;">
 
             <div class="stylique-size-recommendation-section" id="stylique-plugin-size-recommendation-section">
@@ -497,16 +496,66 @@
             </div>
           </div>
 
-          <div style="text-align: center; margin-top: 1rem;">
-            <span id="stylique-tier-badge" class="stylique-tier-badge" style="display: none;"></span>
-          </div>
-
         </div>
+      </div>
+    </div> <!-- Ensure stylique-modal-grid is closed -->
+
+    </div> <!-- End stylique-tryon-interface -->
+
+      <!-- PREMIUM FULL-WIDGET RESULT VIEW (uwear.ai-style) -->
+      <div id="stylique-result-view" class="stylique-result-view" style="display: none;">
+
+    <!-- Left Column: Clean Result Image -->
+    <div class="stylique-result-left" style="background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative;">
+      <div id="stylique-result-image-loading" style="position: absolute; text-align: center; color: #666; font-size: 14px;">
+        <div class="stylique-spinner-small" style="margin: 0 auto 10px;"></div>
+        Loading your try-on...
+      </div>
+      <div id="stylique-result-image-error" style="position: absolute; text-align: center; color: #e53e3e; font-size: 14px; display: none;">
+        Failed to load image.
+      </div>
+      <div class="stylique-result-image-container" style="z-index: 2;">
+        <img id="stylique-result-main-image" alt="Virtual try-on result" style="display: none; opacity: 0; transition: opacity 0.5s ease;" />
       </div>
     </div>
 
+    <!-- Right Column: Items in this look -->
+    <div class="stylique-result-right">
+      <div class="stylique-result-items-header">
+        <h5>Items in this look:</h5>
+      </div>
+      <div class="stylique-result-items-list" id="stylique-result-items-list">
+        <!-- Populated dynamically by JS -->
+      </div>
+      <!-- Size recommendation loaded dynamically -->
+      <div id="stylique-result-size-details" style="display:none;"></div>
+    </div>
 
-    <div id="stylique-results-modal" class="stylique-modal" style="display: none;">
+    <!-- Bottom Action Bar -->
+    <div class="stylique-result-bottom-bar">
+      <button class="stylique-result-bar-btn" onclick="window.downloadResultImage()" id="stylique-result-download">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Download
+      </button>
+      <button class="stylique-result-bar-btn" onclick="window.addToCart()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+        Add to Cart
+      </button>
+      <button class="stylique-result-bar-btn" onclick="window.resetTryOnFromResult()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+        </svg>
+        ↻ Try Again
+      </button>
+    </div>
+    </div>
+  </div> <!-- End stylique-section-content -->
+
+  <div id="stylique-results-modal" class="stylique-modal" style="display: none;">
       <div class="stylique-modal-backdrop" onclick="hideResultsModal()"></div>
       <div class="stylique-modal-content stylique-results-modal-content" onclick="event.stopPropagation()">
         <div class="stylique-modal-header">
@@ -2083,8 +2132,10 @@
 
           const result = await response.json();
           console.log('Try-on result:', result);
+          console.log('Result success?', result.success, 'Has image?', !!result.resultImage);
 
           if (result.success && result.resultImage) {
+            console.log('✅ SUCCESS: Proceeding to show result view...');
             // Complete progress
             clearInterval(progressInterval);
             clearTimeout(clientTimeout);
@@ -2092,23 +2143,18 @@
 
             // Wait a moment before showing result
             setTimeout(() => {
+              console.log('⏱️ Inside setTimeout - about to show result view');
               // Show the actual try-on result (both modal and inline)
               const resultImage = document.getElementById('stylique-result-image');
               const inlineResultImage = document.getElementById('stylique-inline-result-img');
               if (resultImage) resultImage.src = result.resultImage;
               if (inlineResultImage) inlineResultImage.src = result.resultImage;
 
-              // Replace upload area with inline result (compact, no modal)
-              const uploadSection = document.querySelector('.stylique-upload-section');
-              const inlineResult = document.getElementById('stylique-inline-result');
-
-              if (uploadSection && inlineResult) {
-                uploadSection.style.display = 'none';
-                inlineResult.style.display = 'block';
-              }
-
               // Store product info for potential purchase
               window.styliqueSection.currentProduct = result.product;
+
+              // Show the premium full-widget result view
+              showResultView(result.resultImage, result.product?.id);
 
               // Load recommendations in plugin interface after 2D try-on completes
               const storeStatus = window.styliqueSection.storeStatus || window.styliqueSection.stores?.find(s => s.store_id === window.styliqueSection.storeId);
@@ -2157,6 +2203,10 @@
               // showResultsModal() removed - result displays inline instead
             }, 800);
           } else {
+            console.error('❌ RESULT VALIDATION FAILED:');
+            console.error('  success:', result.success);
+            console.error('  resultImage:', result.resultImage);
+            console.error('  Full result object:', result);
             throw new Error(result.error || 'Try-on processing failed');
           }
         } catch (fetchError) {
@@ -3418,11 +3468,21 @@
       var container3D = document.getElementById('stylique-3d-inline-container');
       if (container3D) container3D.innerHTML = '';
 
+      // Hide premium result view
+      var resultView = document.getElementById('stylique-result-view');
+      if (resultView) resultView.style.display = 'none';
+      var rightColumn = document.querySelector('.stylique-right-column');
+      if (rightColumn) rightColumn.classList.remove('stylique-result-mode');
+
       // Restore upload area
       var uploadArea = document.getElementById('stylique-upload-area');
       if (uploadArea) uploadArea.style.display = 'block';
       var uploadSection = document.querySelector('.stylique-upload-section');
       if (uploadSection) uploadSection.style.display = 'block';
+
+      // Restore action section
+      var actionSection = document.querySelector('.stylique-action-section');
+      if (actionSection) actionSection.style.display = 'block';
 
       // Re-apply tier routing to restore correct visibility
       var tier = window.styliqueSection.productTier;
@@ -4043,7 +4103,400 @@
     }
   }
 
-  // Make functions globally available
+  // ─────────────────────────────────────────────────────────────
+  // PREMIUM RESULT VIEW — uwear.ai-style
+  // ─────────────────────────────────────────────────────────────
+
+  function showResultView(resultImage, productId) {
+    try {
+      console.log('🎨 showResultView: Entering full-widget mode...', { hasImage: !!resultImage, productId });
+
+      const resultView = document.getElementById('stylique-result-view');
+      const mainInterface = document.getElementById('stylique-tryon-interface');
+      const modalWrapper = document.querySelector('.stylique-modal-wrapper');
+
+      // Check parent chain visibility
+      console.log('🔍 PARENT VISIBILITY CHECK:');
+      if (modalWrapper) {
+        console.log('  - modalWrapper offsetWidth:', modalWrapper.offsetWidth, 'offsetHeight:', modalWrapper.offsetHeight);
+        console.log('  - modalWrapper display:', window.getComputedStyle(modalWrapper).display);
+        console.log('  - modalWrapper visibility:', window.getComputedStyle(modalWrapper).visibility);
+      } else {
+        console.error('❌ modalWrapper NOT FOUND!');
+      }
+      if (mainInterface) {
+        console.log('  - mainInterface (modal-content) offsetWidth:', mainInterface.offsetWidth, 'offsetHeight:', mainInterface.offsetHeight);
+        console.log('  - mainInterface display:', window.getComputedStyle(mainInterface).display);
+        console.log('  - mainInterface position:', window.getComputedStyle(mainInterface).position);
+        console.log('  - mainInterface flex-direction:', window.getComputedStyle(mainInterface).flexDirection);
+        console.log('  - mainInterface children count:', mainInterface.children.length);
+      }
+
+      if (!resultView) {
+        console.error('❌ Critical: stylique-result-view not found');
+        return;
+      }
+
+      // 1. HIDE mainInterface completely
+      if (mainInterface) {
+        mainInterface.style.cssText = 'display: none !important;';
+      }
+
+      // 2. Hide global headers
+      document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.setProperty('display', 'none', 'important'));
+
+      // 3. Show result-view using CSS class (handles all styling properly)
+      resultView.classList.add('show-result');
+
+      console.log('✅ Result-view shown with CSS grid layout');
+
+      // 5. Set the result image with loading/error state
+      const resultImg = document.getElementById('stylique-result-main-image');
+      const loadingState = document.getElementById('stylique-result-image-loading');
+      const errorState = document.getElementById('stylique-result-image-error');
+
+      if (resultImg && resultImage) {
+        if (loadingState) loadingState.style.display = 'block';
+        if (errorState) errorState.style.display = 'none';
+        resultImg.style.display = 'none';
+        resultImg.style.opacity = '0';
+
+        resultImg.onload = function() {
+          if (loadingState) loadingState.style.display = 'none';
+          resultImg.style.setProperty('display', 'block', 'important');
+          resultImg.style.opacity = '1';
+
+          // Debug: Log image and container dimensions
+          const container = document.querySelector('.stylique-result-image-container');
+          const leftCol = document.querySelector('.stylique-result-left');
+          const resultView = document.getElementById('stylique-result-view');
+
+          console.log('✅ Result image loaded successfully.');
+          console.log('📏 IMAGE DIAGNOSTICS:');
+          console.log('  - Image naturalWidth:', resultImg.naturalWidth, 'naturalHeight:', resultImg.naturalHeight);
+          console.log('  - Image offsetWidth:', resultImg.offsetWidth, 'offsetHeight:', resultImg.offsetHeight);
+          console.log('  - Image style:', {
+            display: resultImg.style.display,
+            opacity: resultImg.style.opacity,
+            width: resultImg.style.width,
+            height: resultImg.style.height
+          });
+          if (container) {
+            console.log('  - Container offsetWidth:', container.offsetWidth, 'offsetHeight:', container.offsetHeight);
+            console.log('  - Container style:', window.getComputedStyle(container).display, window.getComputedStyle(container).overflow);
+          }
+          if (leftCol) {
+            console.log('  - LeftCol offsetWidth:', leftCol.offsetWidth, 'offsetHeight:', leftCol.offsetHeight);
+          }
+          if (resultView) {
+            console.log('  - ResultView offsetWidth:', resultView.offsetWidth, 'offsetHeight:', resultView.offsetHeight);
+            console.log('  - ResultView display:', window.getComputedStyle(resultView).display);
+          }
+        };
+
+        resultImg.onerror = function() {
+          if (loadingState) loadingState.style.display = 'none';
+          if (errorState) errorState.style.display = 'block';
+          console.error('❌ Result image failed to load. URL:', resultImage.slice(0, 50) + '...');
+        };
+
+        resultImg.src = resultImage;
+      } else {
+        if (errorState) {
+          errorState.textContent = 'No result image returned by API.';
+          errorState.style.display = 'block';
+        }
+      }
+
+      // 6. Populate items and recommendations
+      try {
+        buildItemsInThisLook(productId);
+      } catch (e) {
+        console.error('❌ Error building items panel:', e);
+      }
+
+      console.log('✅ Result view shown successfully.');
+    } catch (criticalError) {
+      console.error('CRITICAL JS ERROR IN showResultView:', criticalError);
+      alert('Stylique Widget Error: ' + criticalError.message);
+    }
+  }
+
+  // Build the "Items in this look" right panel (uwear.ai style)
+  function buildItemsInThisLook(productId) {
+    const itemsList = document.getElementById('stylique-result-items-list');
+    if (!itemsList) return;
+
+    // Get current product info
+    const product = window.styliqueSection.currentProduct || {};
+    const productTitle = product.title || {{ product.title | json }} || 'Product';
+    const productImage = product.featured_image
+      || (product.images && product.images[0])
+      || {{ product.featured_image | image_url: width: 200 | json }};
+    const productUrl = product.url || {{ product.url | json }};
+
+    // Show loading state first
+    itemsList.innerHTML = `
+      <div class="stylique-result-item-card">
+        <img class="stylique-result-item-thumb" src="${productImage}" alt="${productTitle}" />
+        <div class="stylique-result-item-info">
+          <p class="stylique-result-item-name">${productTitle}</p>
+          <p class="stylique-result-item-size" style="color: #6b7280;">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <span class="stylique-spinner-small" style="width:14px;height:14px;border-width:2px;margin:0;"></span>
+              Finding your best size…
+            </span>
+          </p>
+        </div>
+      </div>`;
+
+    // Load size recommendation
+    if (productId) {
+      loadSizeRecommendationForResultV2(productId, productTitle, productImage, productUrl);
+    }
+  }
+
+  // Load size rec and populate the items card (uwear.ai style)
+  async function loadSizeRecommendationForResultV2(productId, productTitle, productImage, productUrl) {
+    const itemsList = document.getElementById('stylique-result-items-list');
+    if (!itemsList) return;
+
+    try {
+      const resolvedProductId = window.styliqueSection.productUuid || productId;
+      const userId = window.styliqueSection.user?.id;
+
+      if (!userId) {
+        // No user = no size rec, show item card without size
+        renderItemCard(itemsList, productTitle, productImage, productUrl, null, null, null);
+        return;
+      }
+
+      const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/size-recommendation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: window.styliqueSection.storeId,
+          productId: resolvedProductId,
+          userId: userId,
+          currentUrl: window.styliqueSection.currentUrl
+        })
+      });
+
+      const data = await response.json();
+      console.log('📊 Result view size rec:', data);
+
+      if (data.success && data.recommendation) {
+        const rec = data.recommendation;
+        const bestFit = rec.bestFit || rec.recommendedSize || 'N/A';
+        const confidence = rec.confidence || 0;
+        const fitFeel = rec.fitFeel || {};
+        const userM = rec.userMeasurements || {};
+        const sizeChart = rec.sizeChart || [];
+
+        // Build human-readable fit notes (uwear.ai style: "Chest: 2in looser")
+        const fitNotes = buildHumanFitNotes(fitFeel, userM, sizeChart, bestFit);
+
+        renderItemCard(itemsList, productTitle, productImage, productUrl, bestFit, confidence, fitNotes);
+      } else {
+        renderItemCard(itemsList, productTitle, productImage, productUrl, null, null, null);
+      }
+    } catch (error) {
+      console.error('❌ Result view size rec error:', error);
+      renderItemCard(itemsList, productTitle, productImage, productUrl, null, null, null);
+    }
+  }
+
+  // Build human-readable fit notes like uwear.ai ("Chest: 2in looser · Waist: 1in looser")
+  function buildHumanFitNotes(fitFeel, userM, sizeChart, bestFit) {
+    const allowedKeys = ['chest', 'waist', 'shoulder', 'length', 'sleeve'];
+    const labelMap = { chest: 'Chest', waist: 'Waist', shoulder: 'Shoulder', length: 'Length', sleeve: 'Sleeve' };
+    const notes = [];
+
+    // Try to compute measurement deltas first
+    const bestSizeData = sizeChart.find(s =>
+      s && s.size && (s.size === bestFit || s.size.toUpperCase() === bestFit.toUpperCase())
+    );
+
+    const valExtractor = (data, key) => {
+      if (!data || !data.measurements) return null;
+      const m = data.measurements;
+      const extractVal = (val) => {
+        if (val === null || val === undefined) return null;
+        if (typeof val === 'object' && val.value !== undefined) return val.value;
+        return val;
+      };
+      const directVal = extractVal(m[key]);
+      if (directVal != null) return directVal;
+      if (key === 'chest' && extractVal(m.width) != null) return extractVal(m.width) * 2;
+      return null;
+    };
+
+    allowedKeys.forEach(key => {
+      const label = labelMap[key];
+      const userVal = userM[key];
+      const garmentVal = bestSizeData ? valExtractor(bestSizeData, key) : null;
+
+      if (userVal && garmentVal) {
+        const delta = Math.round((garmentVal - userVal) * 10) / 10;
+        if (Math.abs(delta) < 0.5) {
+          notes.push(`${label}: perfect fit`);
+        } else if (delta > 0) {
+          notes.push(`${label}: ${Math.abs(delta)}in looser`);
+        } else {
+          notes.push(`${label}: ${Math.abs(delta)}in tighter`);
+        }
+      } else if (fitFeel[key]) {
+        // Fallback to fit feel text
+        notes.push(`${label}: ${fitFeel[key]}`);
+      }
+    });
+
+    return notes.length > 0 ? notes.join(' · ') : null;
+  }
+
+  // Render a single item card (uwear.ai style)
+  function renderItemCard(container, title, image, url, size, confidence, fitNotes) {
+    let sizeHtml = '';
+    if (size) {
+      sizeHtml = `<p class="stylique-result-item-size">Recommended size: <strong>${size}</strong></p>`;
+    }
+
+    let fitHtml = '';
+    if (fitNotes) {
+      fitHtml = `<p class="stylique-result-item-fit">${fitNotes}</p>`;
+    }
+
+    let linkHtml = '';
+    if (url) {
+      linkHtml = `<a href="${url}" target="_blank" class="stylique-result-item-link">View product</a>`;
+    }
+
+    container.innerHTML = `
+      <div class="stylique-result-item-card">
+        <img class="stylique-result-item-thumb" src="${image}" alt="${title}" onerror="this.style.display='none'" />
+        <div class="stylique-result-item-info">
+          <p class="stylique-result-item-name">${title}</p>
+          ${sizeHtml}
+          ${fitHtml}
+          ${linkHtml}
+        </div>
+      </div>`;
+  }
+
+  function hideResultView() {
+    console.log('🔄 hideResultView: Restoring interface...');
+    const resultView = document.getElementById('stylique-result-view');
+    const mainInterface = document.getElementById('stylique-tryon-interface');
+
+    if (resultView) {
+      resultView.style.display = 'none';
+      resultView.classList.remove('show-result');
+      
+      const resultImg = document.getElementById('stylique-result-main-image');
+      const loadingState = document.getElementById('stylique-result-image-loading');
+      const errorState = document.getElementById('stylique-result-image-error');
+      
+      if (resultImg) {
+        resultImg.src = '';
+        resultImg.style.display = 'none';
+        resultImg.style.opacity = '0';
+      }
+      if (loadingState) loadingState.style.display = 'none';
+      if (errorState) errorState.style.display = 'none';
+    }
+
+    if (mainInterface) {
+      mainInterface.style.display = 'block';
+      // Restore children
+      Array.from(mainInterface.children).forEach(child => {
+        child.style.display = '';
+      });
+    }
+
+    // Restore headers
+    document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.display = '');
+  }
+
+  // Legacy function — kept for backward compat but no longer used
+  async function loadSizeRecommendationForResult(productId) {
+    // Redirect to new V2 function
+    const product = window.styliqueSection.currentProduct || {};
+    const productTitle = product.title || '{{ product.title | escape }}';
+    const productImage = product.featured_image || '{{ product.featured_image | image_url: width: 200 }}';
+    const productUrl = product.url || '{{ product.url }}';
+    await loadSizeRecommendationForResultV2(productId, productTitle, productImage, productUrl);
+  }
+
+  function downloadResultImage() {
+    const resultImg = document.getElementById('stylique-result-main-image');
+    if (!resultImg || !resultImg.src) {
+      alert('No result image to download');
+      return;
+    }
+
+    const downloadBtn = document.getElementById('stylique-result-download');
+    if (downloadBtn) {
+      downloadBtn.disabled = true;
+      downloadBtn.style.opacity = '0.5';
+    }
+
+    try {
+      const canvas = document.createElement('canvas');
+      const img = new Image();
+
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const productName = window.styliqueSection.currentProduct?.title || 'product';
+        const filename = `stylique-tryon-${productName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+
+        canvas.toBlob(function(blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.style.opacity = '1';
+          }
+        }, 'image/png');
+      };
+
+      img.onerror = function() {
+        console.error('Failed to load image for download');
+        // Fallback: open image in new tab
+        window.open(resultImg.src, '_blank');
+        if (downloadBtn) {
+          downloadBtn.disabled = false;
+          downloadBtn.style.opacity = '1';
+        }
+      };
+
+      img.src = resultImg.src;
+    } catch (error) {
+      console.error('Download failed:', error);
+      if (downloadBtn) {
+        downloadBtn.disabled = false;
+        downloadBtn.style.opacity = '1';
+      }
+    }
+  }
+
+  function resetTryOnFromResult() {
+    hideResultView();
+    resetTryOn();
+  }
+
+  // Make functions globally available (deduplicated)
   window.logoutFromStylique = logoutFromStylique;
   window.sendOTP = sendOTP;
   window.verifyOTP = verifyOTP;
@@ -4057,6 +4510,11 @@
   window.start3DTryOn = start3DTryOn;
   window.resetTryOn = resetTryOn;
   window.addToCart = addToCart;
+  window.showResultView = showResultView;
+  window.hideResultView = hideResultView;
+  window.downloadResultImage = downloadResultImage;
+  window.resetTryOnFromResult = resetTryOnFromResult;
+  window.buildItemsInThisLook = buildItemsInThisLook;
   // 3D viewer controls
   window.rotate3DModel = rotate3DModel;
   window.reset3DView = reset3DView;
@@ -4149,14 +4607,14 @@
 "type": "text",
 "id": "backend_url",
 "label": "Stylique API base URL",
-"default": "",
+"default": "https://stylique-api.onrender.com",
 "info": "HTTPS URL of your backend (no trailing slash), e.g. your ngrok URL. Leave blank to use production default."
 },
 {
 "type": "text",
 "id": "store_id",
 "label": "Stylique store ID",
-"default": "",
+"default": "test-store-1100000000000000000000000000000005002.myshopify.com",
 "info": "Must match stores.store_id in Supabase (usually your-shop.myshopify.com). Leave blank to use this shop’s permanent domain."
 },
 {
