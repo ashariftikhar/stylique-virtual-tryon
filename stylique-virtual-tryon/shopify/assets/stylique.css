@@ -148,6 +148,8 @@
 .stylique-modal-content .stylique-section-content {
   padding: 0;
   margin: 0;
+  width: 100%;
+  flex: 1;
 }
 
 /* Two-Column Layout Grid */
@@ -313,6 +315,7 @@
   border-radius: var(--stylique-border-radius-lg);
   padding: 2rem;
   margin: 0;
+  width: 100%;
   border: none;
   box-shadow: none;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -3610,5 +3613,354 @@
   .stylique-carousel-nav svg {
     width: 20px;
     height: 20px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PREMIUM RESULT VIEW — uwear.ai-style
+   ───────────────────────────────────────────────────────────── */
+
+/* Result View Container (Direct child of #stylique-tryon-interface) */
+.stylique-result-view {
+  display: none;
+  grid-template-columns: 1fr 400px; /* Modern uwear-like split: image vs info */
+  grid-template-rows: 1fr auto;
+  gap: 0;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 520px;
+  max-height: calc(90vh - 40px);
+  overflow: hidden;
+  align-items: stretch;
+  box-sizing: border-box;
+  animation: stylique-result-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 1024px) {
+  .stylique-result-view {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stylique-result-view[style*="display: grid"],
+.stylique-result-view.show-result {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 100 !important;
+}
+
+@keyframes stylique-result-fade-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Left Column: Clean Result Image */
+.stylique-result-left {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+  height: 100%;
+  min-height: 400px;
+  width: 100%;
+  background: #f8f8f6;
+  overflow: hidden;
+}
+
+.stylique-result-image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f8f8f6;
+  min-height: 400px;
+}
+
+.stylique-result-image-container img {
+  max-width: 100%;
+  max-height: calc(90vh - 120px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block !important;
+}
+
+/* Right Column: Items in this look */
+.stylique-result-right {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0;
+  justify-content: flex-start;
+  overflow-y: auto;
+  max-height: calc(90vh - 120px);
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  background: #fff;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Items Header */
+.stylique-result-items-header {
+  padding: 20px 24px 12px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.stylique-result-items-header h5 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a2e;
+  letter-spacing: -0.01em;
+}
+
+/* Items List */
+.stylique-result-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+/* Single Item Card */
+.stylique-result-item-card {
+  display: flex;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background 0.2s ease;
+}
+
+.stylique-result-item-card:last-child {
+  border-bottom: none;
+}
+
+.stylique-result-item-card:hover {
+  background: rgba(100, 47, 215, 0.02);
+}
+
+/* Item Thumbnail */
+.stylique-result-item-thumb {
+  width: 64px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f5f3ef;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Item Info */
+.stylique-result-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.stylique-result-item-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a2e;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.stylique-result-item-size {
+  margin: 2px 0;
+  font-size: 13px;
+  color: #1a1a2e;
+}
+
+.stylique-result-item-size strong {
+  font-weight: 700;
+  color: #000;
+}
+
+.stylique-result-item-fit {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.stylique-result-item-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 5px 14px;
+  background: transparent;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1a2e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.stylique-result-item-link:hover {
+  border-color: var(--stylique-primary);
+  color: var(--stylique-primary);
+  background: rgba(100, 47, 215, 0.04);
+}
+
+/* Bottom Action Bar */
+.stylique-result-bottom-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0;
+  padding: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 0 0 28px 28px;
+  overflow: hidden;
+}
+
+.stylique-result-bar-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: #fff;
+  border: none;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1a1a2e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.stylique-result-bar-btn:last-child {
+  border-right: none;
+}
+
+.stylique-result-bar-btn:hover {
+  background: rgba(100, 47, 215, 0.04);
+  color: var(--stylique-primary);
+}
+
+.stylique-result-bar-btn:active {
+  background: rgba(100, 47, 215, 0.08);
+  transform: scale(0.98);
+}
+
+.stylique-result-bar-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.stylique-result-bar-btn:hover svg {
+  opacity: 1;
+}
+
+/* Hide elements when result mode */
+.stylique-right-column.stylique-result-mode .stylique-upload-section,
+.stylique-right-column.stylique-result-mode .stylique-action-section {
+  display: none !important;
+}
+
+.stylique-right-column.stylique-result-mode #stylique-result-view {
+  display: grid !important;
+}
+
+/* Responsive Fixes for New Structure */
+.stylique-modal-grid[style*="display: none"] {
+  display: none !important;
+}
+
+/* Ensure the result image takes precedence */
+.stylique-result-left {
+  background: #fdfdfb;
+}
+
+/* Removed nested grid selectors as result view is now top-level */
+
+/* Mobile Responsive: Stack to Single Column */
+@media (max-width: 768px) {
+  .stylique-result-view {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    min-height: auto !important;
+    max-height: none !important;
+  }
+
+  .stylique-result-left {
+    max-height: 50vh;
+  }
+
+  .stylique-result-image-container img {
+    max-height: 50vh;
+  }
+
+  .stylique-result-right {
+    max-height: none;
+    overflow-y: visible;
+    gap: 1.25rem;
+    padding: 1rem !important;
+  }
+
+  .stylique-result-bottom-bar {
+    border-radius: 0 0 24px 24px;
+  }
+
+  .stylique-result-bar-btn {
+    padding: 14px 8px;
+    font-size: 13px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stylique-result-item-card {
+    padding: 14px 16px;
+  }
+
+  .stylique-result-items-header {
+    padding: 14px 16px 10px 16px;
+  }
+
+  .stylique-result-bar-btn {
+    padding: 12px 6px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .stylique-result-bar-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .stylique-result-item-thumb {
+    width: 52px;
+    height: 64px;
   }
 }

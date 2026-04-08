@@ -4113,42 +4113,42 @@
 
       const resultView = document.getElementById('stylique-result-view');
       const mainInterface = document.getElementById('stylique-tryon-interface');
-      const modalWrapper = document.querySelector('.stylique-modal-wrapper');
-
-      // Check parent chain visibility
-      console.log('🔍 PARENT VISIBILITY CHECK:');
-      if (modalWrapper) {
-        console.log('  - modalWrapper offsetWidth:', modalWrapper.offsetWidth, 'offsetHeight:', modalWrapper.offsetHeight);
-        console.log('  - modalWrapper display:', window.getComputedStyle(modalWrapper).display);
-        console.log('  - modalWrapper visibility:', window.getComputedStyle(modalWrapper).visibility);
-      } else {
-        console.error('❌ modalWrapper NOT FOUND!');
-      }
-      if (mainInterface) {
-        console.log('  - mainInterface (modal-content) offsetWidth:', mainInterface.offsetWidth, 'offsetHeight:', mainInterface.offsetHeight);
-        console.log('  - mainInterface display:', window.getComputedStyle(mainInterface).display);
-        console.log('  - mainInterface position:', window.getComputedStyle(mainInterface).position);
-        console.log('  - mainInterface flex-direction:', window.getComputedStyle(mainInterface).flexDirection);
-        console.log('  - mainInterface children count:', mainInterface.children.length);
-      }
 
       if (!resultView) {
         console.error('❌ Critical: stylique-result-view not found');
         return;
       }
 
-      // 1. HIDE mainInterface completely
+      // 🛡️ BULLETPROOF FIX: HTML Parser Escape 🛡️
+      // Due to missing </div> tags upstream, resultView is often incorrectly parsed as a descendant of mainInterface.
+      // If we hide mainInterface, resultView becomes 0x0. We MUST teleport it outside physically!
+      if (mainInterface && resultView.parentNode !== mainInterface.parentNode) {
+        console.log('🚀 Extricating resultView from broken HTML tree and teleporting to safety!');
+        mainInterface.parentNode.insertBefore(resultView, mainInterface.nextSibling);
+      }
+
+      // 1. Swap Visibility
       if (mainInterface) {
         mainInterface.style.cssText = 'display: none !important;';
+      }
+      
+      // Force parents to 100% width to prevent flex-shrink dimensional collapse
+      const parentSection = resultView.closest('.stylique-section-content');
+      if (parentSection) {
+        parentSection.style.setProperty('width', '100%', 'important');
+        parentSection.style.setProperty('flex', '1', 'important');
       }
 
       // 2. Hide global headers
       document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.setProperty('display', 'none', 'important'));
 
-      // 3. Show result-view using CSS class (handles all styling properly)
+      // 3. Show result-view naturally
       resultView.classList.add('show-result');
+      
+      // Provide an aggressive backup style sequence just in case
+      resultView.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important; min-height: 500px !important; width: 100% !important; z-index: 99999 !important; background: #fafafa !important;';
 
-      console.log('✅ Result-view shown with CSS grid layout');
+      console.log('✅ Result-view teleported and shown.');
 
       // 5. Set the result image with loading/error state
       const resultImg = document.getElementById('stylique-result-main-image');
@@ -4389,7 +4389,7 @@
     const mainInterface = document.getElementById('stylique-tryon-interface');
 
     if (resultView) {
-      resultView.style.display = 'none';
+      resultView.style.cssText = 'display: none !important;';
       resultView.classList.remove('show-result');
       
       const resultImg = document.getElementById('stylique-result-main-image');
@@ -4406,11 +4406,8 @@
     }
 
     if (mainInterface) {
-      mainInterface.style.display = 'block';
-      // Restore children
-      Array.from(mainInterface.children).forEach(child => {
-        child.style.display = '';
-      });
+      // Re-enable main interface visibility
+      mainInterface.style.cssText = 'display: block !important; visibility: visible !important;';
     }
 
     // Restore headers
