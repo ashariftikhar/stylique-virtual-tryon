@@ -1,8 +1,10 @@
 import express from 'express';
 import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
+import type { AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface TrackTryonPayload {
   store_id: string;
@@ -10,6 +12,41 @@ interface TrackTryonPayload {
   user_id?: string;
   tryon_type: string;
   redirect_status?: boolean;
+}
+
+async function resolveStoreId(storeIdOrDomain: string): Promise<string | null> {
+  if (UUID_RE.test(storeIdOrDomain)) {
+    return storeIdOrDomain;
+  }
+
+  const { data: store } = await getSupabase()
+    .from('stores')
+    .select('id')
+    .eq('store_id', storeIdOrDomain)
+    .maybeSingle();
+
+  return store?.id ?? null;
+}
+
+async function scopedStoreId(req: Request, res: Response, requestedStoreId: string): Promise<string | null> {
+  const authStoreId = (req as AuthenticatedRequest).storeAuth?.storeId;
+  if (!authStoreId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return null;
+  }
+
+  const resolvedStoreId = await resolveStoreId(requestedStoreId);
+  if (!resolvedStoreId) {
+    res.status(404).json({ error: 'Store not found' });
+    return null;
+  }
+
+  if (resolvedStoreId !== authStoreId) {
+    res.status(403).json({ error: 'Forbidden for this store' });
+    return null;
+  }
+
+  return authStoreId;
 }
 
 // POST /api/track-tryon
@@ -25,27 +62,8 @@ router.post('/track-tryon', async (req: Request, res: Response) => {
       });
     }
 
-    // Resolve store_id if it's a domain (store_id string)
-    let resolvedStoreId = payload.store_id;
-
-    // Check if store_id is a UUID or needs to be resolved
-    if (!payload.store_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      // Try to find store by domain
-      const { data: store, error: storeError } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('store_id', payload.store_id)
-        .single();
-
-      if (storeError || !store) {
-        return res.status(404).json({
-          error: 'Store not found',
-          details: `No store found with domain: ${payload.store_id}`,
-        });
-      }
-
-      resolvedStoreId = store.id;
-    }
+    const resolvedStoreId = await scopedStoreId(req, res, payload.store_id);
+    if (!resolvedStoreId) return;
 
     // Prepare analytics record
     const analyticsRecord = {
@@ -103,20 +121,8 @@ router.post('/analytics/conversion', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'store_id is required' });
     }
 
-    // Resolve store_id
-    let resolvedStoreId = store_id;
-    if (!store_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('store_id', store_id)
-        .maybeSingle();
-
-      if (!store) {
-        return res.status(404).json({ error: 'Store not found' });
-      }
-      resolvedStoreId = store.id;
-    }
+    const resolvedStoreId = await scopedStoreId(req, res, store_id);
+    if (!resolvedStoreId) return;
 
     const record = {
       store_id: resolvedStoreId,
@@ -161,19 +167,8 @@ router.get('/analytics/conversions', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'store_id query parameter is required' });
     }
 
-    let resolvedStoreId = storeId;
-    if (!storeId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('store_id', storeId)
-        .maybeSingle();
-
-      if (!store) {
-        return res.status(404).json({ error: 'Store not found' });
-      }
-      resolvedStoreId = store.id;
-    }
+    const resolvedStoreId = await scopedStoreId(req, res, storeId);
+    if (!resolvedStoreId) return;
 
     const { data: conversions, error } = await supabase
       .from('conversions')
@@ -210,20 +205,8 @@ router.get('/analytics', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'store_id query parameter is required' });
     }
 
-    // Resolve store_id if not UUID
-    let resolvedStoreId = storeId;
-    if (!storeId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: store, error: storeError } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('store_id', storeId)
-        .maybeSingle();
-
-      if (storeError || !store) {
-        return res.status(404).json({ error: 'Store not found' });
-      }
-      resolvedStoreId = store.id;
-    }
+    const resolvedStoreId = await scopedStoreId(req, res, storeId);
+    if (!resolvedStoreId) return;
 
     let query = supabase
       .from('tryon_analytics')

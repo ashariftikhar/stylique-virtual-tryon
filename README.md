@@ -1,106 +1,91 @@
 # Stylique Virtual Try-On Platform
 
-An AI-powered virtual try-on and size recommendation system for e-commerce platforms (WordPress, Shopify, and custom React dashboards).
+AI-powered virtual try-on and size recommendation software for Shopify, WooCommerce, and merchant dashboard workflows.
 
-## 📋 Project Overview
+## Project Overview
 
-Stylique Virtual Try-On enables customers to virtually try on clothing items using AI technology. The platform includes:
+Stylique Phase 1 currently includes:
 
-- **WordPress Plugin** (95% complete) - WooCommerce integration for product pages
-- **Shopify Integration** (95% complete) - Liquid template with OTP authentication
-- **React Store Panel** (80% complete) - Merchant dashboard for inventory and analytics
-- **Backend API** (To be created) - Node.js + Express
-- **Database** (To be configured) - Supabase with SQL schema
+- **Backend API**: Node.js, Express, TypeScript, Supabase, Shopify OAuth/webhooks, WooCommerce sync, inventory, analytics, image scoring, and plugin APIs.
+- **Store Panel**: Next.js merchant dashboard for login, product upload, inventory management, analytics, conversions, and Shopify OAuth onboarding.
+- **Shopify Integration**: Liquid theme assets plus OAuth-based store linking and product sync support.
+- **WordPress Plugin**: WooCommerce product-page widget, admin settings, product sync hooks, and static frontend assets.
+- **Database**: Supabase PostgreSQL schema and migrations in `stylique-virtual-tryon/database`.
 
-## 🗂️ Project Structure
+## Project Structure
 
-```
+```text
 stylique-virtual-tryon/
-├── backend/              Node.js + Express API
-├── database/             Supabase schema and migrations
-├── storepanel/           React Next.js dashboard for merchants
-├── wordpress-stylique-virtual-tryon/  WooCommerce plugin
-├── shopify/              Liquid template for Shopify themes
-└── docs/                 Documentation
+  backend/                         Express API
+  database/                        Supabase schema and migrations
+  storepanel/                      Next.js merchant dashboard
+  wordpress-stylique-virtual-tryon/ WooCommerce plugin
+  shopify/                         Shopify Liquid and theme assets
+  docs/                            Project documentation
 ```
 
-## 🚀 Getting Started
+## Required Production Configuration
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Supabase account (for database)
-- WordPress 5.0+ (for plugin)
-- Shopify store (for Liquid integration)
+Set these before deploying production services:
 
-### Quick Start
+- `JWT_SECRET`: required in production. The backend fails startup if it is missing.
+- `SYNC_API_SECRET` or `STYLIQUE_SYNC_SECRET`: shared secret for platform sync endpoints.
+- `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`: database access for backend routes.
+- `SENDGRID_API_KEY` and `OTP_FROM_EMAIL` or `SENDGRID_FROM_EMAIL`: OTP email delivery.
+- `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, and `SHOPIFY_REDIRECT_URI`: Shopify OAuth and webhook verification.
+- `FRONTEND_URL` and `PUBLIC_API_URL`: public store panel and API URLs.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/ashariftikhar/stylique-virtual-tryon.git
-   cd stylique-virtual-tryon
-   ```
+For WordPress product sync, configure the same shared sync secret in **Settings -> Stylique Try-On -> Sync Secret**.
 
-2. **Backend Setup**
-   ```bash
-   cd backend
-   npm install
-   cp .env.example .env
-   npm start
-   ```
+## Local Development
 
-3. **Store Panel Setup**
-   ```bash
-   cd storepanel
-   npm install
-   npm run dev
-   ```
+Backend:
 
-4. **Database Setup**
-   - Review `database/schema.sql`
-   - Import schema to your Supabase instance
+```bash
+cd stylique-virtual-tryon/backend
+npm install
+npm run dev
+```
 
-5. **WordPress Plugin**
-   - Copy `wordpress-stylique-virtual-tryon/` to `wp-content/plugins/`
-   - Activate in WordPress admin
+Store panel:
 
-6. **Shopify Integration**
-   - Upload Liquid template to your Shopify theme
+```bash
+cd stylique-virtual-tryon/storepanel
+npm install
+npm run dev
+```
 
-## 📚 Documentation
+Database:
 
-See [docs/README.md](./docs/README.md) for:
-- [API Documentation](./docs/API_DOCUMENTATION.md)
-- [Architecture Guide](./docs/ARCHITECTURE.md)
-- [Setup Guides](./docs/)
+- Review and apply the SQL files in `stylique-virtual-tryon/database` to your Supabase project.
 
-## 🔧 Technology Stack
+WordPress:
 
-- **Frontend**: React + Next.js, TypeScript
-- **Backend**: Node.js + Express
-- **Database**: PostgreSQL (via Supabase)
-- **Integrations**: WordPress (WooCommerce), Shopify (Liquid)
-- **Authentication**: OTP-based
+- Copy `stylique-virtual-tryon/wordpress-stylique-virtual-tryon/wordpress-stylique-virtual-tryon` into `wp-content/plugins/`.
+- Activate **Stylique Virtual Try-On** from WordPress admin.
+- Configure Store ID, Backend API URL, and Sync Secret.
 
-## 📝 Project Status
+Shopify:
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| WordPress Plugin | 95% | Admin settings, WooCommerce hooks, frontend render |
-| Shopify Liquid | 95% | OTP login, minimal design, full integration |
-| React Dashboard | 80% | Core pages: upload, analytics, conversions, manage |
-| Backend API | TODO | To be created |
-| Database Schema | TODO | To be populated |
-| Documentation | TODO | In progress |
+- Use the files under `stylique-virtual-tryon/shopify` for the theme integration.
+- Use the backend Shopify OAuth route to connect stores and register webhooks.
 
-## 🤝 Contributing
+## Verification
 
-For team guidelines and development practices, see `docs/CONTRIBUTING.md` (to be created).
+Useful checks before handing off changes:
 
-## 📄 License
+```bash
+npm --prefix stylique-virtual-tryon/backend run build
+npm --prefix stylique-virtual-tryon/storepanel run build
+node --check stylique-virtual-tryon/wordpress-stylique-virtual-tryon/wordpress-stylique-virtual-tryon/assets/js/widget-modal.js
+```
+
+Use `php -l` or WP-CLI in a local WordPress environment to validate plugin activation and PHP syntax.
+
+## Documentation
+
+See `stylique-virtual-tryon/docs/README.md` for API, architecture, and setup notes.
+
+## License
 
 GPL-2.0+
-
----
-
-**Phase 1 Focus**: Finalize backend API, complete database schema, and integrate all components.

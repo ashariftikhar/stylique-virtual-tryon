@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
+import type { AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
 
@@ -23,23 +24,27 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const storeId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const authStore = (req as AuthenticatedRequest).storeAuth;
 
     if (!storeId || typeof storeId !== 'string') {
       return res.status(400).json({
         error: 'Missing store ID parameter',
       });
     }
+    if (!authStore?.storeId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
-    // Resolve store: try by store_id slug first, then by UUID
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storeId);
-    const lookupCol = isUUID ? 'id' : 'store_id';
+    if (storeId !== authStore.storeId && storeId !== authStore.store_id) {
+      return res.status(403).json({ error: 'Forbidden for this store' });
+    }
 
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select(
         'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used, shopify_theme_injection_done, shopify_theme_injection_status, shopify_shop_domain'
       )
-      .eq(lookupCol, storeId)
+      .eq('id', authStore.storeId)
       .maybeSingle();
 
     if (storeError || !store) {

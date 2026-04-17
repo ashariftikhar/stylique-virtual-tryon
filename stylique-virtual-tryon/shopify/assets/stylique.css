@@ -2,6 +2,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap');
 
 :root {
+  /* Brand Typography
+     PPValve is the brand font from the identity PDF. Use Inter as the safe web fallback
+     until licensed PPValve webfont files are available in Shopify assets. */
+  --stylique-font-brand: 'PPValve', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
   /* Brand Colors */
   --stylique-primary: #642FD7;
   --stylique-secondary: #F4536F;
@@ -34,50 +39,103 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 12px 28px;
+  gap: 6px;
+  padding: 14px 36px;
   background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
-  border: none;
+  border: 2px solid transparent;
   border-radius: 9999px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--stylique-font-brand);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
   cursor: pointer;
   transition: var(--stylique-transition);
-  box-shadow: 0 4px 16px rgba(100, 47, 215, 0.25);
+  box-shadow: 
+    0 4px 20px rgba(100, 47, 215, 0.3),
+    0 0 60px rgba(100, 47, 215, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   min-height: 48px;
   width: 100%;
-  max-width: 280px;
+  max-width: 300px;
   margin: 24px auto 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  animation: stylique-button-pulse 2.5s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.stylique-trigger-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
 }
 
 .stylique-trigger-btn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 12px 32px rgba(100, 47, 215, 0.4);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 
+    0 8px 32px rgba(100, 47, 215, 0.45),
+    0 0 80px rgba(100, 47, 215, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.stylique-trigger-btn:hover::before {
+  left: 100%;
+  animation: none;
+}
+
+.stylique-trigger-btn:focus {
+  outline: none;
+  box-shadow: 
+    0 8px 32px rgba(100, 47, 215, 0.45),
+    0 0 80px rgba(100, 47, 215, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 4px rgba(100, 47, 215, 0.15);
 }
 
 .stylique-trigger-btn:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 
+    0 2px 8px rgba(100, 47, 215, 0.3),
+    0 0 40px rgba(100, 47, 215, 0.08),
+    inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.stylique-trigger-btn svg {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+@keyframes stylique-button-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 4px 20px rgba(100, 47, 215, 0.3),
+      0 0 60px rgba(100, 47, 215, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 4px 20px rgba(100, 47, 215, 0.4),
+      0 0 80px rgba(100, 47, 215, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
 }
 
 /* Mobile responsive trigger button */
 @media (max-width: 480px) {
   .stylique-trigger-btn {
     width: 100%;
-    padding: 12px 24px;
-    font-size: 14px;
+    padding: 13px 28px;
+    font-size: 15px;
+    min-height: 46px;
+    max-width: 100%;
+    margin: 20px 0 0 0;
+    gap: 5px;
   }
 }
 
@@ -130,6 +188,8 @@
   max-width: 900px;
   width: 100%;
   margin: auto;
+  font-family: var(--stylique-font-brand);
+  letter-spacing: 0;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
   border: 1px solid rgba(100, 47, 215, 0.1);
   position: relative;
@@ -140,9 +200,11 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 47, 215, 0.2) transparent;
-  animation: stylique-modal-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: stylique-modal-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   display: flex;
   flex-direction: column;
+  transform: scale(0.9);
+  transform-origin: center center;
 }
 
 .stylique-modal-content .stylique-section-content {
@@ -174,6 +236,579 @@
   gap: 1.5rem;
 }
 
+/* Tier 3 Premium Size Advisor */
+.stylique-modal-content.stylique-tier3-active {
+  overflow: hidden !important;
+}
+
+.stylique-tier3-size-advisor {
+  grid-template-columns: minmax(0, 0.98fr) 370px;
+  gap: 14px;
+  width: 100%;
+  height: min(520px, calc(100vh - 92px));
+  min-height: 460px;
+  padding: 14px 18px 14px;
+  box-sizing: border-box;
+  background: transparent;
+  animation: stylique-result-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stylique-tier3-visual,
+.stylique-tier3-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.stylique-tier3-image-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f7f7f4;
+}
+
+.stylique-tier3-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.stylique-tier3-image-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 64px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+}
+
+.stylique-tier3-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 6px 0 0;
+  overflow: visible;
+}
+
+.stylique-tier3-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stylique-tier3-eyebrow {
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.stylique-tier3-copy h4 {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stylique-tier3-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stylique-tier3-size-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-loading {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.stylique-tier3-rec-grid {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.stylique-tier3-size-card,
+.stylique-tier3-confidence-card,
+.stylique-tier3-table-card,
+.stylique-tier3-message-card,
+.stylique-tier3-complete-look {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.stylique-tier3-size-card {
+  min-height: 76px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stylique-tier3-size-card span,
+.stylique-tier3-confidence-card span {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.stylique-tier3-size-card strong {
+  margin-top: 3px;
+  color: #111827;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stylique-tier3-size-card strong.is-compact {
+  font-size: 18px;
+  letter-spacing: 0;
+  line-height: 1.05;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.stylique-tier3-size-card small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.stylique-tier3-confidence-card {
+  min-height: 76px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+}
+
+.stylique-tier3-confidence-card > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stylique-tier3-confidence-card strong {
+  color: #047857;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.stylique-tier3-confidence-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.stylique-tier3-confidence-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.stylique-tier3-fit-summary {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-fit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  color: #475569;
+  background: #ffffff;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.stylique-tier3-fit-chip strong {
+  color: #111827;
+}
+
+.stylique-tier3-fit-chip.is-good,
+.stylique-tier3-fit-result.is-good {
+  color: #047857;
+}
+
+.stylique-tier3-fit-chip.is-relaxed,
+.stylique-tier3-fit-result.is-relaxed {
+  color: #0369a1;
+}
+
+.stylique-tier3-fit-chip.is-alert,
+.stylique-tier3-fit-result.is-alert {
+  color: #b45309;
+}
+
+.stylique-tier3-table-card {
+  padding: 9px 10px;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-fit-empty {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-fit-empty span {
+  display: block;
+  margin-bottom: 3px;
+  color: #111827;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.stylique-tier3-fit-empty p {
+  margin: 0;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.stylique-tier3-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.stylique-tier3-section-head h5 {
+  margin: 0;
+  color: #111827;
+  font-size: 12.5px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.stylique-tier3-section-head span {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.stylique-tier3-fit-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.stylique-tier3-fit-table th,
+.stylique-tier3-fit-table td {
+  padding: 6px 5px;
+  border-top: 1px solid #eef2f7;
+  text-align: left;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.stylique-tier3-fit-table th {
+  color: #64748b;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.stylique-tier3-fit-table td {
+  color: #111827;
+  font-weight: 650;
+}
+
+.stylique-tier3-fit-table th:nth-child(1),
+.stylique-tier3-fit-table td:nth-child(1) {
+  width: 25%;
+}
+
+.stylique-tier3-fit-table th:nth-child(4),
+.stylique-tier3-fit-table td:nth-child(4) {
+  width: 32%;
+}
+
+.stylique-tier3-fit-result {
+  font-weight: 800;
+}
+
+.stylique-tier3-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.stylique-tier3-primary-btn,
+.stylique-tier3-secondary-btn {
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.stylique-tier3-primary-btn {
+  border: 0;
+  background: #111827;
+  color: #ffffff;
+}
+
+.stylique-tier3-secondary-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+}
+
+.stylique-tier3-primary-btn:hover,
+.stylique-tier3-secondary-btn:hover {
+  opacity: 0.9;
+}
+
+.stylique-tier3-primary-btn:active,
+.stylique-tier3-secondary-btn:active {
+  transform: translateY(1px);
+}
+
+.stylique-tier3-message-card {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px;
+}
+
+.stylique-tier3-message-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.stylique-tier3-message-card h5 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.stylique-tier3-message-card p,
+.stylique-tier3-empty-note {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.stylique-tier3-message-card .stylique-tier3-primary-btn {
+  margin-top: 10px;
+}
+
+.stylique-tier3-complete-look {
+  padding: 9px;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-style-note {
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stylique-tier3-look-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.stylique-tier3-look-card {
+  min-width: 0;
+  color: #111827;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stylique-tier3-look-image {
+  aspect-ratio: 1.4 / 1;
+  border-radius: 8px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.stylique-tier3-look-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stylique-tier3-look-card span {
+  color: #111827;
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1180px) {
+  .stylique-tier3-size-advisor {
+    grid-template-columns: minmax(0, 0.9fr) 350px;
+    gap: 12px;
+  }
+
+  .stylique-tier3-panel {
+    padding-top: 14px;
+  }
+
+  .stylique-tier3-rec-grid {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 769px) and (max-height: 700px) {
+  .stylique-tier3-size-advisor {
+    height: min(470px, calc(100vh - 72px));
+    min-height: 420px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .stylique-tier3-panel {
+    gap: 4px;
+    padding-top: 10px;
+    padding-bottom: 0;
+  }
+
+  .stylique-tier3-size-content {
+    gap: 4px;
+  }
+
+  .stylique-tier3-copy {
+    gap: 4px;
+  }
+
+  .stylique-tier3-copy p {
+    -webkit-line-clamp: 1;
+  }
+
+  .stylique-tier3-rec-grid {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .stylique-tier3-size-card,
+  .stylique-tier3-confidence-card {
+    min-height: 68px;
+  }
+
+  .stylique-tier3-size-card strong {
+    font-size: 28px;
+  }
+
+  .stylique-tier3-size-card strong.is-compact {
+    font-size: 21px;
+  }
+
+  .stylique-tier3-fit-table th,
+  .stylique-tier3-fit-table td {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .stylique-tier3-primary-btn,
+  .stylique-tier3-secondary-btn {
+    min-height: 34px;
+  }
+
+  .stylique-tier3-fit-empty {
+    min-height: 54px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+
 /* Tier 3: Hide left column, full-width right column */
 .stylique-tier-3 .stylique-left-column {
   display: none;
@@ -191,6 +826,44 @@
 
 /* Mobile responsive: Single column */
 @media (max-width: 768px) {
+  .stylique-modal-content.stylique-tier3-active {
+    overflow-y: auto !important;
+  }
+
+  .stylique-tier3-size-advisor {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .stylique-tier3-image-frame,
+  .stylique-tier3-image-placeholder {
+    min-height: 260px;
+    max-height: 320px;
+  }
+
+  .stylique-tier3-panel {
+    padding: 0;
+  }
+
+  .stylique-tier3-rec-grid,
+  .stylique-tier3-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .stylique-tier3-copy h4 {
+    white-space: normal;
+  }
+
+  .stylique-tier3-copy p {
+    display: block;
+  }
+
+  .stylique-tier3-look-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .stylique-modal-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -203,12 +876,18 @@
 }
 
 .stylique-modal-content .stylique-section {
-  border-radius: 0;
+  border-radius: inherit;
   padding: 2rem;
   margin: 0;
   border: none;
   box-shadow: none;
   max-width: none;
+}
+
+@media (max-width: 768px) {
+  .stylique-modal-content .stylique-section {
+    padding: 1.25rem; /* Drastically reduce padding on mobile to stop text squishing */
+  }
 }
 
 .stylique-modal-content::-webkit-scrollbar {
@@ -231,70 +910,118 @@
 @keyframes stylique-modal-slide-up {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
+    transform: translateY(20px) scale(0.85);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(0.9);
   }
 }
 
 /* Mobile modal adjustments */
 @media (max-width: 768px) {
   .stylique-modal-wrapper {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center; /* Float in middle instead of bottom stick */
+    padding: 16px; /* Let it breathe */
   }
 
   .stylique-modal-content {
     width: 100%;
-    max-height: 100vh;
-    border-radius: 24px 24px 0 0;
-    animation: stylique-modal-slide-up-mobile 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 90vh; /* Don't trap entire screen */
+    border-radius: 20px;
+    transform: scale(1) !important; /* Ignore desktop 0.9 scale on mobile */
+    animation: stylique-modal-slide-up-mobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   @keyframes stylique-modal-slide-up-mobile {
     from {
       opacity: 0;
-      transform: translateY(100%);
+      transform: translateY(40px) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 }
 
-/* Close button - Premium circular design */
+/* Subtle brand lockup beside the modal close control */
+.stylique-brand-lockup {
+  position: absolute;
+  top: 18px;
+  right: 66px;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: #111827;
+}
+
+.stylique-brand-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.stylique-modal-brand-mark {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .stylique-brand-lockup {
+    top: 18px;
+    right: 58px;
+  }
+
+  .stylique-brand-main {
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .stylique-modal-brand-mark {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Close button - compact result-style control */
 .stylique-modal-close {
-  background: rgba(255, 255, 255, 0.95);
+  background: transparent;
   border: none;
   cursor: pointer;
   color: var(--stylique-text);
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   transition: var(--stylique-transition);
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 15px;
+  right: 24px;
   z-index: 10;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   font-weight: 700;
   line-height: 1;
 }
 
 .stylique-modal-close:hover {
-  background: rgba(255, 255, 255, 1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: scale(1.08);
+  background: rgba(15, 23, 42, 0.06);
+  box-shadow: none;
+  transform: scale(1.04);
 }
 
 .stylique-modal-close:active {
@@ -302,9 +1029,16 @@
 }
 
 .stylique-modal-close svg {
-  width: 20px;
-  height: 20px;
-  stroke-width: 3;
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.25;
+}
+
+@media (max-width: 768px) {
+  .stylique-modal-close {
+    top: 16px;
+    right: 18px;
+  }
 }
 
 /* Section Layout - Modern Glass Card */
@@ -318,7 +1052,7 @@
   width: 100%;
   border: none;
   box-shadow: none;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--stylique-font-brand);
   font-weight: 400;
   position: relative;
   overflow: visible;
@@ -354,7 +1088,7 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -390,7 +1124,7 @@
   font-size: 19px;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .stylique-header-text p {
@@ -417,14 +1151,14 @@
   font-size: 22px;
   font-weight: 200;
   color: var(--stylique-text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .stylique-brand-logo {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 26px;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -471,7 +1205,7 @@
   padding: 14px 24px;
   text-transform: uppercase;
   font-size: 14px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
 }
 
 /* Login Required State - Glass Card */
@@ -509,7 +1243,7 @@
   color: var(--stylique-text);
   font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .stylique-login-header p {
@@ -960,7 +1694,7 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--stylique-text);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .stylique-tryon-title p {
@@ -1142,26 +1876,38 @@
   color: var(--stylique-text);
 }
 
-.stylique-results-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.stylique-best-results-badges {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.stylique-results-list li {
-  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 12px;
-  color: var(--stylique-text-secondary);
+  margin: 16px 0 0 0;
 }
 
-.stylique-check-icon {
+.stylique-badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(100, 47, 215, 0.04);
+  border: 1px solid rgba(100, 47, 215, 0.15);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--stylique-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.stylique-badge-item:hover {
+  background: rgba(100, 47, 215, 0.08);
+  transform: translateY(-1px);
+}
+
+.stylique-badge-item svg {
   color: #10b981;
-  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
 }
 
 .stylique-upload-core {
@@ -1216,7 +1962,8 @@
 .stylique-upload-area:hover {
   border-color: var(--stylique-primary);
   background: rgba(100, 47, 215, 0.05);
-  box-shadow: 0 0 0 3px rgba(100, 47, 215, 0.1);
+  box-shadow: 0 0 0 3px rgba(100, 47, 215, 0.1), 0 8px 24px rgba(100, 47, 215, 0.08);
+  transform: translateY(-2px);
 }
 
 .stylique-upload-area.drag-over {
@@ -1391,6 +2138,7 @@
   padding: 2px;
   background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   z-index: -1;
@@ -1815,7 +2563,7 @@
 /* Size Recommendation Styles */
 .stylique-size-rec-main {
   text-align: left;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--stylique-font-brand);
   color: #0f172a;
 }
 
@@ -1847,7 +2595,7 @@
   color: #475569;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   margin-bottom: 4px;
   margin-top: 0;
 }
@@ -1935,7 +2683,7 @@
 .stylique-section-title {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   color: #667eea;
   font-weight: 700;
   margin-bottom: 12px;
@@ -2073,19 +2821,19 @@
   color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
 }
 .stylique-simplified-user-header {
   color: #667eea;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
 }
 .stylique-simplified-best-header {
   color: #0f172a;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   background: rgba(0,0,0,0.02);
 }
 
@@ -2170,7 +2918,7 @@
   color: #555;
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   position: relative;
 }
 
@@ -2201,7 +2949,7 @@
   font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   margin-top: 2px;
 }
 
@@ -2846,7 +3594,7 @@
   font-weight: 600;
   color: #666;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
 .stylique-proc-step.active span { color: #642FD7; }
@@ -3200,7 +3948,7 @@
   color: var(--stylique-text);
   font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .stylique-onboarding-header p {
@@ -3418,7 +4166,7 @@
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   background: linear-gradient(135deg, var(--stylique-primary, #642FD7), var(--stylique-secondary, #F4536F));
   color: #fff;
 }
@@ -3623,20 +4371,21 @@
 /* Result View Container (Direct child of #stylique-tryon-interface) */
 .stylique-result-view {
   display: none;
-  grid-template-columns: 1fr 400px; /* Modern uwear-like split: image vs info */
+  grid-template-columns: minmax(0, 1fr) 390px;
   grid-template-rows: 1fr auto;
-  gap: 0;
-  padding: 0 !important;
+  gap: 16px;
+  padding: 18px !important;
   width: 100% !important;
-  min-height: 520px;
-  max-height: calc(90vh - 40px);
-  overflow: hidden;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  overflow-x: visible;
   align-items: stretch;
   box-sizing: border-box;
   animation: stylique-result-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  background: transparent;
+  border-radius: 20px;
+  box-shadow: none;
 }
 
 @media (max-width: 1024px) {
@@ -3658,6 +4407,11 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Left Column: Clean Result Image */
 .stylique-result-left {
   display: flex !important;
@@ -3667,10 +4421,13 @@
   min-width: 0;
   position: relative;
   height: 100%;
-  min-height: 400px;
+  min-height: 360px;
   width: 100%;
   background: #f8f8f6;
+  border-radius: 16px; /* Perfect rounded corners matching uwear */
   overflow: hidden;
+  opacity: 0;
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .stylique-result-image-container {
@@ -3682,12 +4439,12 @@
   justify-content: center;
   overflow: hidden;
   background: #f8f8f6;
-  min-height: 400px;
+  min-height: 360px;
 }
 
 .stylique-result-image-container img {
   max-width: 100%;
-  max-height: calc(90vh - 120px);
+  max-height: calc(100vh - 180px);
   width: auto;
   height: auto;
   object-fit: contain;
@@ -3698,46 +4455,127 @@
 .stylique-result-right {
   display: flex !important;
   flex-direction: column;
-  gap: 0;
+  gap: 12px;
   justify-content: flex-start;
-  overflow-y: auto;
-  max-height: calc(90vh - 120px);
+  overflow: visible;
+  max-height: none;
   min-width: 0;
-  width: 100%;
-  padding: 0;
-  background: #fff;
-  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  width: calc(100% + 8px);
+  margin-left: -28px;
+  padding: 18px 8px 0 0;
+  background: transparent;
+  border-left: none; /* Removed harsh border */
+  opacity: 0;
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; /* staggered entrance */
 }
 
 /* Items Header */
 .stylique-result-items-header {
-  padding: 20px 24px 12px 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 8px 0 12px 0;
+  border-bottom: none;
 }
 
 .stylique-result-items-header h5 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a2e;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  font-weight: 700; /* Bolder text for Uwear feel */
+  color: #111;
+  letter-spacing: 0;
 }
 
 /* Items List */
 .stylique-result-items-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 12px; /* Space between product cards */
   padding: 0;
+}
+
+/* Complete the Look Carousel */
+.stylique-suggestions-carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  padding-bottom: 8px; /* space for scroll if not hidden */
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.stylique-suggestions-carousel::-webkit-scrollbar {
+  display: none; /* Hide UI scrollbar for native swipe feel */
+}
+
+/* Complete the Look Suggestion Card */
+.stylique-suggestion-card {
+  flex: 0 0 auto;
+  width: 105px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.stylique-suggestion-card:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
+
+.stylique-suggestion-img-wrap {
+  width: 105px;
+  height: 105px;
+  border-radius: 8px;
+  background: #f5f5f7;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.stylique-suggestion-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stylique-suggestion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stylique-suggestion-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stylique-suggestion-price {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #667eea; /* Or Stylique Brand primary */
 }
 
 /* Single Item Card */
 .stylique-result-item-card {
   display: flex;
-  gap: 14px;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  transition: background 0.2s ease;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.stylique-result-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .stylique-result-item-card:last-child {
@@ -3749,14 +4587,22 @@
 }
 
 /* Item Thumbnail */
-.stylique-result-item-thumb {
-  width: 64px;
-  height: 80px;
+.stylique-result-item-thumb-wrap {
+  flex-shrink: 0;
+  width: 58px;
+  height: 76px;
   border-radius: 8px;
+  overflow: hidden;
+  background: #f5f3ef;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.stylique-result-item-thumb {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   background: #f5f3ef;
-  flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  display: block;
 }
 
 /* Item Info */
@@ -3766,19 +4612,28 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
+}
+
+.stylique-result-item-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .stylique-result-item-name {
   margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1a1a2e;
-  line-height: 1.3;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111111;
+  line-height: 1.15;
+  letter-spacing: 0;
+  font-family: var(--stylique-font-brand);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 
@@ -3793,11 +4648,249 @@
   color: #000;
 }
 
+.stylique-result-confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  min-width: 0;
+}
+
+.stylique-result-confidence-row {
+  width: 100%;
+}
+
+.stylique-result-confidence-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.stylique-result-confidence-bar {
+  flex: 1;
+  min-width: 52px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.stylique-result-confidence-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.stylique-result-confidence-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #047857;
+  white-space: nowrap;
+}
+
 .stylique-result-item-fit {
   margin: 0;
   font-size: 12px;
   color: #6b7280;
   line-height: 1.4;
+}
+
+.stylique-result-item-fit-summary {
+  margin-top: 1px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stylique-result-item-fit-summary-line {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.stylique-result-item-fit-summary-line-single {
+  display: -webkit-box;
+  white-space: normal;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-top: -6px;
+}
+
+.stylique-result-fit-details {
+  width: 100%;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  position: relative;
+  z-index: 50;
+}
+
+.stylique-result-fit-details-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  cursor: pointer;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stylique-result-fit-details-summary:hover {
+  color: #065f46;
+}
+
+.stylique-result-fit-details-icon {
+  transition: transform 0.18s ease;
+}
+
+.stylique-result-fit-details.is-open .stylique-result-fit-details-icon {
+  transform: rotate(180deg);
+}
+
+.stylique-result-fit-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: auto;
+  width: min(310px, 100%);
+  max-height: 245px;
+  overflow: auto;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+  z-index: 9999;
+}
+
+.stylique-result-fit-details.is-open .stylique-result-fit-popover {
+  display: block;
+}
+
+.stylique-result-fit-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stylique-result-fit-popover-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #111827;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.stylique-result-fit-popover-close:hover {
+  background: #f1f5f9;
+}
+
+@media (max-width: 768px) {
+  .stylique-result-fit-popover {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    top: auto;
+    bottom: 88px;
+    width: auto;
+    max-height: 52vh;
+  }
+}
+
+.stylique-result-fit-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.stylique-result-fit-table th,
+.stylique-result-fit-table td {
+  padding: 7px 8px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.stylique-result-fit-table th {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  background: #f8fafc;
+}
+
+.stylique-result-fit-table td {
+  color: #334155;
+  font-weight: 600;
+}
+
+.stylique-result-fit-table td:nth-child(4) {
+  color: #047857;
+  font-weight: 700;
+}
+
+.stylique-result-fit-table th:nth-child(1),
+.stylique-result-fit-table td:nth-child(1) {
+  width: 25%;
+}
+
+.stylique-result-fit-table th:nth-child(2),
+.stylique-result-fit-table td:nth-child(2),
+.stylique-result-fit-table th:nth-child(3),
+.stylique-result-fit-table td:nth-child(3) {
+  width: 18%;
+}
+
+.stylique-result-fit-table th:nth-child(4),
+.stylique-result-fit-table td:nth-child(4) {
+  width: 39%;
+}
+
+.stylique-result-fit-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.stylique-result-fit-table-note {
+  margin: 0;
+  padding: 8px 12px;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.35;
+  border-top: 1px solid #f1f5f9;
+  background: #fbfdff;
 }
 
 .stylique-result-item-link {
@@ -3828,58 +4921,70 @@
 .stylique-result-bottom-bar {
   grid-column: 1 / -1;
   display: flex;
-  gap: 0;
-  padding: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  background: #fff;
-  border-radius: 0 0 28px 28px;
-  overflow: hidden;
+  flex-wrap: wrap; /* Crucial for mobile responsiveness */
+  gap: 16px; /* Gap between pills */
+  padding: 16px 0 0 0;
+  border-top: none;
+  background: transparent;
+  width: 100%;
 }
 
-.stylique-result-bar-btn {
-  flex: 1;
+/* Discrete Pill Buttons */
+.stylique-pill-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 16px 12px;
-  background: #fff;
-  border: none;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 16px 24px;
   font-size: 14px;
   font-weight: 500;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #1a1a2e;
+  font-family: var(--stylique-font-brand);
+  border-radius: 12px; /* Smooth rectangle pills */
   cursor: pointer;
   transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
+  flex: 1; /* Stretch evenly */
   touch-action: manipulation;
   white-space: nowrap;
 }
 
-.stylique-result-bar-btn:last-child {
-  border-right: none;
+/* Primary Button Design (Stylique Colors perfectly adapted) */
+.stylique-pill-primary {
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(100, 47, 215, 0.2);
 }
 
-.stylique-result-bar-btn:hover {
-  background: rgba(100, 47, 215, 0.04);
-  color: var(--stylique-primary);
+.stylique-pill-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(100, 47, 215, 0.3);
 }
 
-.stylique-result-bar-btn:active {
-  background: rgba(100, 47, 215, 0.08);
-  transform: scale(0.98);
+.stylique-pill-primary:active {
+  transform: translateY(1px);
 }
 
-.stylique-result-bar-btn svg {
-  width: 18px;
-  height: 18px;
+/* Secondary Button Design (White Ghost Pills) */
+.stylique-pill-secondary {
+  background: #fdfdfd;
+  color: #111;
+  border: 1px solid rgba(0, 0, 0, 0.08); /* Clean thin border */
+}
+
+.stylique-pill-secondary:hover {
+  background: #f5f5f5;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.stylique-pill-secondary:active {
+  background: #ececec;
+  transform: translateY(1px);
+}
+
+.stylique-pill-btn svg {
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  opacity: 0.7;
-}
-
-.stylique-result-bar-btn:hover svg {
-  opacity: 1;
 }
 
 /* Hide elements when result mode */
@@ -3890,6 +4995,7 @@
 
 .stylique-right-column.stylique-result-mode #stylique-result-view {
   display: grid !important;
+  overflow: visible;
 }
 
 /* Responsive Fixes for New Structure */
@@ -3908,9 +5014,9 @@
 @media (max-width: 768px) {
   .stylique-result-view {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
     min-height: auto !important;
     max-height: none !important;
+    overflow: visible;
   }
 
   .stylique-result-left {
@@ -3925,23 +5031,26 @@
     max-height: none;
     overflow-y: visible;
     gap: 1.25rem;
+    width: 100%;
+    margin-left: 0;
     padding: 1rem !important;
   }
 
   .stylique-result-bottom-bar {
     border-radius: 0 0 24px 24px;
+    flex-direction: column; /* Stack buttons dynamically on mobile */
   }
 
-  .stylique-result-bar-btn {
-    padding: 14px 8px;
-    font-size: 13px;
-    gap: 6px;
+  .stylique-pill-btn {
+    width: 100%;
+    padding: 14px 16px;
   }
 }
 
 @media (max-width: 480px) {
   .stylique-result-item-card {
-    padding: 14px 16px;
+    gap: 8px;
+    padding: 8px 0;
   }
 
   .stylique-result-items-header {
@@ -3960,7 +5069,11 @@
   }
 
   .stylique-result-item-thumb {
+    display: block;
+  }
+
+  .stylique-result-item-thumb-wrap {
     width: 52px;
-    height: 64px;
+    height: 68px;
   }
 }

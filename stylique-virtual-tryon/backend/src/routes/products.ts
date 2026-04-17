@@ -3,6 +3,7 @@ import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
 import { processProductImages } from './images.ts';
 import { resolveStoreIdByShopDomain, syncShopifyProductToInventory } from '../services/shopifySync.ts';
+import { requireSyncSecret } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
 
@@ -25,7 +26,7 @@ interface ShopifyWebhookPayload {
 }
 
 // POST /api/sync/shopify — legacy/custom payload { shop: { domain }, product } (same as shared sync)
-router.post('/sync/shopify', async (req: Request, res: Response) => {
+router.post('/sync/shopify', requireSyncSecret, async (req: Request, res: Response) => {
   try {
     const raw = req.body as unknown;
     let shopDomain: string | undefined;
@@ -96,7 +97,7 @@ router.post('/sync/shopify', async (req: Request, res: Response) => {
  * POST /api/sync/products
  * Bulk sync: accepts an array of products in Shopify or WooCommerce format.
  */
-router.post('/sync/products', async (req: Request, res: Response) => {
+router.post('/sync/products', requireSyncSecret, async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const { store_domain, products, format } = req.body;

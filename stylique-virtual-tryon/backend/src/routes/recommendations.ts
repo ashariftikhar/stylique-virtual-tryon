@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
+import type { AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
 
@@ -127,18 +128,23 @@ router.post('/recommend-size', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const payload: RecommendationPayload = req.body;
+    const authStoreId = (req as AuthenticatedRequest).storeAuth?.storeId;
 
     if (!payload.product_id || !payload.measurements) {
       return res.status(400).json({
         error: 'Missing required fields: product_id and measurements',
       });
     }
+    if (!authStoreId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
     const { data: product, error: productError } = await supabase
       .from('inventory')
       .select('sizes, measurements')
       .eq('id', payload.product_id)
-      .single();
+      .eq('store_id', authStoreId)
+      .maybeSingle();
 
     if (productError || !product) {
       return res.status(404).json({

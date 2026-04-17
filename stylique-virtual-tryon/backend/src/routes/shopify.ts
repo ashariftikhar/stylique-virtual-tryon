@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { getSupabase } from '../services/supabase.ts';
+import { getJwtSecret } from '../middleware/auth.ts';
 import {
   deleteShopifyProductFromInventory,
   exchangeShopifyOAuthCode,
@@ -17,8 +18,8 @@ import { injectStyliqueSectionIntoTheme } from '../services/shopifyThemeInjector
 
 const router: Router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'stylique-dev-secret-change-me';
 const SALT_ROUNDS = 10;
+const setupTokens = new Map<string, { storeId: string; password: string; expiresAt: number }>();
 
 const DEFAULT_SCOPES =
   process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_themes,write_themes';
@@ -49,11 +50,21 @@ function webhookBaseUrl(): string {
     `http://localhost:${process.env.PORT || 5000}`;
 }
 
-function successRedirectUrl(storeUuid: string, storeId: string, password?: string): string {
+function createSetupToken(storeId: string, password: string): string {
+  const token = crypto.randomBytes(32).toString('hex');
+  setupTokens.set(token, {
+    storeId,
+    password,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+  });
+  return token;
+}
+
+function successRedirectUrl(storeUuid: string, storeId: string, setupToken?: string): string {
   const base = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const token = jwt.sign({ storeId: storeUuid, store_id: storeId }, JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ storeId: storeUuid, store_id: storeId }, getJwtSecret(), { expiresIn: '7d' });
   let url = `${base.replace(/\/$/, '')}/?shopify=connected&token=${encodeURIComponent(token)}&store_id=${encodeURIComponent(storeId)}`;
-  if (password) url += `&password=${encodeURIComponent(password)}`;
+  if (setupToken) url += `&setup_token=${encodeURIComponent(setupToken)}`;
   return url;
 }
 
@@ -68,11 +79,11 @@ interface OAuthStatePayload {
 }
 
 function signOAuthState(payload: OAuthStatePayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '15m' });
 }
 
 function verifyOAuthState(token: string): OAuthStatePayload {
-  const decoded = jwt.verify(token, JWT_SECRET) as OAuthStatePayload;
+  const decoded = jwt.verify(token, getJwtSecret()) as OAuthStatePayload;
   if (!decoded?.shop) throw new Error('Invalid state');
   return decoded;
 }
@@ -82,7 +93,7 @@ function optionalAuthStoreId(req: Request): string | undefined {
   if (header?.startsWith('Bearer ')) {
     try {
       const t = header.slice(7);
-      const d = jwt.verify(t, JWT_SECRET) as { storeId?: string };
+      const d = jwt.verify(t, getJwtSecret()) as { storeId?: string };
       return d.storeId;
     } catch {
       return undefined;
@@ -91,7 +102,7 @@ function optionalAuthStoreId(req: Request): string | undefined {
   const q = req.query.token as string | undefined;
   if (q) {
     try {
-      const d = jwt.verify(q, JWT_SECRET) as { storeId?: string };
+      const d = jwt.verify(q, getJwtSecret()) as { storeId?: string };
       return d.storeId;
     } catch {
       return undefined;
@@ -134,6 +145,27 @@ router.get('/shopify/oauth', (req: Request, res: Response) => {
   console.log('[Shopify OAuth] Authorize URL:', authorizeUrl);
   console.log('[Shopify OAuth] Redirecting to authorize for shop:', shop, linkStoreId ? `(link store ${linkStoreId})` : '');
   res.redirect(302, authorizeUrl);
+});
+
+// GET /api/shopify/setup-credentials?token=...
+router.get('/shopify/setup-credentials', (req: Request, res: Response) => {
+  const token = req.query.token as string | undefined;
+  if (!token) {
+    return res.status(400).json({ success: false, error: 'Missing setup token' });
+  }
+
+  const entry = setupTokens.get(token);
+  setupTokens.delete(token);
+
+  if (!entry || entry.expiresAt < Date.now()) {
+    return res.status(404).json({ success: false, error: 'Setup token expired or already used' });
+  }
+
+  return res.json({
+    success: true,
+    storeId: entry.storeId,
+    password: entry.password,
+  });
 });
 
 // GET /api/shopify/callback — exchange code, save token, pull products, register webhooks
@@ -192,13 +224,13 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
   let storeUuid: string | null = null;
   let generatedPassword: string | undefined;
 
-  // Generate a human-readable password for the merchant
+  // Generate a human-readable password for the merchant. It is returned once
+  // through a setup token, never through logs or URL query strings.
   const plainPassword = crypto.randomBytes(6).toString('hex'); // 12-char hex
   const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
-  
-  // Log password to console for admin visibility
-  console.log(`[Shopify OAuth] ⚠️  GENERATED PASSWORD FOR MERCHANT: ${plainPassword}`);
-  console.log(`[Shopify OAuth] This will be displayed on success page for store: ${normalizedShop}`);
+  console.log(`[Shopify OAuth] Generated one-time setup credentials for store: ${normalizedShop}`);
+
+  // Credentials are delivered through a short-lived setup token.
 
   if (statePayload.linkStoreId) {
     const { data: row, error } = await supabase
@@ -225,7 +257,6 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     }
     storeUuid = row.id;
     generatedPassword = plainPassword;
-    console.log(`[Shopify OAuth] ✓ Password stored in session for linking: ${plainPassword}`);
     console.log('[Shopify OAuth] Linked Shopify to existing store', storeUuid);
   } else {
     const { data: existing } = await supabase
@@ -247,7 +278,6 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
         .eq('id', existing.id);
       storeUuid = existing.id;
       generatedPassword = plainPassword;
-      console.log(`[Shopify OAuth] ✓ Password stored in session for existing store: ${plainPassword}`);
       console.log('[Shopify OAuth] Updated existing store by store_id match');
     } else {
       const name = normalizedShop.replace('.myshopify.com', '');
@@ -271,7 +301,6 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
       }
       storeUuid = created.id;
       generatedPassword = plainPassword;
-      console.log(`[Shopify OAuth] ✓ Password stored in session for new store: ${plainPassword}`);
       console.log('[Shopify OAuth] Created new store for Shopify shop');
     }
   }
@@ -294,7 +323,8 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     console.error('[Shopify OAuth] Theme injection error (non-fatal):', e.message);
   }
 
-  res.redirect(302, successRedirectUrl(storeUuid!, normalizedShop, generatedPassword));
+  const setupToken = generatedPassword ? createSetupToken(normalizedShop, generatedPassword) : undefined;
+  res.redirect(302, successRedirectUrl(storeUuid!, normalizedShop, setupToken));
 });
 
 function verifyShopifyWebhookHmac(rawBody: Buffer, hmacHeader: string | undefined): boolean {

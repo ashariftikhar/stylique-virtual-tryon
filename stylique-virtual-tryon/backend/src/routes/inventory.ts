@@ -1,14 +1,59 @@
 import express from 'express';
 import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
+import type { AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveStoreId(storeIdOrDomain: string): Promise<string | null> {
+  if (UUID_RE.test(storeIdOrDomain)) {
+    return storeIdOrDomain;
+  }
+
+  const { data: store } = await getSupabase()
+    .from('stores')
+    .select('id')
+    .eq('store_id', storeIdOrDomain)
+    .maybeSingle();
+
+  return store?.id ?? null;
+}
+
+async function assertRequestedStoreAllowed(req: Request, res: Response): Promise<string | null> {
+  const authStoreId = (req as AuthenticatedRequest).storeAuth?.storeId;
+  if (!authStoreId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return null;
+  }
+
+  const requestedStoreId = (req.query.store_id as string | undefined) || req.body?.store_id;
+  if (!requestedStoreId) {
+    return authStoreId;
+  }
+
+  const resolvedStoreId = await resolveStoreId(requestedStoreId);
+  if (!resolvedStoreId) {
+    res.status(404).json({ error: 'Store not found' });
+    return null;
+  }
+
+  if (resolvedStoreId !== authStoreId) {
+    res.status(403).json({ error: 'Forbidden for this store' });
+    return null;
+  }
+
+  return authStoreId;
+}
 
 // GET /api/inventory?store_id=...&product_id=...&limit=50&offset=0
 router.get('/inventory', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
-    const storeId = req.query.store_id as string | undefined;
+    const authStoreId = await assertRequestedStoreAllowed(req, res);
+    if (!authStoreId) return;
+
     const productId = req.query.product_id as string | undefined;
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
     const offset = parseInt(req.query.offset as string) || 0;
@@ -16,27 +61,9 @@ router.get('/inventory', async (req: Request, res: Response) => {
     let query = supabase
       .from('inventory')
       .select('*')
+      .eq('store_id', authStoreId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
-
-    if (storeId) {
-      // Allow querying by UUID or by store_id string
-      if (storeId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        query = query.eq('store_id', storeId);
-      } else {
-        // Resolve store_id string to UUID first
-        const { data: store } = await supabase
-          .from('stores')
-          .select('id')
-          .eq('store_id', storeId)
-          .maybeSingle();
-
-        if (!store) {
-          return res.status(404).json({ error: 'Store not found' });
-        }
-        query = query.eq('store_id', store.id);
-      }
-    }
 
     if (productId) {
       query = query.eq('id', productId);
@@ -49,21 +76,12 @@ router.get('/inventory', async (req: Request, res: Response) => {
     }
 
     // Get total count for the same filter (reuse the resolved store UUID)
-    let countQuery = supabase.from('inventory').select('id', { count: 'exact', head: true });
-    if (storeId) {
-      const isUUID = storeId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-      if (isUUID) {
-        countQuery = countQuery.eq('store_id', storeId);
-      } else {
-        const { data: storeRow } = await supabase
-          .from('stores')
-          .select('id')
-          .eq('store_id', storeId)
-          .maybeSingle();
-        if (storeRow) {
-          countQuery = countQuery.eq('store_id', storeRow.id);
-        }
-      }
+    let countQuery = supabase
+      .from('inventory')
+      .select('id', { count: 'exact', head: true })
+      .eq('store_id', authStoreId);
+    if (productId) {
+      countQuery = countQuery.eq('id', productId);
     }
     const { count } = await countQuery;
 
@@ -85,30 +103,17 @@ router.post('/inventory', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const body = req.body;
+    const authStoreId = await assertRequestedStoreAllowed(req, res);
+    if (!authStoreId) return;
 
-    if (!body.store_id || !body.product_name) {
+    if (!body.product_name) {
       return res.status(400).json({
-        error: 'Missing required fields: store_id, product_name',
+        error: 'Missing required field: product_name',
       });
     }
 
-    // Resolve store_id if not UUID
-    let resolvedStoreId = body.store_id;
-    if (!body.store_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      const { data: store } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('store_id', body.store_id)
-        .maybeSingle();
-
-      if (!store) {
-        return res.status(404).json({ error: 'Store not found' });
-      }
-      resolvedStoreId = store.id;
-    }
-
     const record = {
-      store_id: resolvedStoreId,
+      store_id: authStoreId,
       product_name: body.product_name,
       description: body.description || null,
       price: body.price ? parseFloat(body.price) : null,
@@ -151,21 +156,31 @@ router.patch('/inventory/:id', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const productId = req.params.id;
-    const updates = req.body;
+    const authStoreId = (req as AuthenticatedRequest).storeAuth?.storeId;
+    const { store_id: _ignoredStoreId, ...updates } = req.body;
 
     if (!productId) {
       return res.status(400).json({ error: 'Missing product ID' });
     }
+    if (!authStoreId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
     // Handle soft delete
     if (updates.deleted === true) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('inventory')
         .delete()
-        .eq('id', productId);
+        .eq('id', productId)
+        .eq('store_id', authStoreId)
+        .select('id')
+        .maybeSingle();
 
       if (error) {
         return res.status(500).json({ error: 'Failed to delete product', details: error.message });
+      }
+      if (!data) {
+        return res.status(404).json({ error: 'Product not found' });
       }
 
       return res.status(200).json({ status: 'success', message: 'Product deleted' });
@@ -175,11 +190,15 @@ router.patch('/inventory/:id', async (req: Request, res: Response) => {
       .from('inventory')
       .update(updates)
       .eq('id', productId)
+      .eq('store_id', authStoreId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       return res.status(500).json({ error: 'Failed to update product', details: error.message });
+    }
+    if (!data) {
+      return res.status(404).json({ error: 'Product not found' });
     }
 
     res.status(200).json({

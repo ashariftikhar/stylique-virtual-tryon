@@ -3,11 +3,11 @@ import type { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { getSupabase } from '../services/supabase.ts';
+import { getJwtSecret } from '../middleware/auth.ts';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const router: Router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'stylique-dev-secret-change-me';
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -29,7 +29,130 @@ async function lookupStoreUUID(storeId: string): Promise<string | null> {
 }
 
 const inventorySelect =
-  'id, product_name, tryon_image_url, image_url, tier, sizes, product_link, images';
+  'id, product_name, tryon_image_url, image_url, tier, sizes, measurements, product_link, images';
+
+type NumericMeasurements = Record<string, number>;
+
+interface SizeChartEntry {
+  size: string;
+  measurements: NumericMeasurements;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (value && typeof value === 'object' && 'value' in value) {
+    return toFiniteNumber((value as { value?: unknown }).value);
+  }
+  return null;
+}
+
+function normalizeMeasurements(raw: unknown): NumericMeasurements {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+
+  const normalized: NumericMeasurements = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const numericValue = toFiniteNumber(value);
+    if (numericValue != null) normalized[key] = numericValue;
+  }
+  return normalized;
+}
+
+function findSizeMeasurements(productMeasurements: unknown, size: string): NumericMeasurements {
+  if (!productMeasurements || typeof productMeasurements !== 'object' || Array.isArray(productMeasurements)) {
+    return {};
+  }
+
+  const measurementMap = productMeasurements as Record<string, unknown>;
+  const direct = measurementMap[size] ?? measurementMap[size.toUpperCase()] ?? measurementMap[size.toLowerCase()];
+  if (direct) return normalizeMeasurements(direct);
+
+  const matched = Object.entries(measurementMap).find(([key]) => key.toLowerCase() === size.toLowerCase());
+  return matched ? normalizeMeasurements(matched[1]) : {};
+}
+
+function buildSizeChart(productMeasurements: unknown, availableSizes: string[]): SizeChartEntry[] {
+  if (!productMeasurements || typeof productMeasurements !== 'object' || Array.isArray(productMeasurements)) {
+    return [];
+  }
+
+  const sourceMap = productMeasurements as Record<string, unknown>;
+  const sizeLabels = availableSizes.length > 0 ? availableSizes : Object.keys(sourceMap);
+
+  return sizeLabels
+    .map((size) => ({
+      size,
+      measurements: findSizeMeasurements(productMeasurements, size),
+    }))
+    .filter((entry) => Object.keys(entry.measurements).length > 0);
+}
+
+function isRealSizeLabel(size: unknown): size is string {
+  if (typeof size !== 'string') return false;
+  const normalized = size.trim().toLowerCase();
+  return normalized !== '' && normalized !== 'default title' && normalized !== 'title';
+}
+
+function resolveAvailableSizes(productSizes: unknown, productMeasurements: unknown): string[] {
+  const measuredSizes = productMeasurements && typeof productMeasurements === 'object' && !Array.isArray(productMeasurements)
+    ? Object.keys(productMeasurements as Record<string, unknown>).filter(isRealSizeLabel)
+    : [];
+
+  const variantSizes = Array.isArray(productSizes) ? productSizes.filter(isRealSizeLabel) : [];
+  const merged = variantSizes.length > 0 ? variantSizes : measuredSizes;
+
+  return merged.length > 0 ? merged : ['M'];
+}
+
+function cleanUserMeasurements(userMeasurements: Record<string, unknown>): NumericMeasurements {
+  const cleaned: NumericMeasurements = {};
+  for (const [key, value] of Object.entries(userMeasurements)) {
+    const numericValue = toFiniteNumber(value);
+    if (numericValue != null) cleaned[key] = numericValue;
+  }
+  return cleaned;
+}
+
+function describeFitDelta(field: string, delta: number): string {
+  const absDelta = Math.round(Math.abs(delta) * 10) / 10;
+
+  if (absDelta < 0.5) {
+    return field === 'length' || field === 'sleeve' || field === 'inseam'
+      ? 'balanced'
+      : 'perfect fit';
+  }
+
+  if (field === 'length' || field === 'sleeve' || field === 'inseam') {
+    return delta > 0 ? `${absDelta}" longer` : `${absDelta}" shorter`;
+  }
+
+  if (field === 'shoulder') {
+    return delta > 0 ? `${absDelta}" relaxed` : `${absDelta}" tight`;
+  }
+
+  return delta > 0 ? `${absDelta}" looser` : `${absDelta}" tighter`;
+}
+
+function buildFitFeel(
+  userMeasurements: NumericMeasurements,
+  productMeasurements: unknown,
+  recommendedSize: string,
+): Record<string, string> {
+  const garmentMeasurements = findSizeMeasurements(productMeasurements, recommendedSize);
+  const fitFeel: Record<string, string> = {};
+
+  for (const field of ['chest', 'waist', 'hips', 'shoulder', 'length', 'sleeve', 'inseam']) {
+    const userValue = userMeasurements[field];
+    const garmentValue = garmentMeasurements[field];
+    if (userValue == null || garmentValue == null) continue;
+    fitFeel[field] = describeFitDelta(field, garmentValue - userValue);
+  }
+
+  return fitFeel;
+}
 
 /**
  * Build URL path variants for matching product_link (trailing slash, encoding).
@@ -209,6 +332,40 @@ function generateOTP(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+async function sendOtpEmail(toEmail: string, code: string): Promise<void> {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.OTP_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL;
+  const fromName = process.env.OTP_FROM_NAME || 'Stylique';
+
+  if (!apiKey || !fromEmail) {
+    throw new Error('OTP email provider is not configured');
+  }
+
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: toEmail }] }],
+      from: { email: fromEmail, name: fromName },
+      subject: 'Your Stylique verification code',
+      content: [
+        {
+          type: 'text/plain',
+          value: `Your Stylique verification code is ${code}. It expires in 10 minutes.`,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`OTP email provider failed with HTTP ${response.status}: ${text.slice(0, 200)}`);
+  }
+}
+
 // ──────────────────────────────────────────────
 // GET /plugin/simple, /plugin/test-2d — storefront widget testAPIConnection()
 // ──────────────────────────────────────────────
@@ -236,8 +393,9 @@ router.post('/auth', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const { email, action, otp } = req.body;
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-    if (!email || !action) {
+    if (!normalizedEmail || !action) {
       return res.status(400).json({ success: false, error: 'email and action required' });
     }
 
@@ -245,41 +403,49 @@ router.post('/auth', async (req: Request, res: Response) => {
       const code = generateOTP();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-      console.log(`[Plugin Auth] send_otp: email=${email} code=${code} expires=${expiresAt.toISOString()}`);
+      console.log(`[Plugin Auth] send_otp requested for ${normalizedEmail}; expires=${expiresAt.toISOString()}`);
 
       // Ensure user row exists in DB
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
-        .eq('email', email)
+        .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (!existingUser) {
         const { error: insertErr } = await supabase
           .from('users')
-          .insert({ email });
+          .insert({ email: normalizedEmail });
         if (insertErr) {
           console.error(`[Plugin Auth] Could not create user row: ${insertErr.message}`);
           return res.status(500).json({ success: false, error: 'Failed to create user' });
         }
-        console.log(`[Plugin Auth] Created user row for ${email}`);
+        console.log(`[Plugin Auth] Created user row for ${normalizedEmail}`);
       }
 
       // Store OTP in database only
       const { error: updateErr } = await supabase
         .from('users')
         .update({ otp_code: code, otp_expires_at: expiresAt.toISOString() })
-        .eq('email', email);
+        .eq('email', normalizedEmail);
 
       if (updateErr) {
         console.error(`[Plugin Auth] Failed to store OTP in DB: ${updateErr.message}`);
         return res.status(500).json({ success: false, error: 'Failed to send OTP' });
       }
 
-      console.log(`[Plugin Auth] OTP stored in DB for ${email}: code=${code}`);
+      try {
+        await sendOtpEmail(normalizedEmail, code);
+      } catch (emailErr: any) {
+        await supabase
+          .from('users')
+          .update({ otp_code: null, otp_expires_at: null })
+          .eq('email', normalizedEmail);
+        console.error(`[Plugin Auth] Failed to deliver OTP email for ${normalizedEmail}: ${emailErr.message}`);
+        return res.status(500).json({ success: false, error: 'Failed to send OTP email' });
+      }
 
-      // In production, send email via SendGrid / SES / etc.
-      console.log(`[Plugin Auth] OTP for ${email}: ${code}  (dev-mode, would email in production)`);
+      console.log(`[Plugin Auth] OTP email sent to ${normalizedEmail}`);
 
       return res.json({ success: true, message: 'OTP sent' });
     }
@@ -289,10 +455,9 @@ router.post('/auth', async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, error: 'otp required' });
       }
 
-      const normalizedEmail = email.toLowerCase();
       const receivedCode = String(otp).trim();
 
-      console.log(`[Plugin Auth] verify_otp: email=${email} received_otp=${receivedCode}`);
+      console.log(`[Plugin Auth] verify_otp requested for ${normalizedEmail}`);
 
       // Check OTP from database only
       const { data: user } = await supabase
@@ -302,12 +467,12 @@ router.post('/auth', async (req: Request, res: Response) => {
         .maybeSingle();
 
       if (!user) {
-        console.log(`[Plugin Auth] User not found for email: ${email}`);
+        console.log(`[Plugin Auth] User not found for email: ${normalizedEmail}`);
         return res.status(401).json({ success: false, error: 'Invalid or expired code' });
       }
 
       if (!user.otp_code) {
-        console.log(`[Plugin Auth] No OTP found for user ${email}`);
+        console.log(`[Plugin Auth] No OTP found for user ${normalizedEmail}`);
         return res.status(401).json({ success: false, error: 'Invalid or expired code' });
       }
 
@@ -315,19 +480,13 @@ router.post('/auth', async (req: Request, res: Response) => {
       const expiresAt = user.otp_expires_at ? new Date(user.otp_expires_at) : null;
       const isExpired = !expiresAt || expiresAt <= new Date();
 
-      console.log(`[Plugin Auth] DB OTP verification:`);
-      console.log(`  stored_code  = "${storedCode}"`);
-      console.log(`  received_code= "${receivedCode}"`);
-      console.log(`  codes_match  = ${storedCode === receivedCode}`);
-      console.log(`  is_expired   = ${isExpired}`);
-
       if (storedCode !== receivedCode) {
-        console.log(`[Plugin Auth] REJECTED: code mismatch for ${email}`);
+        console.log(`[Plugin Auth] REJECTED: code mismatch for ${normalizedEmail}`);
         return res.status(401).json({ success: false, error: 'Invalid or expired code' });
       }
 
       if (isExpired) {
-        console.log(`[Plugin Auth] REJECTED: code expired for ${email}`);
+        console.log(`[Plugin Auth] REJECTED: code expired for ${normalizedEmail}`);
         return res.status(401).json({ success: false, error: 'Invalid or expired code' });
       }
 
@@ -337,11 +496,11 @@ router.post('/auth', async (req: Request, res: Response) => {
         .update({ otp_code: null, otp_expires_at: null })
         .eq('id', user.id);
 
-      console.log(`[Plugin Auth] OTP VERIFIED for ${email}`);
+      console.log(`[Plugin Auth] OTP VERIFIED for ${normalizedEmail}`);
 
       const isNewUser = !user.name && !user.height;
 
-      const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
+      const token = jwt.sign({ userId: user.id, email: user.email }, getJwtSecret(), { expiresIn: '30d' });
 
       // Strip sensitive fields
       const safeUser = { ...user };
@@ -378,7 +537,7 @@ router.post('/verify-token', async (req: Request, res: Response) => {
 
     let decoded: { userId?: string; email?: string };
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email?: string };
+      decoded = jwt.verify(token, getJwtSecret()) as { userId?: string; email?: string };
     } catch {
       return res.status(401).json({ success: false, error: 'Token expired or invalid' });
     }
@@ -487,6 +646,7 @@ router.post('/check-product', async (req: Request, res: Response) => {
         tryon_image_url: product.tryon_image_url || product.image_url,
         tier: product.tier || 3,
         sizes: product.sizes || [],
+        measurements: product.measurements || {},
         images: images, // Array of image URLs for carousel (Tier 1/2)
       },
     };
@@ -1038,15 +1198,34 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
       console.log('[Plugin][SizeRec] Merged with inline measurements:', JSON.stringify(userMeasurements));
     }
 
+    const availableSizes = resolveAvailableSizes(product.sizes, product.measurements);
+    const hasProductMeasurements =
+      product.measurements &&
+      typeof product.measurements === 'object' &&
+      Object.keys(product.measurements).length > 0;
+    const cleanMeasurements = cleanUserMeasurements(userMeasurements);
+    const sizeChart = hasProductMeasurements ? buildSizeChart(product.measurements, availableSizes) : [];
+
+    console.log('[Plugin][SizeRec] Data readiness:', {
+      availableSizesCount: availableSizes.length,
+      hasProductMeasurements,
+      sizeChartCount: sizeChart.length,
+      userMeasurementKeys: Object.keys(cleanMeasurements),
+    });
+
     // If user has no measurements, return a generic suggestion
-    if (!userMeasurements.chest && !userMeasurements.waist) {
-      const genericFit = product.sizes?.[Math.floor((product.sizes.length || 1) / 2)] || 'M';
+    if (!cleanMeasurements.chest && !cleanMeasurements.waist) {
+      const genericFit = availableSizes[Math.floor(availableSizes.length / 2)] || 'M';
       console.log('[Plugin][SizeRec] No user measurements — returning generic:', genericFit);
       return res.json({
         success: true,
         recommendation: {
           bestFit: genericFit,
           confidence: 30,
+          source: 'generic',
+          userMeasurements: cleanMeasurements,
+          sizeChart,
+          fitFeel: {},
           detailedInsights: {
             whyBestFit: 'Add your measurements during onboarding for a more accurate recommendation.',
           },
@@ -1054,26 +1233,34 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
       });
     }
 
-    // Use the recommendation logic from recommendations module
-    const availableSizes = product.sizes || ['S', 'M', 'L', 'XL'];
-    const hasProductMeasurements =
-      product.measurements &&
-      typeof product.measurements === 'object' &&
-      Object.keys(product.measurements).length > 0;
-
     let result;
     if (hasProductMeasurements) {
       // Import the logic inline to avoid circular dependency issues
       const { recommendFromProductMeasurements } = await import('./recommendations.ts');
-      result = recommendFromProductMeasurements(userMeasurements, product.measurements, availableSizes);
+      result = recommendFromProductMeasurements(cleanMeasurements, product.measurements, availableSizes);
     } else {
       const { recommendFromGeneric } = await import('./recommendations.ts');
-      result = recommendFromGeneric(userMeasurements, availableSizes);
+      result = recommendFromGeneric(cleanMeasurements, availableSizes);
     }
 
     const confidenceNum = result.confidence === 'high' ? 85 : result.confidence === 'medium' ? 65 : 40;
+    const recommendedMeasurements = hasProductMeasurements
+      ? findSizeMeasurements(product.measurements, result.recommended)
+      : {};
+    const hasRecommendedMeasurements = Object.keys(recommendedMeasurements).length > 0;
+    const fitFeel = hasProductMeasurements
+      ? buildFitFeel(cleanMeasurements, product.measurements, result.recommended)
+      : {};
 
-    console.log(`[Plugin] size-rec: product=${productId} => ${result.recommended} (${result.confidence})`);
+    console.log(`[Plugin] size-rec: product=${productId} => ${result.recommended} (${result.confidence}/${confidenceNum}%) source=${result.source}`);
+    if (!hasRecommendedMeasurements && hasProductMeasurements) {
+      console.warn(
+        `[Plugin][SizeRec] Recommended size ${result.recommended} has no direct measurement row. sizeChartCount=${sizeChart.length}`,
+      );
+    }
+    if (Object.keys(fitFeel).length === 0) {
+      console.log('[Plugin][SizeRec] No fitFeel insights generated for this request.');
+    }
 
     res.json({
       success: true,
@@ -1082,6 +1269,9 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
         alternatives: result.alternatives,
         confidence: confidenceNum,
         source: result.source,
+        userMeasurements: cleanMeasurements,
+        sizeChart,
+        fitFeel,
         detailedInsights: {
           whyBestFit: `Based on your measurements, ${result.recommended} is the best match using ${result.source === 'product_specific' ? 'product-specific sizing data' : 'standard size charts'}.`,
         },

@@ -1,10 +1,15 @@
 /* PPValve-like font fallback - using Inter as a similar modern geometric font */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap');
 
 :root {
+  /* Brand Typography
+     PPValve is the brand font from the identity PDF. Use Inter as the safe web fallback
+     until licensed PPValve webfont files are available in Shopify assets. */
+  --stylique-font-brand: 'PPValve', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
   /* Brand Colors */
-  --stylique-primary: #642fd7;
-  --stylique-secondary: #d442f6; /* Adjusted to be less red, more magenta/purple-pink */
+  --stylique-primary: #642FD7;
+  --stylique-secondary: #F4536F;
   --stylique-text: #1a1a2e;
   --stylique-text-secondary: #6b7280;
   --stylique-border-radius: 16px;
@@ -26,78 +31,1056 @@
   --stylique-transition-fast: all 0.15s ease;
 }
 
-/* Container Hardening for WordPress */
+/* WordPress theme hardening: keep Shopify-matched widget layout isolated from theme CSS. */
 #stylique-virtual-tryon-container {
-  width: 100% !important;
-  max-width: 100% !important; /* Adapt to theme container */
-  margin-top: 15px !important;
-  margin-bottom: 20px !important;
-  clear: both !important;
-  position: relative !important;
-  z-index: 10 !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
+  font-family: var(--stylique-font-brand);
+  color: var(--stylique-text);
 }
 
-#stylique-virtual-tryon-container * {
-  box-sizing: border-box !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
+#stylique-virtual-tryon-container *,
+#stylique-virtual-tryon-container *::before,
+#stylique-virtual-tryon-container *::after {
+  box-sizing: border-box;
 }
 
-/* Prevent text overflow */
-#stylique-virtual-tryon-container h3,
-#stylique-virtual-tryon-container h4,
-#stylique-virtual-tryon-container h5,
-#stylique-virtual-tryon-container p,
-#stylique-virtual-tryon-container span,
-#stylique-virtual-tryon-container a {
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  hyphens: auto !important;
+/* ─────────────────────────────────────────────────────────────
+   TRIGGER BUTTON STYLES (Try On Button)
+   ───────────────────────────────────────────────────────────── */
+
+.stylique-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 36px;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+  color: white;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  font-family: var(--stylique-font-brand);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: var(--stylique-transition);
+  box-shadow:
+    0 4px 20px rgba(100, 47, 215, 0.3),
+    0 0 60px rgba(100, 47, 215, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+  width: 100%;
+  max-width: 300px;
+  margin: 24px auto 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  animation: stylique-button-pulse 2.5s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.stylique-trigger-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.stylique-trigger-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow:
+    0 8px 32px rgba(100, 47, 215, 0.45),
+    0 0 80px rgba(100, 47, 215, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.stylique-trigger-btn:hover::before {
+  left: 100%;
+  animation: none;
+}
+
+.stylique-trigger-btn:focus {
+  outline: none;
+  box-shadow:
+    0 8px 32px rgba(100, 47, 215, 0.45),
+    0 0 80px rgba(100, 47, 215, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 4px rgba(100, 47, 215, 0.15);
+}
+
+.stylique-trigger-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow:
+    0 2px 8px rgba(100, 47, 215, 0.3),
+    0 0 40px rgba(100, 47, 215, 0.08),
+    inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes stylique-button-pulse {
+  0%, 100% {
+    box-shadow:
+      0 4px 20px rgba(100, 47, 215, 0.3),
+      0 0 60px rgba(100, 47, 215, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 4px 20px rgba(100, 47, 215, 0.4),
+      0 0 80px rgba(100, 47, 215, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Mobile responsive trigger button */
+@media (max-width: 480px) {
+  .stylique-trigger-btn {
+    width: 100%;
+    padding: 13px 28px;
+    font-size: 15px;
+    min-height: 46px;
+    max-width: 100%;
+    margin: 20px 0 0 0;
+    gap: 5px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MODAL WRAPPER AND CONTAINER STYLES
+   ───────────────────────────────────────────────────────────── */
+
+.stylique-modal-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow: hidden;
+  animation: stylique-fade-in 0.3s ease-out;
+}
+
+@keyframes stylique-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.stylique-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1;
+  cursor: pointer;
+}
+
+.stylique-modal-content {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px;
+  max-width: 900px;
+  width: 100%;
+  margin: auto;
+  font-family: var(--stylique-font-brand);
+  letter-spacing: 0;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  border: 1px solid rgba(100, 47, 215, 0.1);
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  height: auto;
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 47, 215, 0.2) transparent;
+  animation: stylique-modal-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.9);
+  transform-origin: center center;
+}
+
+.stylique-modal-content .stylique-section-content {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  flex: 1;
+}
+
+/* Two-Column Layout Grid */
+.stylique-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  padding: 1.25rem;
+}
+
+.stylique-left-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.stylique-right-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 1.5rem;
+}
+
+/* Tier 3 Premium Size Advisor */
+.stylique-modal-content.stylique-tier3-active {
+  overflow: hidden !important;
+}
+
+.stylique-tier3-size-advisor {
+  grid-template-columns: minmax(0, 0.98fr) 370px;
+  gap: 14px;
+  width: 100%;
+  height: min(520px, calc(100vh - 92px));
+  min-height: 460px;
+  padding: 14px 18px 14px;
+  box-sizing: border-box;
+  background: transparent;
+  animation: stylique-result-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stylique-tier3-visual,
+.stylique-tier3-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.stylique-tier3-image-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f7f7f4;
+}
+
+.stylique-tier3-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.stylique-tier3-image-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 64px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+}
+
+.stylique-tier3-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 6px 0 0;
+  overflow: visible;
+}
+
+.stylique-tier3-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stylique-tier3-eyebrow {
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.stylique-tier3-copy h4 {
+  margin: 0;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stylique-tier3-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stylique-tier3-size-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-loading {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.stylique-tier3-rec-grid {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.stylique-tier3-size-card,
+.stylique-tier3-confidence-card,
+.stylique-tier3-table-card,
+.stylique-tier3-message-card,
+.stylique-tier3-complete-look {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.stylique-tier3-size-card {
+  min-height: 76px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stylique-tier3-size-card span,
+.stylique-tier3-confidence-card span {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.stylique-tier3-size-card strong {
+  margin-top: 3px;
+  color: #111827;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 800;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stylique-tier3-size-card strong.is-compact {
+  font-size: 18px;
+  letter-spacing: 0;
+  line-height: 1.05;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.stylique-tier3-size-card small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.stylique-tier3-confidence-card {
+  min-height: 76px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+}
+
+.stylique-tier3-confidence-card > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stylique-tier3-confidence-card strong {
+  color: #047857;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.stylique-tier3-confidence-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.stylique-tier3-confidence-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.stylique-tier3-fit-summary {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-fit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  color: #475569;
+  background: #ffffff;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.stylique-tier3-fit-chip strong {
+  color: #111827;
+}
+
+.stylique-tier3-fit-chip.is-good,
+.stylique-tier3-fit-result.is-good {
+  color: #047857;
+}
+
+.stylique-tier3-fit-chip.is-relaxed,
+.stylique-tier3-fit-result.is-relaxed {
+  color: #0369a1;
+}
+
+.stylique-tier3-fit-chip.is-alert,
+.stylique-tier3-fit-result.is-alert {
+  color: #b45309;
+}
+
+.stylique-tier3-table-card {
+  padding: 9px 10px;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-fit-empty {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-fit-empty span {
+  display: block;
+  margin-bottom: 3px;
+  color: #111827;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.stylique-tier3-fit-empty p {
+  margin: 0;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.stylique-tier3-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.stylique-tier3-section-head h5 {
+  margin: 0;
+  color: #111827;
+  font-size: 12.5px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.stylique-tier3-section-head span {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.stylique-tier3-fit-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.stylique-tier3-fit-table th,
+.stylique-tier3-fit-table td {
+  padding: 6px 5px;
+  border-top: 1px solid #eef2f7;
+  text-align: left;
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+
+.stylique-tier3-fit-table th {
+  color: #64748b;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.stylique-tier3-fit-table td {
+  color: #111827;
+  font-weight: 650;
+}
+
+.stylique-tier3-fit-table th:nth-child(1),
+.stylique-tier3-fit-table td:nth-child(1) {
+  width: 25%;
+}
+
+.stylique-tier3-fit-table th:nth-child(4),
+.stylique-tier3-fit-table td:nth-child(4) {
+  width: 32%;
+}
+
+.stylique-tier3-fit-result {
+  font-weight: 800;
+}
+
+.stylique-tier3-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.stylique-tier3-primary-btn,
+.stylique-tier3-secondary-btn {
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.stylique-tier3-primary-btn {
+  border: 0;
+  background: #111827;
+  color: #ffffff;
+}
+
+.stylique-tier3-secondary-btn {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+}
+
+.stylique-tier3-primary-btn:hover,
+.stylique-tier3-secondary-btn:hover {
+  opacity: 0.9;
+}
+
+.stylique-tier3-primary-btn:active,
+.stylique-tier3-secondary-btn:active {
+  transform: translateY(1px);
+}
+
+.stylique-tier3-message-card {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px;
+}
+
+.stylique-tier3-message-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.stylique-tier3-message-card h5 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.stylique-tier3-message-card p,
+.stylique-tier3-empty-note {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.stylique-tier3-message-card .stylique-tier3-primary-btn {
+  margin-top: 10px;
+}
+
+.stylique-tier3-complete-look {
+  padding: 9px;
+  flex-shrink: 0;
+}
+
+.stylique-tier3-style-note {
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stylique-tier3-look-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.stylique-tier3-look-card {
+  min-width: 0;
+  color: #111827;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stylique-tier3-look-image {
+  aspect-ratio: 1.4 / 1;
+  border-radius: 8px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.stylique-tier3-look-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stylique-tier3-look-card span {
+  color: #111827;
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1180px) {
+  .stylique-tier3-size-advisor {
+    grid-template-columns: minmax(0, 0.9fr) 350px;
+    gap: 12px;
+  }
+
+  .stylique-tier3-panel {
+    padding-top: 14px;
+  }
+
+  .stylique-tier3-rec-grid {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 769px) and (max-height: 700px) {
+  .stylique-tier3-size-advisor {
+    height: min(470px, calc(100vh - 72px));
+    min-height: 420px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .stylique-tier3-panel {
+    gap: 4px;
+    padding-top: 10px;
+    padding-bottom: 0;
+  }
+
+  .stylique-tier3-size-content {
+    gap: 4px;
+  }
+
+  .stylique-tier3-copy {
+    gap: 4px;
+  }
+
+  .stylique-tier3-copy p {
+    -webkit-line-clamp: 1;
+  }
+
+  .stylique-tier3-rec-grid {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .stylique-tier3-size-card,
+  .stylique-tier3-confidence-card {
+    min-height: 68px;
+  }
+
+  .stylique-tier3-size-card strong {
+    font-size: 28px;
+  }
+
+  .stylique-tier3-size-card strong.is-compact {
+    font-size: 21px;
+  }
+
+  .stylique-tier3-fit-table th,
+  .stylique-tier3-fit-table td {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .stylique-tier3-primary-btn,
+  .stylique-tier3-secondary-btn {
+    min-height: 34px;
+  }
+
+  .stylique-tier3-fit-empty {
+    min-height: 54px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+
+/* Tier 3: Hide left column, full-width right column */
+.stylique-tier-3 .stylique-left-column {
+  display: none;
+}
+
+.stylique-tier-3 .stylique-right-column {
+  width: 100%;
+}
+
+/* Header styling for two-column layout */
+.stylique-tryon-interface .stylique-tryon-header {
+  padding: 1.25rem 1.25rem 0 1.25rem;
+  margin-bottom: 0;
+}
+
+/* Mobile responsive: Single column */
+@media (max-width: 768px) {
+  .stylique-modal-content.stylique-tier3-active {
+    overflow-y: auto !important;
+  }
+
+  .stylique-tier3-size-advisor {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .stylique-tier3-image-frame,
+  .stylique-tier3-image-placeholder {
+    min-height: 260px;
+    max-height: 320px;
+  }
+
+  .stylique-tier3-panel {
+    padding: 0;
+  }
+
+  .stylique-tier3-rec-grid,
+  .stylique-tier3-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .stylique-tier3-copy h4 {
+    white-space: normal;
+  }
+
+  .stylique-tier3-copy p {
+    display: block;
+  }
+
+  .stylique-tier3-look-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stylique-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .stylique-tryon-interface .stylique-tryon-header {
+    padding: 0 0 1rem 0;
+  }
+}
+
+.stylique-modal-content .stylique-section {
+  border-radius: inherit;
+  padding: 2rem;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  max-width: none;
+}
+
+@media (max-width: 768px) {
+  .stylique-modal-content .stylique-section {
+    padding: 1.25rem; /* Drastically reduce padding on mobile to stop text squishing */
+  }
+}
+
+.stylique-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stylique-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stylique-modal-content::-webkit-scrollbar-thumb {
+  background: rgba(100, 47, 215, 0.2);
+  border-radius: 4px;
+}
+
+.stylique-modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 47, 215, 0.3);
+}
+
+@keyframes stylique-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(0.9);
+  }
+}
+
+/* Mobile modal adjustments */
+@media (max-width: 768px) {
+  .stylique-modal-wrapper {
+    align-items: center; /* Float in middle instead of bottom stick */
+    padding: 16px; /* Let it breathe */
+  }
+
+  .stylique-modal-content {
+    width: 100%;
+    max-height: 90vh; /* Don't trap entire screen */
+    border-radius: 20px;
+    transform: scale(1) !important; /* Ignore desktop 0.9 scale on mobile */
+    animation: stylique-modal-slide-up-mobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes stylique-modal-slide-up-mobile {
+    from {
+      opacity: 0;
+      transform: translateY(40px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+/* Subtle brand lockup beside the modal close control */
+.stylique-brand-lockup {
+  position: absolute;
+  top: 18px;
+  right: 66px;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  color: #111827;
+}
+
+.stylique-brand-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.stylique-modal-brand-mark {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .stylique-brand-lockup {
+    top: 18px;
+    right: 58px;
+  }
+
+  .stylique-brand-main {
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .stylique-modal-brand-mark {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Close button - compact result-style control */
+.stylique-modal-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--stylique-text);
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--stylique-transition);
+  position: absolute;
+  top: 15px;
+  right: 24px;
+  z-index: 10;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  box-shadow: none;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stylique-modal-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+  box-shadow: none;
+  transform: scale(1.04);
+}
+
+.stylique-modal-close:active {
+  transform: scale(0.96);
+}
+
+.stylique-modal-close svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.25;
+}
+
+@media (max-width: 768px) {
+  .stylique-modal-close {
+    top: 16px;
+    right: 18px;
+  }
 }
 
 /* Section Layout - Modern Glass Card */
 .stylique-section {
-  background: var(--stylique-glass-bg) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  border-radius: var(--stylique-border-radius-lg) !important;
-  padding: 1rem !important; /* Reduced padding for narrow containers */
-  margin: 0.5rem 0 !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  border: 1px solid rgba(100, 47, 215, 0.1) !important;
-  box-shadow: var(--stylique-shadow), 0 0 0 1px rgba(255, 255, 255, 0.5) inset !important;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  font-weight: 400 !important;
-  position: relative !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-}
-
-/* Force all section children to not overflow */
-.stylique-section * {
-  max-width: 100% !important;
-  box-sizing: border-box !important;
+  background: var(--stylique-glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--stylique-border-radius-lg);
+  padding: 2rem;
+  margin: 0;
+  width: 100%;
+  border: none;
+  box-shadow: none;
+  font-family: var(--stylique-font-brand);
+  font-weight: 400;
+  position: relative;
+  overflow: visible;
 }
 
 /* Subtle gradient overlay for depth */
 .stylique-section::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 120px;
-  background: linear-gradient(
-    180deg,
-    rgba(100, 47, 215, 0.03) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg, rgba(100, 47, 215, 0.03) 0%, transparent 100%);
   pointer-events: none;
-  border-radius: var(--stylique-border-radius-lg)
-    var(--stylique-border-radius-lg) 0 0;
+  border-radius: var(--stylique-border-radius-lg) var(--stylique-border-radius-lg) 0 0;
 }
 
 .stylique-section-header {
@@ -114,39 +1097,24 @@
 }
 
 .stylique-brand-name {
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.02em;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  letter-spacing: 0;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .stylique-header-content {
-  display: flex !important;
-  align-items: center !important;
-  gap: 1rem !important;
-  flex-wrap: wrap !important;
-  width: 100% !important;
-  overflow: hidden !important;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .stylique-header-icon {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   padding: 0.875rem;
   border-radius: var(--stylique-border-radius-sm);
@@ -162,32 +1130,21 @@
   height: 22px;
 }
 
-.stylique-header-text {
-  flex: 1 !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
-}
-
 .stylique-header-text h3 {
-  margin: 0 0 0.25rem 0 !important;
-  color: var(--stylique-text) !important;
-  font-size: 19px !important;
-  font-weight: 600 !important;
-  line-height: 1.2 !important;
-  letter-spacing: -0.02em !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
+  margin: 0 0 0.25rem 0;
+  color: var(--stylique-text);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0;
 }
 
 .stylique-header-text p {
-  margin: 0 !important;
-  color: var(--stylique-text-secondary) !important;
-  font-size: 14px !important;
-  line-height: 1.5 !important;
-  font-weight: 400 !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
+  margin: 0;
+  color: var(--stylique-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 /* Minimal Header - Single Line like Get Started Page */
@@ -202,31 +1159,19 @@
 }
 
 .stylique-welcome-text {
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 22px;
   font-weight: 200;
   color: var(--stylique-text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .stylique-brand-logo {
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 26px;
   font-weight: 700;
-  letter-spacing: -0.03em;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  letter-spacing: 0;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -272,7 +1217,7 @@
   padding: 14px 24px;
   text-transform: uppercase;
   font-size: 14px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
 }
 
 /* Login Required State - Glass Card */
@@ -289,19 +1234,11 @@
   text-align: center;
   padding: 1.75rem 1.75rem 1.25rem 1.75rem;
   border-bottom: 1px solid rgba(100, 47, 215, 0.06);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, transparent 100%);
 }
 
 .stylique-login-icon {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   width: 56px;
   height: 56px;
@@ -318,7 +1255,7 @@
   color: var(--stylique-text);
   font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .stylique-login-header p {
@@ -344,11 +1281,7 @@
   gap: 10px;
   margin-top: 1.25rem;
   padding: 14px 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.06) 0%,
-    rgba(244, 83, 111, 0.04) 100%
-  );
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.06) 0%, rgba(244, 83, 111, 0.04) 100%);
   border-radius: var(--stylique-border-radius-sm);
   color: var(--stylique-text-secondary);
   font-size: 13px;
@@ -364,11 +1297,7 @@
   text-align: center;
   margin-bottom: 1.5rem;
   padding: 1.25rem;
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.04) 0%,
-    rgba(244, 83, 111, 0.02) 100%
-  );
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.04) 0%, rgba(244, 83, 111, 0.02) 100%);
   border-radius: var(--stylique-border-radius-sm);
   border: 1px solid rgba(100, 47, 215, 0.1);
 }
@@ -390,11 +1319,7 @@
   margin: 0.25rem 0 0 0;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -472,11 +1397,7 @@
 .stylique-btn-submit {
   width: 100%;
   padding: 14px 24px;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   border: none;
   border-radius: var(--stylique-border-radius-sm);
@@ -526,17 +1447,13 @@
 
 /* Alert Messages */
 .stylique-error-message {
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.05) 0%,
-    rgba(244, 83, 111, 0.05) 100%
-  );
-  color: var(--stylique-primary);
+  background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+  color: #dc2626;
   padding: 14px 16px;
   border-radius: var(--stylique-border-radius-sm);
   font-size: 14px;
   margin-bottom: 1rem;
-  border: 1px solid rgba(100, 47, 215, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .stylique-success-message {
@@ -565,217 +1482,31 @@
   margin: 0 0 1rem 0;
 }
 
-/* Measurement Inputs - Big Full Width Grid */
 .stylique-inline-measurements {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 1rem !important;
-  margin-bottom: 1.5rem !important;
-  width: 100% !important;
-  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .stylique-inline-row {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  gap: 1rem !important;
-  width: 100% !important;
-}
-
-/* Override all theme input styles */
-.stylique-inline-measurements input[type="number"],
-.stylique-inline-row input[type="number"],
-#stylique-virtual-tryon-container .stylique-inline-row input {
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  min-height: 56px !important;
-  text-align: center !important;
-  background: #f5f3ef !important;
-  border: 2px solid #e5e7eb !important;
-  border-radius: 14px !important;
-  padding: 16px 12px !important;
-  font-size: 18px !important;
-  font-weight: 500 !important;
-  color: #1a1a2e !important;
-  box-sizing: border-box !important;
-  transition: all 0.2s ease !important;
-  margin: 0 !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: textfield !important;
-}
-
-.stylique-inline-measurements input[type="number"]::placeholder,
-.stylique-inline-row input[type="number"]::placeholder {
-  color: #9ca3af !important;
-  font-size: 15px !important;
-  font-weight: 400 !important;
-  opacity: 1 !important;
-}
-
-.stylique-inline-measurements input[type="number"]:focus,
-.stylique-inline-row input[type="number"]:focus {
-  outline: none !important;
-  border-color: #642fd7 !important;
-  box-shadow: 0 0 0 4px rgba(100, 47, 215, 0.15) !important;
-  background: white !important;
-}
-
-/* Hide number spinners */
-.stylique-inline-row input[type="number"]::-webkit-outer-spin-button,
-.stylique-inline-row input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none !important;
-  margin: 0 !important;
-}
-
-/* Unit Selector Toggle */
-.stylique-unit-selector {
-  display: flex !important;
-  justify-content: center !important;
-  gap: 0.5rem !important;
-  margin-bottom: 1.5rem !important;
-  padding: 4px !important;
-  background: #f5f3ef !important;
-  border-radius: 24px !important;
-  width: fit-content !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-.stylique-unit-btn {
-  padding: 10px 20px !important;
-  border: none !important;
-  border-radius: 20px !important;
-  background: transparent !important;
-  color: #6b7280 !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-}
-
-.stylique-unit-btn.active {
-  background: linear-gradient(135deg, #642fd7, #f4536f) !important;
-  color: white !important;
-}
-
-.stylique-unit-btn:hover:not(.active) {
-  background: rgba(100, 47, 215, 0.1) !important;
-  color: #642fd7 !important;
-}
-
-/* Plugin Footer Link */
-.stylique-plugin-footer {
-  text-align: center !important;
-  padding: 1rem 0 0.5rem 0 !important;
-  margin-top: 1rem !important;
-  border-top: 1px solid rgba(100, 47, 215, 0.08) !important;
-}
-
-.stylique-plugin-footer a {
-  font-size: 11px !important;
-  color: #6b7280 !important;
-  text-decoration: none !important;
-}
-
-.stylique-plugin-footer a:hover {
-  color: #642fd7 !important;
-  text-decoration: underline !important;
-}
-
-.stylique-measurements-grid-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Force 2 columns */
-  gap: 24px; /* Balanced gap */
-  width: 100%;
-  box-sizing: border-box;
-}
-
-@media (max-width: 480px) {
-  .stylique-measurements-grid-container {
-    grid-template-columns: 1fr !important; /* Stack on very small screens */
-  }
-}
-
-.stylique-measurement-input-group {
   display: flex;
-  flex-direction: column;
-  gap: 8px; /* More space between label and input */
+  gap: 0.5rem;
+  justify-content: center;
   width: 100%;
 }
 
-.stylique-measurement-input-group label {
-  font-size: 14px; /* Larger label */
-  font-weight: 600;
-  color: var(--stylique-text-secondary);
-  margin-left: 4px;
-}
-
-.stylique-measurement-input-group input {
-  width: 100% !important;
-  max-width: none !important;
-  text-align: center;
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
-  border-radius: 18px; /* Slightly more rounded */
-  padding: 24px 20px; /* Very large vertical padding */
-  height: auto;
-  min-height: 70px; /* Ensure tall height */
-  font-size: 20px; /* Larger text */
-  font-weight: 500;
-  color: var(--stylique-text);
+.stylique-inline-row input {
+  flex: 1;
+  min-width: 0; /* Prevent flex overflow */
+  width: 100%;
   box-sizing: border-box;
-  transition: all 0.2s ease;
-  appearance: textfield; /* Try to hide spinners in some browsers if causing issues, or just standard style */
-  -moz-appearance: textfield;
-}
-
-/* Hide Spinners for cleaner modern look (optional but good for 'modern' feel) */
-.stylique-measurement-input-group input::-webkit-outer-spin-button,
-.stylique-measurement-input-group input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.stylique-measurement-input-group input::placeholder {
-  color: #9ca3af;
-}
-
-.stylique-measurement-input-group input:focus {
-  outline: none;
-  background: white;
-  border-color: var(--stylique-primary);
-  box-shadow: 0 0 0 4px rgba(100, 47, 215, 0.15); /* Stronger focus ring */
-}
-
-/* Fix Modal Close Button Visibility */
-.stylique-close-btn {
-  background: white !important;
-  border: 1px solid #e5e7eb !important;
-  padding: 0 !important;
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 50% !important;
-  cursor: pointer;
-  color: #374151 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-  transition: all 0.2s ease;
-  z-index: 2147483647 !important; /* Max Z-Index */
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  font-weight: bold;
-}
-
-.stylique-close-btn:hover {
-  color: #000000 !important;
-  background: #f3f4f6 !important;
-  border-color: #9ca3af !important;
-  transform: scale(1.1);
+  text-align: center;
+  background: #f5f3ef;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
 }
 
 .stylique-inline-row input:focus {
@@ -818,11 +1549,7 @@
 }
 
 .stylique-type-btn.selected {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
 }
 
@@ -848,12 +1575,10 @@
 }
 
 .stylique-skin-preview canvas {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   object-fit: cover;
-  border: 2px solid white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .stylique-skin-color {
@@ -867,11 +1592,7 @@
 .stylique-skin-upload-btn {
   flex: 1;
   padding: 10px 14px;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   border: none;
   border-radius: 20px;
@@ -927,9 +1648,8 @@
 }
 
 .stylique-btn-link {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+  background: none;
+  border: none;
   color: var(--stylique-text-secondary);
   font-size: 13px;
   font-family: inherit;
@@ -948,99 +1668,56 @@
 
 /* Try-On Interface */
 .stylique-tryon-section {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.03) 100%
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--stylique-border-radius);
   padding: 1.5rem;
-  /* Changed from grid-cols-2 to flex-column to support 100% width children */
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  align-items: stretch; /* Stretch children to full width */
-  min-height: 400px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.75rem;
+  align-items: start;
 }
 
+/* Branding Header */
 .stylique-tryon-header {
   grid-column: 1 / -1;
   margin-bottom: 0.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  justify-content: space-between;
-  align-items: center; /* Changed from flex-start to center for better vertical alignment */
-  gap: 1rem; /* Added gap to prevent overlap */
-  flex-wrap: wrap; /* Allow wrapping on small screens */
 }
 
 .stylique-tryon-branding {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex: 1; /* Allow it to take available space */
-  min-width: 0; /* Standard flexbox fix for text truncation */
 }
 
 .stylique-tryon-logo {
-  width: 90px;
-  height: 90px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
-  background: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  mix-blend-mode: darken !important; /* Switch to darken for better white removal */
-  filter: contrast(1.1) brightness(1.02);
-  max-width: 90px !important;
-  min-width: unset !important;
-  display: block !important;
-}
-
-.stylique-tryon-title {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
+  border-radius: 10px;
 }
 
 .stylique-tryon-title h3 {
-  margin: 0 !important;
-  margin-left: 0 !important;
-  padding-left: 0 !important;
-  text-align: left !important;
-  font-size: 20px;
-  font-weight: 700;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--stylique-text);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .stylique-tryon-title p {
-  margin: 0.25rem 0 0 0 !important;
-  margin-left: 0 !important;
-  padding-left: 0 !important;
-  text-align: left !important;
-  text-indent: 0 !important; /* Fix for potential theme text-indent */
-  align-self: flex-start !important; /* Ensure flex item aligns left */
-  font-size: 13px;
+  margin: 0.125rem 0 0 0;
+  font-size: 11px;
   color: var(--stylique-text-secondary);
-  line-height: 1.4;
-  width: 100%; /* Ensure full width for alignment context */
+  line-height: 1.3;
 }
 
 .stylique-product-info {
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.03) 0%,
-    rgba(244, 83, 111, 0.02) 100%
-  );
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.03) 0%, rgba(244, 83, 111, 0.02) 100%);
   padding: 1rem;
   border-radius: var(--stylique-border-radius-sm);
   border: 1px solid rgba(100, 47, 215, 0.08);
@@ -1066,8 +1743,15 @@
   line-height: 1.3;
 }
 
-/* Removed product-price class as it was requested to be hidden */
-/* .stylique-product-price { display: none; } */
+.stylique-product-price {
+  margin: 0;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 15px;
+  font-weight: 700;
+}
 
 .stylique-meta-item {
   display: flex;
@@ -1078,103 +1762,43 @@
   font-weight: 500;
 }
 
-/* New Header User Info */
-/* New Header User Info */
-.stylique-user-info-header {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  background: rgba(100, 47, 215, 0.04) !important;
-  padding: 6px 12px !important;
-  border-radius: 30px !important;
-  border: 1px solid rgba(100, 47, 215, 0.1) !important;
-  white-space: nowrap !important; /* Keep on single line */
-  z-index: 2 !important;
-  margin-top: 0.5rem !important;
-  font-size: 13px !important;
-  width: auto !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
-  flex-wrap: nowrap !important; /* No wrap - single line */
+.stylique-user-info {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(100, 47, 215, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.stylique-user-identity {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  font-size: 13px !important;
-  color: var(--stylique-text) !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
+.stylique-logged-in-as {
+  font-size: 12px;
+  color: var(--stylique-text-secondary);
 }
 
-/* Truncate long email/name with ellipsis */
-.stylique-user-identity span,
-#stylique-user-email {
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  max-width: 120px !important; /* Short enough for logout button */
-}
-
-@media (max-width: 992px) {
-  .stylique-tryon-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .stylique-tryon-branding {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-
-  .stylique-user-info-header {
-    width: 100%;
-    justify-content: space-between;
-    margin-left: 0;
-  }
-}
-
-.stylique-user-icon-small {
+.stylique-logged-in-as strong {
   color: var(--stylique-primary);
-  flex-shrink: 0;
+  font-weight: 600;
 }
 
 .stylique-btn-logout {
-  background: white !important;
-  border: 1px solid rgba(100, 47, 215, 0.15) !important;
-  color: var(--stylique-text-secondary) !important;
-  width: 32px;
-  height: 32px;
+  background: rgba(100, 47, 215, 0.05);
+  border: 1px solid rgba(100, 47, 215, 0.1);
+  color: var(--stylique-text-secondary);
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  margin-left: 4px;
-  padding: 0 !important;
-}
-
-.stylique-btn-logout svg {
-  stroke: currentColor !important;
-  width: 16px;
-  height: 16px;
-  display: block;
+  transition: var(--stylique-transition);
 }
 
 .stylique-btn-logout:hover {
-  background: rgba(100, 47, 215, 0.08) !important;
-  color: var(--stylique-primary) !important;
-  border-color: var(--stylique-primary) !important;
-  transform: scale(1.05);
-}
-
-.stylique-btn-logout:hover svg {
-  stroke: var(--stylique-primary) !important;
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
 }
 
 /* Product Unavailable State */
@@ -1216,61 +1840,185 @@
 
 /* Upload Section - Minimal Light */
 .stylique-upload-section {
-  background: #faf9f7;
-  padding: 1rem;
-  border-radius: 16px;
+  background: transparent;
+  padding: 0;
   border: none;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
 }
 
-/* Main Controls - Maximize Space */
-.stylique-tryon-controls {
-  width: 100%;
-  flex: 1; /* Grow to fill available space */
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* Center content vertically in the space */
-  gap: 2rem;
-}
-
-.stylique-upload-section {
-  width: 100%;
-  max-width: 100%; /* FULL WIDTH */
-  margin: 0 auto;
-}
-
-.stylique-upload-area {
-  width: 100%;
-  /* Removed aspect-ratio to allow content to dictate height */
-  /* aspect-ratio: 16/9; */
-  min-height: 200px;
-  height: auto !important; /* Force auto height */
-  border: 2px dashed rgba(100, 47, 215, 0.2);
-  border-radius: var(--stylique-border-radius-sm);
-  background: rgba(100, 47, 215, 0.02);
-  transition: var(--stylique-transition);
-  cursor: pointer;
+.stylique-upload-section::before {
+  content: 'ℹ';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  background: rgba(100, 47, 215, 0.1);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  overflow: visible !important; /* Allow content to overflow if needed, or just contain it */
-  padding: 1.5rem; /* Ensure padding */
+  color: var(--stylique-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: help;
+  z-index: 5;
 }
 
-.stylique-upload-area:hover,
+.stylique-best-results-box {
+  display: none;
+}
+
+.stylique-pose-graphic {
+  flex-shrink: 0;
+  color: var(--stylique-primary);
+  background: rgba(100, 47, 215, 0.05);
+  border-radius: 8px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stylique-best-results-text h6 {
+  margin: 0 0 0.5rem 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--stylique-text);
+}
+
+.stylique-best-results-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0 0 0;
+}
+
+.stylique-badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(100, 47, 215, 0.04);
+  border: 1px solid rgba(100, 47, 215, 0.15);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--stylique-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.stylique-badge-item:hover {
+  background: rgba(100, 47, 215, 0.08);
+  transform: translateY(-1px);
+}
+
+.stylique-badge-item svg {
+  color: #10b981;
+  width: 12px;
+  height: 12px;
+}
+
+.stylique-upload-core {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.stylique-privacy-box {
+  background: rgba(100, 47, 215, 0.05);
+  border: 1px solid rgba(100, 47, 215, 0.15);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.stylique-privacy-icon {
+  color: var(--stylique-primary);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.stylique-privacy-text-content h6 {
+  margin: 0 0 0.25rem 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--stylique-text);
+}
+
+.stylique-privacy-text-content p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--stylique-text-secondary);
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.stylique-upload-area {
+  border: 2px dashed rgba(100, 47, 215, 0.15);
+  border-radius: 14px;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.6);
+  transition: var(--stylique-transition);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.stylique-upload-area:hover {
+  border-color: var(--stylique-primary);
+  background: rgba(100, 47, 215, 0.05);
+  box-shadow: 0 0 0 3px rgba(100, 47, 215, 0.1), 0 8px 24px rgba(100, 47, 215, 0.08);
+  transform: translateY(-2px);
+}
+
 .stylique-upload-area.drag-over {
   border-color: var(--stylique-primary);
-  background: rgba(100, 47, 215, 0.03);
+  border-width: 2px;
+  background: rgba(100, 47, 215, 0.08);
+  box-shadow: 0 0 0 3px rgba(100, 47, 215, 0.15), inset 0 0 10px rgba(100, 47, 215, 0.05);
+}
+
+/* Drag-Over Overlay Message */
+.stylique-upload-area.drag-over::after {
+  content: '↓ Drop here';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(100, 47, 215, 0.95);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  animation: stylique-drop-hint 0.4s ease-out;
+  pointer-events: none;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes stylique-drop-hint {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -55%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
 }
 
 .stylique-upload-content {
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap; /* Allow wrapping */
-  justify-content: center; /* Center content when wrapped */
-  width: 100%;
 }
 
 .stylique-upload-icon {
@@ -1280,11 +2028,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.1),
-    rgba(244, 83, 111, 0.08)
-  );
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.1), rgba(244, 83, 111, 0.08));
   border-radius: 12px;
 }
 
@@ -1314,53 +2058,46 @@
 }
 
 .stylique-btn-upload-round {
-  display: inline-block;
-  padding: 0.4rem 1rem;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   border: none;
   border-radius: 50px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--stylique-transition);
-  margin-top: 1rem;
-  width: 100%; /* FULL WIDTH */
-  max-width: 350px; /* But don't get absurdly wide */
+  white-space: nowrap;
+  min-width: 160px;
+  min-height: 44px;
+  box-shadow: 0 2px 8px rgba(100, 47, 215, 0.2);
 }
 
 .stylique-btn-upload-round:hover {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-secondary),
-    var(--stylique-primary)
-  );
-  box-shadow: 0 4px 12px rgba(100, 47, 215, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(100, 47, 215, 0.35);
+}
+
+.stylique-btn-upload-round:active {
+  transform: translateY(0);
 }
 
 /* Image Preview */
 .stylique-image-preview {
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center; /* Added for vertical centering if needed */
-  margin-top: 1.5rem;
-  width: 100%;
+  display: inline-block;
+  margin-top: 0.75rem;
 }
 
 .stylique-image-preview img {
-  width: 220px;
-  height: 290px;
+  width: 120px;
+  height: 160px;
   object-fit: cover;
-  border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(100, 47, 215, 0.15);
-  border: 4px solid white;
-  margin: 0 auto; /* Force centering */
-  display: block;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .stylique-preview-actions {
@@ -1406,22 +2143,14 @@
 }
 
 .stylique-btn-tryon::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   border-radius: 50px;
   padding: 2px;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   z-index: -1;
@@ -1439,37 +2168,14 @@
 }
 
 .stylique-btn-2d:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
 }
 
 .stylique-btn-3d:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-secondary),
-    #d946ef
-  );
+  background: linear-gradient(135deg, var(--stylique-secondary), var(--stylique-primary));
   color: white;
 }
-
-/* 3D Result Container Specifics */
-#stylique-inline-3d-result .stylique-inline-result-image {
-  background: #000;
-  position: relative;
-  overflow: hidden;
-}
-
-#stylique-inline-3d-result video,
-#stylique-inline-3d-result iframe {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
 
 .stylique-requirements-note {
   display: flex;
@@ -1491,15 +2197,11 @@
 
 /* Inline Result Section */
 .stylique-inline-result {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 
 .stylique-inline-result-card {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.9) 100%
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
   border-radius: 16px;
   border: 1px solid rgba(100, 47, 215, 0.1);
   overflow: hidden;
@@ -1510,13 +2212,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1rem;
   border-bottom: 1px solid rgba(100, 47, 215, 0.08);
 }
 
 .stylique-inline-result-header h5 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--stylique-text);
 }
@@ -1526,11 +2228,7 @@
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  background: linear-gradient(
-    135deg,
-    rgba(16, 185, 129, 0.15),
-    rgba(5, 150, 105, 0.1)
-  );
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
   color: #059669;
   border-radius: 50px;
   font-size: 11px;
@@ -1538,38 +2236,33 @@
 }
 
 .stylique-inline-result-image {
-  padding: 3px;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
-  margin: 1rem;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+  margin: 0.75rem;
   border-radius: 12px;
-  display: flex; /* Flex container for centering */
-  justify-content: center;
-  align-items: center;
+  max-height: 300px;
+  overflow: hidden;
 }
 
 .stylique-inline-result-image img {
   width: 100%;
-  max-width: 400px; /* Optional: limit width so it centers nicely */
   height: auto;
   display: block;
   border-radius: 10px;
   background: #f8f7f4;
-  margin: 0 auto;
 }
 
 .stylique-inline-result-actions {
   display: flex;
   gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1rem;
   border-top: 1px solid rgba(100, 47, 215, 0.08);
 }
 
 .stylique-inline-result-actions button {
   flex: 1;
+  font-size: 13px;
+  padding: 8px 12px;
 }
 
 /* Mobile responsive */
@@ -1662,11 +2355,7 @@
 }
 
 .stylique-btn-primary {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   box-shadow: 0 4px 16px rgba(100, 47, 215, 0.25);
 }
@@ -1689,23 +2378,14 @@
 }
 
 .stylique-btn-secondary:hover {
-  background: #f3f4f6; /* Visible gray background */
-  color: var(--stylique-primary);
+  background: rgba(255, 255, 255, 1);
   border-color: var(--stylique-primary);
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(100, 47, 215, 0.15);
 }
 
-.stylique-btn-secondary:hover svg {
-  stroke: var(--stylique-primary);
-}
-
 .stylique-btn-upload {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   box-shadow: 0 4px 16px rgba(100, 47, 215, 0.25);
 }
@@ -1721,98 +2401,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Modal Styles - Glass Overlay */
-.stylique-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 2147483647; /* Fix: Max z-index */
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 1rem;
-  overflow-y: auto;
-  box-sizing: border-box;
-}
-
-.stylique-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 1;
-  cursor: pointer;
-}
-
-.stylique-modal-content {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--stylique-border-radius-lg);
-  max-width: 500px;
-  width: 100%;
-  margin: auto;
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-  border: 1px solid rgba(100, 47, 215, 0.1);
-  position: relative;
-  z-index: 2;
-  pointer-events: auto;
-}
-
-.stylique-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 1.75rem;
-  border-bottom: 1px solid rgba(100, 47, 215, 0.08);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    transparent 100%
-  );
-}
-
-.stylique-modal-header h4 {
-  margin: 0;
-  color: var(--stylique-text);
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.stylique-close-btn {
-  background: rgba(100, 47, 215, 0.08);
-  border: none;
-  cursor: pointer;
-  color: var(--stylique-text-secondary);
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: var(--stylique-transition);
-  position: relative;
-  z-index: 10;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.stylique-close-btn:hover,
-.stylique-close-btn:active {
-  background: rgba(100, 47, 215, 0.15);
-  color: var(--stylique-text);
-}
+/* Modal Styles - Updated below in MODAL WRAPPER section */
 
 /* Benefits Content - Modern Cards */
 .stylique-benefits-content {
@@ -1824,11 +2413,7 @@
   gap: 1rem;
   margin-bottom: 1rem;
   padding: 1rem;
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.04) 0%,
-    rgba(244, 83, 111, 0.02) 100%
-  );
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.04) 0%, rgba(244, 83, 111, 0.02) 100%);
   border-radius: var(--stylique-border-radius-sm);
   border: 1px solid rgba(100, 47, 215, 0.06);
 }
@@ -1843,11 +2428,7 @@
   width: 20px;
   height: 20px;
   padding: 8px;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(100, 47, 215, 0.25);
 }
@@ -1874,16 +2455,11 @@
 /* Results Modal */
 .stylique-results-modal-content {
   max-width: 520px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.9) 100%
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(100, 47, 215, 0.15);
-  box-shadow:
-    0 32px 100px rgba(100, 47, 215, 0.15),
+  box-shadow: 0 32px 100px rgba(100, 47, 215, 0.15),
     0 0 0 1px rgba(255, 255, 255, 0.8) inset,
     0 8px 32px rgba(0, 0, 0, 0.1);
 }
@@ -1898,11 +2474,7 @@
   margin-bottom: 1.25rem;
   border-radius: 16px;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   padding: 3px;
   max-width: 100%;
 }
@@ -1921,11 +2493,7 @@
   position: absolute;
   top: 16px;
   left: 16px;
-  background: linear-gradient(
-    135deg,
-    rgba(16, 185, 129, 0.95),
-    rgba(5, 150, 105, 0.95)
-  );
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
   color: white;
   padding: 8px 14px;
   border-radius: 50px;
@@ -1963,18 +2531,6 @@
   background: linear-gradient(135deg, #f0f4ff 0%, #e8f2ff 100%);
   border-radius: var(--stylique-border-radius);
   border: 1px solid #e0e7ff;
-}
-
-.stylique-complete-look-section {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.05) 0%,
-    rgba(212, 66, 246, 0.05) 100%
-  );
-  border-radius: var(--stylique-border-radius);
-  border: 1px solid rgba(100, 47, 215, 0.2);
 }
 
 .stylique-section-header {
@@ -2019,163 +2575,410 @@
 /* Size Recommendation Styles */
 .stylique-size-rec-main {
   text-align: left;
+  font-family: var(--stylique-font-brand);
+  color: #0f172a;
 }
 
-.stylique-size-badges {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+.stylique-anchor-text {
+  font-size: 0.85rem;
+  color: #475569;
   margin-bottom: 1.5rem;
+  font-weight: 500;
 }
 
-.stylique-size-badge {
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  text-align: center;
-  min-width: 100px;
+.stylique-best-card-wrapper {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.stylique-size-badge-best {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
+.stylique-best-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
 
-.stylique-size-badge-oversized {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-}
-
-.stylique-size-label {
-  display: block;
+.stylique-best-card-subtitle {
   font-size: 0.75rem;
-  opacity: 0.9;
-  margin-bottom: 0.25rem;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-bottom: 4px;
+  margin-top: 0;
 }
 
-.stylique-size-value {
-  display: block;
-  font-size: 1.5rem;
+.stylique-best-card-title {
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  margin: 0;
+}
+
+.stylique-confidence-pill {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #059669;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
-.stylique-confidence-badge {
-  padding: 0.5rem 1rem;
-  background: white;
-  border: 2px solid #667eea;
-  border-radius: 12px;
-  color: #667eea;
+.stylique-confidence-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.stylique-confidence-bar-wrapper {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stylique-confidence-label {
+  display: block;
   font-size: 0.875rem;
-  font-weight: 600;
-  align-self: center;
+  font-weight: 500;
+  color: #6b7280;
 }
 
-.stylique-size-insight {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  border-left: 4px solid #667eea;
+.stylique-confidence-bar {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, #d1d5db 0%, #f3f4f6 100%);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
 }
 
-.stylique-size-insight h6 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
+.stylique-confidence-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  width: 0%;
+  animation: stylique-confidence-fill 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.2s;
 }
 
-.stylique-size-insight p {
-  margin: 0;
+@keyframes stylique-confidence-fill {
+  to {
+    width: 100%;
+  }
+}
+
+.stylique-best-card-note {
   font-size: 0.875rem;
-  color: #666;
+  color: #334155;
   line-height: 1.5;
+  margin-top: 16px;
+  margin-bottom: 0;
+  font-style: italic;
 }
 
-.stylique-fit-analysis {
-  margin-bottom: 1.5rem;
+.stylique-section-spacing {
+  margin-bottom: 24px;
 }
 
-.stylique-fit-analysis h6 {
-  margin: 0 0 1rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
+.stylique-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: #667eea;
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding-left: 4px;
 }
 
-.stylique-fit-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
+.stylique-fit-list-container {
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.stylique-fit-item {
-  padding: 1rem;
-  border-radius: 8px;
-  border: 2px solid;
+.stylique-fit-list-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.stylique-fit-perfect {
-  background: #f0fdf4;
-  border-color: #10b981;
+.stylique-fit-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
-
-.stylique-fit-tight {
-  background: #fff7ed;
-  border-color: #f97316;
-}
-
-.stylique-fit-loose {
-  background: #eff6ff;
-  border-color: #3b82f6;
-}
+.stylique-dot-good { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.3); }
+.stylique-dot-bad { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.3); }
+.stylique-dot-warn { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.3); }
+.stylique-dot-neutral { background: #cbd5e1; }
 
 .stylique-fit-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 0.25rem;
-}
-
-.stylique-fit-status {
-  display: block;
   font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: capitalize;
-  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #475569;
+  width: 80px;
+  flex-shrink: 0;
 }
 
-.stylique-fit-desc {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #666;
-  line-height: 1.4;
+.stylique-fit-value {
+  font-size: 0.875rem;
+  color: #0f172a;
+  font-weight: 500;
 }
 
-.stylique-recommendations-list {
-  padding: 1rem;
+.stylique-alt-sizes-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 480px) {
+  .stylique-alt-sizes-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stylique-alt-card {
   background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  transition: border-color 0.2s;
+}
+.stylique-alt-card:hover { border-color: #cbd5e1; }
+
+.stylique-alt-title {
+  display: block;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.875rem;
+  margin-bottom: 6px;
+}
+
+.stylique-alt-notes {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.stylique-details-accordion {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.stylique-accordion-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.75rem;
+  color: #667eea;
+  padding: 4px 0;
+  transition: color 0.2s;
+}
+.stylique-accordion-summary::-webkit-details-marker { display: none; }
+.stylique-accordion-summary:hover { color: #5a67d8; }
+.stylique-details-accordion[open] .stylique-accordion-icon { transform: rotate(180deg); }
+
+.stylique-chart-accordion-bg {
+  margin-top: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
   border-radius: 8px;
 }
 
-.stylique-recommendations-list h6 {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.9rem;
+.stylique-table-border-top {
+  border-top: 1px solid #e2e8f0;
+}
+
+.stylique-size-chart-table.stylique-accordion-table th,
+.stylique-size-chart-table.stylique-accordion-table td {
+  border-bottom: none;
+}
+
+.stylique-simplified-label-header,
+.stylique-simplified-label {
+  text-align: left;
+  padding: 12px 16px;
+}
+.stylique-simplified-user-header,
+.stylique-simplified-user,
+.stylique-simplified-best-header,
+.stylique-simplified-best {
+  text-align: center;
+  padding: 12px 16px;
+}
+
+.stylique-simplified-label-header {
+  color: #64748b;
   font-weight: 600;
-  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+.stylique-simplified-user-header {
+  color: #667eea;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+.stylique-simplified-best-header {
+  color: #0f172a;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  background: rgba(0,0,0,0.02);
 }
 
-.stylique-recommendations-list ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  list-style: disc;
+.stylique-simplified-label {
+  color: #334155;
+  font-weight: 500;
+}
+.stylique-simplified-user {
+  color: #667eea;
+  font-weight: 600;
+}
+.stylique-simplified-best {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 14px;
+  background: rgba(0,0,0,0.01);
 }
 
-.stylique-recommendations-list li {
-  font-size: 0.875rem;
-  color: #666;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
+.stylique-cta-wrapper {
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+.stylique-cta-wrapper button {
+  width: 100%;
+  border-radius: 12px;
+  font-weight: 700;
+  padding: 16px;
+  font-size: 16px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s, opacity 0.2s;
+}
+.stylique-cta-wrapper button:hover { opacity: 0.9; }
+.stylique-cta-wrapper button:active { transform: scale(0.98); }
+
+.stylique-footer-microtext {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 11px;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+/* Comparison Chart */
+.stylique-chart-wrapper {
+  margin-top: 0.25rem;
+}
+
+.stylique-chart-wrapper h6 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--stylique-text);
+}
+
+.stylique-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  border: 1px solid #e0e7ff;
+}
+
+.stylique-size-chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  min-width: 320px;
+}
+
+.stylique-size-chart-table th,
+.stylique-size-chart-table td {
+  padding: 0.5rem 0.625rem;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.stylique-size-chart-table thead th {
+  background: #f8f9fb;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  position: relative;
+}
+
+.stylique-chart-label {
+  text-align: left !important;
+  font-weight: 600;
+  color: #444;
+}
+
+.stylique-chart-user,
+.stylique-chart-user-header {
+  color: var(--stylique-primary) !important;
+  font-weight: 600 !important;
+}
+
+.stylique-chart-best {
+  background: rgba(16, 185, 129, 0.08) !important;
+  font-weight: 600;
+  color: #065f46 !important;
+}
+
+.stylique-chart-oversized {
+  background: rgba(59, 130, 246, 0.06) !important;
+}
+
+.stylique-chart-tag {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-top: 2px;
+}
+
+.stylique-tag-best {
+  color: #10b981;
+}
+
+.stylique-tag-oversized {
+  color: #3b82f6;
+}
+
+.stylique-size-chart-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.stylique-size-chart-table tbody tr:hover {
+  background: rgba(100, 47, 215, 0.02);
 }
 
 /* Complete Look Styles */
@@ -2304,7 +3107,7 @@
 }
 
 .stylique-error-text {
-  color: var(--stylique-primary);
+  color: #dc2626;
   font-size: 0.875rem;
   text-align: center;
   padding: 1rem;
@@ -2404,6 +3207,90 @@
   position: relative;
 }
 
+.stylique-3d-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.stylique-3d-controls:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.stylique-3d-control-group {
+  display: flex;
+  gap: 4px;
+}
+
+.stylique-3d-control-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.stylique-3d-control-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.stylique-3d-control-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.stylique-3d-control-btn:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.stylique-3d-control-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.stylique-3d-control-btn.active {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  box-shadow: 0 2px 8px rgba(72, 187, 120, 0.4);
+}
+
+.stylique-3d-control-btn.active:hover {
+  background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.5);
+}
+
+.stylique-3d-canvas-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
 #stylique-3d-canvas {
   width: 100%;
   height: 100%;
@@ -2416,11 +3303,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(248, 249, 250, 0.95) 100%
-  );
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
   backdrop-filter: blur(4px);
   display: flex;
   flex-direction: column;
@@ -2459,18 +3342,16 @@
 }
 
 .stylique-3d-progress-bar::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent);
   animation: shimmer 1.5s infinite;
 }
 
@@ -2531,11 +3412,11 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  color: var(--stylique-primary);
+  color: #dc2626;
 }
 
 .stylique-3d-error svg {
-  color: var(--stylique-primary);
+  color: #dc2626;
 }
 
 /* Processing Overlay - Enhanced */
@@ -2543,15 +3424,14 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 2147483647; /* Fix: Max z-index */
+  width: 100%;
+  height: 100%;
+  z-index: 10001;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
 }
 
 /* Floating Particles */
@@ -2571,61 +3451,18 @@
   animation: float-particle 15s infinite;
 }
 
-.stylique-particle:nth-child(1) {
-  left: 10%;
-  animation-delay: 0s;
-  animation-duration: 12s;
-}
-.stylique-particle:nth-child(2) {
-  left: 25%;
-  animation-delay: 2s;
-  animation-duration: 14s;
-  width: 15px;
-  height: 15px;
-}
-.stylique-particle:nth-child(3) {
-  left: 40%;
-  animation-delay: 4s;
-  animation-duration: 10s;
-  width: 8px;
-  height: 8px;
-}
-.stylique-particle:nth-child(4) {
-  left: 55%;
-  animation-delay: 1s;
-  animation-duration: 16s;
-  width: 12px;
-  height: 12px;
-}
-.stylique-particle:nth-child(5) {
-  left: 70%;
-  animation-delay: 3s;
-  animation-duration: 13s;
-}
-.stylique-particle:nth-child(6) {
-  left: 85%;
-  animation-delay: 5s;
-  animation-duration: 11s;
-  width: 6px;
-  height: 6px;
-}
+.stylique-particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 12s; }
+.stylique-particle:nth-child(2) { left: 25%; animation-delay: 2s; animation-duration: 14s; width: 15px; height: 15px; }
+.stylique-particle:nth-child(3) { left: 40%; animation-delay: 4s; animation-duration: 10s; width: 8px; height: 8px; }
+.stylique-particle:nth-child(4) { left: 55%; animation-delay: 1s; animation-duration: 16s; width: 12px; height: 12px; }
+.stylique-particle:nth-child(5) { left: 70%; animation-delay: 3s; animation-duration: 13s; }
+.stylique-particle:nth-child(6) { left: 85%; animation-delay: 5s; animation-duration: 11s; width: 6px; height: 6px; }
 
 @keyframes float-particle {
-  0%,
-  100% {
-    transform: translateY(100vh) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.6;
-  }
-  90% {
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(-100px) rotate(360deg);
-    opacity: 0;
-  }
+  0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
 }
 
 .stylique-processing-content {
@@ -2642,14 +3479,8 @@
 }
 
 @keyframes modal-appear {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 /* Animated Icon with Rings */
@@ -2667,21 +3498,21 @@
   position: absolute;
   inset: 0;
   border: 3px solid transparent;
-  border-top-color: #642fd7;
+  border-top-color: #642FD7;
   border-radius: 50%;
   animation: spin 1.5s linear infinite;
 }
 
 .stylique-ring-2 {
   inset: 8px;
-  border-top-color: #d442f6;
+  border-top-color: #F4536F;
   animation-duration: 2s;
   animation-direction: reverse;
 }
 
 .stylique-ring-3 {
   inset: 16px;
-  border-top-color: #642fd7;
+  border-top-color: #642FD7;
   animation-duration: 2.5s;
 }
 
@@ -2703,13 +3534,8 @@
 }
 
 @keyframes pulse-icon {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 .stylique-processing-content h4 {
@@ -2728,14 +3554,8 @@
 }
 
 @keyframes fade-text {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Step Indicators */
@@ -2756,17 +3576,13 @@
   transition: all 0.4s ease;
 }
 
-.stylique-proc-step.active {
-  opacity: 1;
-}
-.stylique-proc-step.completed {
-  opacity: 1;
-}
+.stylique-proc-step.active { opacity: 1; }
+.stylique-proc-step.completed { opacity: 1; }
 
 .stylique-proc-step-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #642fd7, #d442f6);
+  background: linear-gradient(135deg, #642FD7, #F4536F);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -2781,15 +3597,8 @@
 }
 
 @keyframes pulse-step {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 20px rgba(100, 47, 215, 0.3);
-  }
-  50% {
-    transform: scale(1.1);
-    box-shadow: 0 0 30px rgba(100, 47, 215, 0.6);
-  }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(100, 47, 215, 0.3); }
+  50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(100, 47, 215, 0.6); }
 }
 
 .stylique-proc-step span {
@@ -2797,12 +3606,10 @@
   font-weight: 600;
   color: #666;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
-.stylique-proc-step.active span {
-  color: #642fd7;
-}
+.stylique-proc-step.active span { color: #642FD7; }
 
 .stylique-proc-step-line {
   width: 60px;
@@ -2818,7 +3625,7 @@
 .stylique-line-fill {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #642fd7, #d442f6);
+  background: linear-gradient(90deg, #642FD7, #F4536F);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.5s ease;
@@ -2841,7 +3648,7 @@
 
 .stylique-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #642fd7, #d442f6);
+  background: linear-gradient(90deg, #642FD7, #F4536F);
   width: 0%;
   border-radius: 4px;
   transition: width 0.5s ease-out;
@@ -2854,7 +3661,7 @@
 .stylique-progress-percent {
   font-size: 13px;
   font-weight: 700;
-  color: #642fd7;
+  color: #642FD7;
   margin-top: 0.75rem;
 }
 
@@ -2870,10 +3677,7 @@
   text-align: left;
 }
 
-.stylique-fact-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
+.stylique-fact-icon { font-size: 20px; flex-shrink: 0; }
 
 .stylique-fun-facts p {
   margin: 0;
@@ -2885,21 +3689,12 @@
 
 /* Animations */
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @keyframes pulse {
-  0%,
-  80%,
-  100% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
   40% {
     transform: scale(1);
     opacity: 1;
@@ -2957,9 +3752,20 @@
     padding: 0.5rem;
   }
 
+  .stylique-modal-wrapper {
+    align-items: flex-end;
+    padding: 0;
+  }
+
   .stylique-modal-content {
     width: 100%;
-    border-radius: 16px;
+    border-radius: 24px 24px 0 0;
+    max-height: 100vh;
+  }
+
+  .stylique-close-btn {
+    top: 1rem;
+    right: 1rem;
   }
 
   .stylique-modal-header {
@@ -3028,21 +3834,6 @@
 
   .stylique-tryon-header {
     padding-bottom: 0.75rem;
-    flex-wrap: wrap; /* Allow wrapping */
-    gap: 1rem;
-  }
-
-  .stylique-tryon-branding {
-    flex: 1 1 100%; /* Full width on mobile */
-    justify-content: center;
-    text-align: center;
-  }
-
-  .stylique-user-info-header {
-    margin-left: auto; /* Push to right if space permits, or auto-align */
-    width: 100%;
-    justify-content: center; /* Center user info on mobile too */
-    margin-top: 0.5rem;
   }
 
   .stylique-tryon-title h3 {
@@ -3111,11 +3902,7 @@
 
 .stylique-progress-step.active .stylique-step-circle {
   border-color: var(--stylique-primary);
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
 }
 
@@ -3134,11 +3921,7 @@
 }
 
 .stylique-progress-line.active {
-  background: linear-gradient(
-    90deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(90deg, var(--stylique-primary), var(--stylique-secondary));
 }
 
 /* Onboarding Step - Full Content Area */
@@ -3155,21 +3938,8 @@
   margin-bottom: 1.5rem;
 }
 
-#stylique-result-image {
-  width: 100%; /* FULL WIDTH */
-  height: auto;
-  border-radius: 12px;
-  display: block;
-  object-fit: contain;
-  max-height: 80vh; /* Prevent overflow on vertical screens */
-}
-
 .stylique-onboarding-icon {
-  background: linear-gradient(
-    135deg,
-    rgba(100, 47, 215, 0.1),
-    rgba(244, 83, 111, 0.08)
-  );
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.1), rgba(244, 83, 111, 0.08));
   color: var(--stylique-primary);
   width: 56px;
   height: 56px;
@@ -3190,7 +3960,7 @@
   color: var(--stylique-text);
   font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .stylique-onboarding-header p {
@@ -3213,6 +3983,10 @@
 
 .stylique-measurements-grid .stylique-form-group {
   margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .stylique-measurements-grid .stylique-form-group label {
@@ -3220,6 +3994,7 @@
   font-weight: 500;
   color: var(--stylique-text-secondary);
   margin-bottom: 0.25rem;
+  text-align: center;
 }
 
 .stylique-measurements-grid .stylique-form-group input {
@@ -3228,6 +4003,9 @@
   border-radius: 10px;
   background: #f8f7f4;
   border: 1px solid transparent;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 .stylique-measurements-grid .stylique-form-group input:focus {
@@ -3240,7 +4018,7 @@
   margin-top: 0.5rem;
 }
 
-.stylique-body-type-group > label {
+.stylique-body-type-group>label {
   font-size: 13px;
   font-weight: 500;
   color: var(--stylique-text);
@@ -3271,11 +4049,7 @@
 }
 
 .stylique-body-type-btn.selected {
-  background: linear-gradient(
-    135deg,
-    var(--stylique-primary),
-    var(--stylique-secondary)
-  );
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
   color: white;
   box-shadow: 0 4px 12px rgba(100, 47, 215, 0.25);
 }
@@ -3324,8 +4098,16 @@
     overflow-y: auto;
   }
 
+  /* Keep inline inputs side-by-side but reduce padding/font on small screens */
+  .stylique-inline-row input {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  /* Modal measurements grid optimized for mobile - 2 columns */
   .stylique-measurements-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
   }
 
   .stylique-body-type-options {
@@ -3345,478 +4127,965 @@
   }
 }
 
-/* =========================================== */
-/* Size Recommendation Visual Components      */
-/* =========================================== */
-
-/* Size Badges */
-.stylique-size-rec-main {
-  text-align: left;
-}
-
-.stylique-size-badges {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
-}
-
-.stylique-size-badge {
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  text-align: center;
-  min-width: 100px;
-}
-
-.stylique-size-badge-best {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-}
-
-.stylique-size-badge-oversized {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-}
-
-.stylique-size-label {
-  display: block;
-  font-size: 0.75rem;
-  opacity: 0.9;
-  margin-bottom: 0.25rem;
-}
-
-.stylique-size-value {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.stylique-confidence-badge {
-  padding: 0.5rem 1rem;
-  background: white;
-  border: 2px solid #667eea;
-  border-radius: 12px;
-  color: #667eea;
-  font-size: 0.875rem;
-  font-weight: 600;
-  align-self: center;
-}
-
-/* Size Insight */
-.stylique-size-insight {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  border-left: 4px solid #667eea;
-}
-
-.stylique-size-insight h6 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.stylique-size-insight p {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #666;
-  line-height: 1.5;
-}
-
-/* Fit Analysis */
-.stylique-fit-analysis {
-  margin-bottom: 1.5rem;
-}
-
-.stylique-fit-analysis h6 {
-  margin: 0 0 1rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.stylique-fit-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.stylique-fit-item {
-  padding: 1rem;
-  border-radius: 8px;
-  border: 2px solid;
-}
-
-.stylique-fit-perfect {
-  background: #f0fdf4;
-  border-color: #10b981;
-}
-
-.stylique-fit-tight {
-  background: #fff7ed;
-  border-color: #f97316;
-}
-
-.stylique-fit-loose {
-  background: #eff6ff;
-  border-color: #3b82f6;
-}
-
-.stylique-fit-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 0.25rem;
-}
-
-.stylique-fit-status {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: capitalize;
-  margin-bottom: 0.5rem;
-}
-
-.stylique-fit-perfect .stylique-fit-status {
-  color: #10b981;
-}
-
-.stylique-fit-tight .stylique-fit-status {
-  color: #f97316;
-}
-
-.stylique-fit-loose .stylique-fit-status {
-  color: #3b82f6;
-}
-
-.stylique-fit-desc {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #666;
-  line-height: 1.4;
-}
-
-/* Recommendations List */
-.stylique-recommendations-list {
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-}
-
-.stylique-recommendations-list h6 {
-  margin: 0 0 0.75rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.stylique-recommendations-list ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  list-style: disc;
-}
-
-.stylique-recommendations-list li {
-  font-size: 0.875rem;
-  color: #666;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
-}
-
-/* Button spinner and disabled state */
-.stylique-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: stylique-spin 0.6s linear infinite;
-  vertical-align: middle;
-  margin-right: 6px;
-}
-
-@keyframes stylique-spin {
-  to { transform: rotate(360deg); }
-}
-
-.stylique-btn-tryon:disabled,
-.stylique-btn-tryon.stylique-btn-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* Styling / Outfit Suggestions Section */
-.stylique-styling-section {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fff;
-}
-
+/* Styling / Outfit Suggestions */
 .stylique-styling-section .stylique-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #fdf2f8 0%, #faf5ff 100%);
-}
-
-.stylique-styling-section .stylique-section-header h5 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #1f2937;
-  display: flex;
-  align-items: center;
-}
-
-.stylique-styling-content {
-  padding: 24px 18px;
-}
-
-.stylique-styling-placeholder {
-  text-align: center;
-  color: #6b7280;
-}
-
-.stylique-styling-placeholder svg {
-  color: #d1d5db;
   margin-bottom: 12px;
 }
-
-.stylique-styling-placeholder h6 {
-  margin: 0 0 8px;
+.stylique-styling-section .stylique-section-header h5 {
   font-size: 15px;
   font-weight: 600;
-  color: #374151;
-}
-
-.stylique-styling-placeholder p {
+  color: var(--stylique-text-primary, #1a1a1a);
   margin: 0;
-  font-size: 13px;
+}
+.stylique-styling-content {
+  background: var(--stylique-bg-card, #f8f9fa);
+  border: 1px solid var(--stylique-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 24px;
+}
+.stylique-styling-placeholder {
+  text-align: center;
+  padding: 16px 8px;
+}
+.stylique-styling-placeholder svg {
+  color: var(--stylique-primary, #642FD7);
+  opacity: 0.5;
+  margin-bottom: 12px;
+}
+.stylique-styling-placeholder h6 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--stylique-text-primary, #1a1a1a);
+  margin: 0 0 8px 0;
+}
+.stylique-styling-placeholder p {
+  font-size: 12px;
+  color: var(--stylique-text-secondary, #6b7280);
+  margin: 0;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
   line-height: 1.5;
-  color: #6b7280;
-  max-width: 360px;
-  margin: 0 auto;
 }
 
 /* Tier Badge */
 .stylique-tier-badge {
   display: inline-block;
-  padding: 4px 14px;
+  padding: 4px 12px;
+  border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #642FD7, #F4536F);
+  letter-spacing: 0;
+  background: linear-gradient(135deg, var(--stylique-primary, #642FD7), var(--stylique-secondary, #F4536F));
   color: #fff;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   MODAL POPUP STYLES
-   ───────────────────────────────────────────────────────────────────────── */
-
-/* Try On Button - Always Visible */
-.stylique-trigger-btn {
-  position: relative;
-  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
-  color: white;
-  border: none;
-  border-radius: 24px;
-  padding: 12px 28px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--stylique-transition);
-  box-shadow: 0 4px 16px rgba(100, 47, 215, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.stylique-trigger-btn:hover {
-  box-shadow: 0 8px 24px rgba(100, 47, 215, 0.4);
-  transform: translateY(-2px);
-}
-
-.stylique-trigger-btn:active {
-  transform: translateY(0);
-}
-
-/* Modal Wrapper - Full Screen Overlay */
-.stylique-modal-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10000;
+/* Stylique Image Carousel Styles */
+.stylique-carousel-wrapper {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  animation: stylique-fade-in 0.2s ease-out;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-@keyframes stylique-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* Modal Backdrop */
-.stylique-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  cursor: pointer;
-  animation: stylique-backdrop-fade 0.2s ease-out;
-}
-
-@keyframes stylique-backdrop-fade {
-  from {
-    background: rgba(0, 0, 0, 0);
-  }
-  to {
-    background: rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* Modal Content Container */
-.stylique-modal-content {
+.stylique-carousel-main {
   position: relative;
-  background: white;
-  border-radius: 20px;
   width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  animation: stylique-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 10001;
-}
-
-@keyframes stylique-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Close Button */
-.stylique-modal-close {
-  position: sticky;
-  top: 12px;
-  right: 12px;
-  float: right;
-  background: rgba(100, 47, 215, 0.08);
-  border: 1px solid rgba(100, 47, 215, 0.15);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  padding: 0;
+  max-width: 100%;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  background: #f8f7f4;
+  border-radius: 12px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stylique-carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stylique-carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: rgba(100, 47, 215, 0.15);
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
-  transition: var(--stylique-transition);
-  color: var(--stylique-text);
-  z-index: 2;
-  margin-bottom: -40px;
-  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #642FD7;
+  transition: all 0.3s ease;
+  box-shadow: none;
+  z-index: 10;
 }
 
-.stylique-modal-close:hover {
-  background: rgba(100, 47, 215, 0.12);
-  border-color: rgba(100, 47, 215, 0.25);
-  transform: rotate(90deg);
+.stylique-carousel-nav:hover {
+  background: rgba(100, 47, 215, 0.25);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(100, 47, 215, 0.2);
 }
 
-.stylique-modal-close svg {
+.stylique-carousel-nav:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.stylique-carousel-nav svg {
   width: 20px;
   height: 20px;
 }
 
-/* Modal Content Wrapper */
-.stylique-modal-content .stylique-section-content {
-  padding: 32px 24px;
-  animation: stylique-fade-in 0.3s ease-out 0.1s backwards;
+.stylique-carousel-prev {
+  left: 12px;
 }
 
-/* Ensure modal content doesn't overflow */
-.stylique-modal-content .stylique-section-content,
-.stylique-modal-content .stylique-login-required,
-.stylique-modal-content .stylique-tryon-section {
-  max-width: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 32px 24px;
+.stylique-carousel-next {
+  right: 12px;
 }
 
-/* Responsive Modal */
-@media (max-width: 768px) {
-  .stylique-modal-wrapper {
-    padding: 0;
+@media (max-width: 480px) {
+  .stylique-carousel-nav {
+    width: 36px;
+    height: 36px;
+    background: rgba(100, 47, 215, 0.15);
   }
 
-  .stylique-modal-content {
-    border-radius: 20px 20px 0 0;
-    max-height: 95vh;
-    width: 100%;
-    max-width: none;
-    animation: stylique-slide-up-mobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  .stylique-carousel-nav:hover {
+    background: rgba(100, 47, 215, 0.25);
   }
 
-  @keyframes stylique-slide-up-mobile {
-    from {
-      opacity: 0;
-      transform: translateY(100%);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .stylique-carousel-nav svg {
+    width: 18px;
+    height: 18px;
   }
 
-  .stylique-modal-content .stylique-section-content {
-    padding: 24px 16px 32px 16px;
+  .stylique-carousel-prev {
+    left: 8px;
   }
 
-  .stylique-modal-close {
-    top: 8px;
+  .stylique-carousel-next {
     right: 8px;
-    margin-top: 0;
-    margin-bottom: 0;
   }
 }
 
-/* Ensure scrolling works properly */
-.stylique-modal-content {
-  -webkit-overflow-scrolling: touch;
+.stylique-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 
-/* Hide modal when closed */
-.stylique-modal-wrapper:not([style*="display: block"]),
-.stylique-modal-wrapper[style*="display: none"] {
+.stylique-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.stylique-carousel-dot:hover {
+  background: #aaa;
+  transform: scale(1.2);
+}
+
+.stylique-carousel-dot.active {
+  background: linear-gradient(135deg, #642FD7, #F4536F);
+  width: 24px;
+  border-radius: 4px;
+  transform: scaleX(1.5);
+}
+
+/* Mobile Responsive Improvements */
+@media (max-width: 640px) {
+  .stylique-section {
+    padding: 1rem;
+    margin: 0.5rem;
+    max-width: 100%;
+  }
+
+  .stylique-carousel-main {
+    aspect-ratio: 1;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .stylique-carousel-nav {
+    width: 36px;
+    height: 36px;
+    background: rgba(100, 47, 215, 0.15);
+    color: #642FD7;
+  }
+
+  .stylique-carousel-nav:hover {
+    background: rgba(100, 47, 215, 0.25);
+    transform: translateY(-50%) scale(1.05);
+  }
+
+  .stylique-carousel-nav svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .stylique-carousel-prev {
+    left: 8px;
+  }
+
+  .stylique-carousel-next {
+    right: 8px;
+  }
+
+  .stylique-carousel-dots {
+    gap: 6px;
+  }
+
+  .stylique-carousel-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .stylique-carousel-dot.active {
+    width: 20px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 380px) {
+  .stylique-carousel-nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stylique-carousel-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PREMIUM RESULT VIEW — uwear.ai-style
+   ───────────────────────────────────────────────────────────── */
+
+/* Result View Container (Direct child of #stylique-tryon-interface) */
+.stylique-result-view {
+  display: none;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  grid-template-rows: 1fr auto;
+  gap: 16px;
+  padding: 18px !important;
+  width: 100% !important;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  overflow-x: visible;
+  align-items: stretch;
+  box-sizing: border-box;
+  animation: stylique-result-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background: transparent;
+  border-radius: 20px;
+  box-shadow: none;
+}
+
+@media (max-width: 1024px) {
+  .stylique-result-view {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stylique-result-view[style*="display: grid"],
+.stylique-result-view.show-result {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 100 !important;
+}
+
+@keyframes stylique-result-fade-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Left Column: Clean Result Image */
+.stylique-result-left {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+  position: relative;
+  height: 100%;
+  min-height: 360px;
+  width: 100%;
+  background: #f8f8f6;
+  border-radius: 16px; /* Perfect rounded corners matching uwear */
+  overflow: hidden;
+  opacity: 0;
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stylique-result-image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f8f8f6;
+  min-height: 360px;
+}
+
+.stylique-result-image-container img {
+  max-width: 100%;
+  max-height: calc(100vh - 180px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block !important;
+}
+
+/* Right Column: Items in this look */
+.stylique-result-right {
+  display: flex !important;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  overflow: visible;
+  max-height: none;
+  min-width: 0;
+  width: calc(100% + 8px);
+  margin-left: -28px;
+  padding: 18px 8px 0 0;
+  background: transparent;
+  border-left: none; /* Removed harsh border */
+  opacity: 0;
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; /* staggered entrance */
+}
+
+/* Items Header */
+.stylique-result-items-header {
+  padding: 8px 0 12px 0;
+  border-bottom: none;
+}
+
+.stylique-result-items-header h5 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700; /* Bolder text for Uwear feel */
+  color: #111;
+  letter-spacing: 0;
+}
+
+/* Items List */
+.stylique-result-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* Space between product cards */
+  padding: 0;
+}
+
+/* Complete the Look Carousel */
+.stylique-suggestions-carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  padding-bottom: 8px; /* space for scroll if not hidden */
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+
+.stylique-suggestions-carousel::-webkit-scrollbar {
+  display: none; /* Hide UI scrollbar for native swipe feel */
+}
+
+/* Complete the Look Suggestion Card */
+.stylique-suggestion-card {
+  flex: 0 0 auto;
+  width: 105px;
+  scroll-snap-align: start;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.stylique-suggestion-card:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
+
+.stylique-suggestion-img-wrap {
+  width: 105px;
+  height: 105px;
+  border-radius: 8px;
+  background: #f5f5f7;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.stylique-suggestion-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stylique-suggestion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stylique-suggestion-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stylique-suggestion-price {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #667eea; /* Or Stylique Brand primary */
+}
+
+/* Single Item Card */
+.stylique-result-item-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.stylique-result-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.stylique-result-item-card:last-child {
+  border-bottom: none;
+}
+
+.stylique-result-item-card:hover {
+  background: rgba(100, 47, 215, 0.02);
+}
+
+/* Item Thumbnail */
+.stylique-result-item-thumb-wrap {
+  flex-shrink: 0;
+  width: 58px;
+  height: 76px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f3ef;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.stylique-result-item-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #f5f3ef;
+  display: block;
+}
+
+/* Item Info */
+.stylique-result-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.stylique-result-item-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stylique-result-item-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111111;
+  line-height: 1.15;
+  letter-spacing: 0;
+  font-family: var(--stylique-font-brand);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.stylique-result-item-size {
+  margin: 2px 0;
+  font-size: 13px;
+  color: #1a1a2e;
+}
+
+.stylique-result-item-size strong {
+  font-weight: 700;
+  color: #000;
+}
+
+.stylique-result-confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  min-width: 0;
+}
+
+.stylique-result-confidence-row {
+  width: 100%;
+}
+
+.stylique-result-confidence-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.stylique-result-confidence-bar {
+  flex: 1;
+  min-width: 52px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.stylique-result-confidence-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.stylique-result-confidence-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #047857;
+  white-space: nowrap;
+}
+
+.stylique-result-item-fit {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.stylique-result-item-fit-summary {
+  margin-top: 1px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stylique-result-item-fit-summary-line {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.stylique-result-item-fit-summary-line-single {
+  display: -webkit-box;
+  white-space: normal;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin-top: -6px;
+}
+
+.stylique-result-fit-details {
+  width: 100%;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  position: relative;
+  z-index: 50;
+}
+
+.stylique-result-fit-details-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  cursor: pointer;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stylique-result-fit-details-summary:hover {
+  color: #065f46;
+}
+
+.stylique-result-fit-details-icon {
+  transition: transform 0.18s ease;
+}
+
+.stylique-result-fit-details.is-open .stylique-result-fit-details-icon {
+  transform: rotate(180deg);
+}
+
+.stylique-result-fit-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: auto;
+  width: min(310px, 100%);
+  max-height: 245px;
+  overflow: auto;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+  z-index: 9999;
+}
+
+.stylique-result-fit-details.is-open .stylique-result-fit-popover {
+  display: block;
+}
+
+.stylique-result-fit-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stylique-result-fit-popover-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #111827;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.stylique-result-fit-popover-close:hover {
+  background: #f1f5f9;
+}
+
+@media (max-width: 768px) {
+  .stylique-result-fit-popover {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    top: auto;
+    bottom: 88px;
+    width: auto;
+    max-height: 52vh;
+  }
+}
+
+.stylique-result-fit-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.stylique-result-fit-table th,
+.stylique-result-fit-table td {
+  padding: 7px 8px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.stylique-result-fit-table th {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  background: #f8fafc;
+}
+
+.stylique-result-fit-table td {
+  color: #334155;
+  font-weight: 600;
+}
+
+.stylique-result-fit-table td:nth-child(4) {
+  color: #047857;
+  font-weight: 700;
+}
+
+.stylique-result-fit-table th:nth-child(1),
+.stylique-result-fit-table td:nth-child(1) {
+  width: 25%;
+}
+
+.stylique-result-fit-table th:nth-child(2),
+.stylique-result-fit-table td:nth-child(2),
+.stylique-result-fit-table th:nth-child(3),
+.stylique-result-fit-table td:nth-child(3) {
+  width: 18%;
+}
+
+.stylique-result-fit-table th:nth-child(4),
+.stylique-result-fit-table td:nth-child(4) {
+  width: 39%;
+}
+
+.stylique-result-fit-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.stylique-result-fit-table-note {
+  margin: 0;
+  padding: 8px 12px;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.35;
+  border-top: 1px solid #f1f5f9;
+  background: #fbfdff;
+}
+
+.stylique-result-item-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 5px 14px;
+  background: transparent;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1a2e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.stylique-result-item-link:hover {
+  border-color: var(--stylique-primary);
+  color: var(--stylique-primary);
+  background: rgba(100, 47, 215, 0.04);
+}
+
+/* Bottom Action Bar */
+.stylique-result-bottom-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap; /* Crucial for mobile responsiveness */
+  gap: 16px; /* Gap between pills */
+  padding: 16px 0 0 0;
+  border-top: none;
+  background: transparent;
+  width: 100%;
+}
+
+/* Discrete Pill Buttons */
+.stylique-pill-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--stylique-font-brand);
+  border-radius: 12px; /* Smooth rectangle pills */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1; /* Stretch evenly */
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+/* Primary Button Design (Stylique Colors perfectly adapted) */
+.stylique-pill-primary {
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(100, 47, 215, 0.2);
+}
+
+.stylique-pill-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(100, 47, 215, 0.3);
+}
+
+.stylique-pill-primary:active {
+  transform: translateY(1px);
+}
+
+/* Secondary Button Design (White Ghost Pills) */
+.stylique-pill-secondary {
+  background: #fdfdfd;
+  color: #111;
+  border: 1px solid rgba(0, 0, 0, 0.08); /* Clean thin border */
+}
+
+.stylique-pill-secondary:hover {
+  background: #f5f5f5;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.stylique-pill-secondary:active {
+  background: #ececec;
+  transform: translateY(1px);
+}
+
+.stylique-pill-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Hide elements when result mode */
+.stylique-right-column.stylique-result-mode .stylique-upload-section,
+.stylique-right-column.stylique-result-mode .stylique-action-section {
   display: none !important;
+}
+
+.stylique-right-column.stylique-result-mode #stylique-result-view {
+  display: grid !important;
+  overflow: visible;
+}
+
+/* Responsive Fixes for New Structure */
+.stylique-modal-grid[style*="display: none"] {
+  display: none !important;
+}
+
+/* Ensure the result image takes precedence */
+.stylique-result-left {
+  background: #fdfdfb;
+}
+
+/* Removed nested grid selectors as result view is now top-level */
+
+/* Mobile Responsive: Stack to Single Column */
+@media (max-width: 768px) {
+  .stylique-result-view {
+    grid-template-columns: 1fr;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible;
+  }
+
+  .stylique-result-left {
+    max-height: 50vh;
+  }
+
+  .stylique-result-image-container img {
+    max-height: 50vh;
+  }
+
+  .stylique-result-right {
+    max-height: none;
+    overflow-y: visible;
+    gap: 1.25rem;
+    width: 100%;
+    margin-left: 0;
+    padding: 1rem !important;
+  }
+
+  .stylique-result-bottom-bar {
+    border-radius: 0 0 24px 24px;
+    flex-direction: column; /* Stack buttons dynamically on mobile */
+  }
+
+  .stylique-pill-btn {
+    width: 100%;
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stylique-result-item-card {
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .stylique-result-items-header {
+    padding: 14px 16px 10px 16px;
+  }
+
+  .stylique-result-bar-btn {
+    padding: 12px 6px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .stylique-result-bar-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .stylique-result-item-thumb {
+    display: block;
+  }
+
+  .stylique-result-item-thumb-wrap {
+    width: 52px;
+    height: 68px;
+  }
 }

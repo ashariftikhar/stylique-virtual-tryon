@@ -80,6 +80,7 @@ class Stylique_Virtual_TryOn {
 	public function register_settings() {
 		register_setting( 'stylique_options', 'stylique_store_id' );
 		register_setting( 'stylique_options', 'stylique_backend_url' );
+		register_setting( 'stylique_options', 'stylique_sync_secret' );
 		register_setting( 'stylique_options', 'stylique_primary_color' );
 		register_setting( 'stylique_options', 'stylique_secondary_color' );
 	}
@@ -106,6 +107,13 @@ class Stylique_Virtual_TryOn {
 						<td>
                             <input type="url" name="stylique_backend_url" value="<?php echo esc_attr( get_option( 'stylique_backend_url', 'http://localhost:5000' ) ); ?>" />
                             <p class="description">The base URL of your Stylique backend server (e.g., http://localhost:5000 or https://api.example.com).</p>
+                        </td>
+					</tr>
+					<tr valign="top">
+						<th scope="row">Sync Secret</th>
+						<td>
+                            <input type="password" name="stylique_sync_secret" value="<?php echo esc_attr( get_option( 'stylique_sync_secret' ) ); ?>" autocomplete="new-password" />
+                            <p class="description">Shared secret sent to the backend for product sync requests.</p>
                         </td>
 					</tr>
 					<tr valign="top">
@@ -150,11 +158,11 @@ class Stylique_Virtual_TryOn {
 		wp_enqueue_style('stylique-carousel-style', plugin_dir_url(__FILE__) . 'assets/css/carousel.css', array(), '1.0.0');
 		wp_enqueue_script('stylique-carousel-js', plugin_dir_url(__FILE__) . 'assets/js/carousel.js', array(), '1.0.0', true);
 
-		wp_enqueue_script('stylique-tryon-script', plugin_dir_url(__FILE__) . 'assets/js/tryon-script.js', array('jquery', 'stylique-carousel-js'), '1.9.6', true);
-		wp_enqueue_script('stylique-backend-integration', plugin_dir_url(__FILE__) . 'assets/js/tryon-backend-integration.js', array('stylique-tryon-script'), '1.9.6', true);
-		wp_enqueue_style('stylique-tryon-style', plugin_dir_url(__FILE__) . 'assets/css/tryon-style.css', array(), '1.9.6');
+		// Main widget modal - comprehensive JavaScript for modal, authentication, try-on, and results
+		wp_enqueue_script('stylique-widget-modal', plugin_dir_url(__FILE__) . 'assets/js/widget-modal.js', array('jquery', 'stylique-carousel-js'), '1.9.6', true);
+		wp_enqueue_style('stylique-tryon-style', plugin_dir_url(__FILE__) . 'assets/css/tryon-style.css', array(), '1.9.9');
 
-		wp_localize_script( 'stylique-tryon-script', 'styliqueConfig', array(
+		wp_localize_script( 'stylique-widget-modal', 'styliqueConfig', array(
 			'storeId' => get_option( 'stylique_store_id' ),
 			'backendUrl' => get_option( 'stylique_backend_url', 'http://localhost:5000' ),
 			'colors' => array(
@@ -184,7 +192,7 @@ class Stylique_Virtual_TryOn {
 
 		?>
 		<div id="stylique-virtual-tryon-container" class="stylique-section">
-            <?php include( plugin_dir_path( __FILE__ ) . 'templates/tryon-container.php' ); ?>
+            <?php include( plugin_dir_path( __FILE__ ) . 'templates/tryon-container-complete.php' ); ?>
 		</div>
 		<?php
 	}
@@ -621,9 +629,15 @@ class Stylique_Virtual_TryOn {
 		error_log( '[Stylique][HTTP] POST ' . $endpoint );
 		error_log( '[Stylique][HTTP] Body length: ' . strlen( wp_json_encode( $product_data ) ) . ' bytes' );
 
+		$headers = array( 'Content-Type' => 'application/json' );
+		$sync_secret = get_option( 'stylique_sync_secret' );
+		if ( $sync_secret ) {
+			$headers['X-Stylique-Sync-Secret'] = $sync_secret;
+		}
+
 		$response = wp_remote_post( $endpoint, array(
 			'method'  => 'POST',
-			'headers' => array( 'Content-Type' => 'application/json' ),
+			'headers' => $headers,
 			'body'    => wp_json_encode( $product_data ),
 			'timeout' => 15,
 		) );

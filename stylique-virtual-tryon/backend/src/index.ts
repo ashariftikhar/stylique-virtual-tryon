@@ -6,7 +6,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { requireAuth } from './middleware/auth.ts';
+import { getJwtSecret, requireAuth } from './middleware/auth.ts';
 import authRoutes from './routes/auth.ts';
 import productRoutes from './routes/products.ts';
 import woocommerceRoutes from './routes/woocommerce.ts';
@@ -21,6 +21,7 @@ import shopifyRoutes, { shopifyWebhookHandler } from './routes/shopify.ts';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+getJwtSecret();
 
 // ──────────────────────────────────────────────
 // Rate Limiting — 10 requests per minute per IP
@@ -123,7 +124,7 @@ function corsDecision(
 
 const CORS_METHODS = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
 const CORS_HEADERS =
-  'Content-Type, Authorization, X-Current-URL, X-Store-ID, ngrok-skip-browser-warning';
+  'Content-Type, Authorization, X-Current-URL, X-Store-ID, X-Stylique-Sync-Secret, X-Webhook-Secret, X-Sync-Secret, ngrok-skip-browser-warning';
 
 /** Runs before all routes: reflect Origin + handle OPTIONS preflight */
 function attachEarlyCors(panelOrigin: string, mode: 'development' | 'production') {
@@ -171,7 +172,16 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Current-URL', 'X-Store-ID', 'ngrok-skip-browser-warning'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Current-URL',
+      'X-Store-ID',
+      'X-Stylique-Sync-Secret',
+      'X-Webhook-Secret',
+      'X-Sync-Secret',
+      'ngrok-skip-browser-warning',
+    ],
   }),
 );
 console.log(`[CORS] Early + cors() middleware for ${corsMode.toUpperCase()}`);

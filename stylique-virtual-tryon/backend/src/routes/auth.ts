@@ -3,10 +3,10 @@ import type { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getSupabase } from '../services/supabase.ts';
+import { getJwtSecret } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'stylique-dev-secret-change-me';
 const SALT_ROUNDS = 10;
 
 interface RegisterPayload {
@@ -71,7 +71,7 @@ router.post('/auth/register', async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { storeId: store.id, store_id: store.store_id },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' },
     );
 
@@ -117,7 +117,7 @@ router.post('/auth/login', async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { storeId: store.id, store_id: store.store_id },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' },
     );
 

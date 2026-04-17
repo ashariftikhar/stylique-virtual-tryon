@@ -2,6 +2,7 @@ import express from 'express';
 import type { Router, Request, Response } from 'express';
 import { RekognitionClient, DetectLabelsCommand } from '@aws-sdk/client-rekognition';
 import { getSupabase } from '../services/supabase.ts';
+import type { AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
 
@@ -230,10 +231,26 @@ export async function processProductImages(
 // ──────────────────────────────────────────────
 router.post('/process-images', async (req: Request, res: Response) => {
   try {
+    const supabase = getSupabase();
     const payload = req.body;
+    const authStoreId = (req as AuthenticatedRequest).storeAuth?.storeId;
 
     if (!payload.product_id || !payload.images || payload.images.length === 0) {
       return res.status(400).json({ error: 'Missing required fields: product_id and images array' });
+    }
+    if (!authStoreId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { data: product, error: productError } = await supabase
+      .from('inventory')
+      .select('id')
+      .eq('id', payload.product_id)
+      .eq('store_id', authStoreId)
+      .maybeSingle();
+
+    if (productError || !product) {
+      return res.status(404).json({ error: 'Product not found' });
     }
 
     const { bestUrl, tier, scoredImages } = await processProductImages(payload.product_id, payload.images);

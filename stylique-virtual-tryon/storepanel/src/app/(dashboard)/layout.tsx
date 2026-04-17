@@ -25,6 +25,8 @@ const NAV_ITEMS = [
   { href: '/conversions', label: 'Conversions', icon: TrendingUp },
 ];
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
 export default function StorePanelLayout({
   children,
 }: {
@@ -43,15 +45,24 @@ export default function StorePanelLayout({
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     const urlStoreId = params.get('store_id');
-    const urlPassword = params.get('password');
+    const setupToken = params.get('setup_token');
 
     if (urlToken && urlStoreId) {
       localStorage.setItem('auth_token', urlToken);
       localStorage.setItem('store_id', urlStoreId);
       console.log('[Layout] OAuth auto-login: token + store_id saved to localStorage');
 
-      if (urlPassword) {
-        setOauthBanner({ storeId: urlStoreId, password: urlPassword });
+      if (setupToken) {
+        fetch(`${BACKEND_URL}/api/shopify/setup-credentials?token=${encodeURIComponent(setupToken)}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success && data.password) {
+              setOauthBanner({ storeId: data.storeId || urlStoreId, password: data.password });
+            }
+          })
+          .catch((error) => {
+            console.warn('[Layout] Failed to redeem Shopify setup token:', error);
+          });
       }
 
       window.history.replaceState({}, '', pathname);

@@ -3,8 +3,17 @@ import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
 import { processProductImages } from './images.ts';
 import { stripHtmlTags, parseSizeChart } from '../utils/htmlUtils.ts';
+import { requireAuth, requireSyncSecret, type AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
+
+function isUUID(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeHost(value: string): string {
+  return value.trim().toLowerCase().replace(/^www\./, '').replace(/\.+$/, '');
+}
 
 /**
  * Helper: sync a single product from WooCommerce data to inventory
@@ -210,7 +219,7 @@ interface WooCommerceWebhookPayload {
 }
 
 // POST /api/sync/woocommerce
-router.post('/sync/woocommerce', async (req: Request, res: Response) => {
+router.post('/sync/woocommerce', requireSyncSecret, async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const payload: WooCommerceWebhookPayload = req.body;
@@ -283,10 +292,15 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
 // POST /api/woocommerce/bulk-sync
 // Fetches all products from WooCommerce and syncs them to inventory
 // Body: { store_id: string, woocommerce_url?: string, consumer_key?: string, consumer_secret?: string }
-router.post('/woocommerce/bulk-sync', async (req: Request, res: Response) => {
+router.post('/woocommerce/bulk-sync', requireAuth, async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
+    const authStoreId = (req as AuthenticatedRequest).storeAuth?.storeId;
     const { store_id, woocommerce_url, consumer_key, consumer_secret } = req.body;
+
+    if (!authStoreId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
     if (!store_id) {
       return res.status(400).json({
@@ -296,12 +310,14 @@ router.post('/woocommerce/bulk-sync', async (req: Request, res: Response) => {
 
     console.log('[WooCommerce BulkSync] Starting bulk sync for store:', store_id);
 
-    // Find store by ID or domain
-    const { data: store, error: storeError } = await supabase
+    // Find store by UUID or domain, then enforce that it belongs to the authenticated token.
+    let storeQuery = supabase
       .from('stores')
       .select('id, store_id')
-      .eq('store_id', store_id)
-      .maybeSingle();
+      .limit(1);
+
+    storeQuery = isUUID(store_id) ? storeQuery.eq('id', store_id) : storeQuery.eq('store_id', store_id);
+    const { data: store, error: storeError } = await storeQuery.maybeSingle();
 
     if (storeError || !store) {
       console.log('[WooCommerce BulkSync] Store NOT FOUND for store_id:', store_id);
@@ -311,12 +327,29 @@ router.post('/woocommerce/bulk-sync', async (req: Request, res: Response) => {
       });
     }
 
+    if (store.id !== authStoreId) {
+      return res.status(403).json({ error: 'Forbidden for this store' });
+    }
+
     // Determine WooCommerce URL
-    let apiBaseUrl = woocommerce_url || `https://${store_id}`;
+    let apiBaseUrl = woocommerce_url || `https://${store.store_id}`;
     if (!apiBaseUrl.startsWith('http')) {
       apiBaseUrl = `https://${apiBaseUrl}`;
     }
-    apiBaseUrl = apiBaseUrl.replace(/\/$/, ''); // Remove trailing slash
+    let parsedBaseUrl: URL;
+    try {
+      parsedBaseUrl = new URL(apiBaseUrl);
+    } catch {
+      return res.status(400).json({ error: 'Invalid woocommerce_url' });
+    }
+
+    if (normalizeHost(parsedBaseUrl.hostname) !== normalizeHost(store.store_id)) {
+      return res.status(400).json({
+        error: 'woocommerce_url host must match the registered store domain',
+      });
+    }
+
+    apiBaseUrl = parsedBaseUrl.origin;
 
     const productsUrl = `${apiBaseUrl}/wp-json/wc/v3/products`;
     console.log('[WooCommerce BulkSync] Fetching products from:', productsUrl);
@@ -365,7 +398,7 @@ router.post('/woocommerce/bulk-sync', async (req: Request, res: Response) => {
 
         for (const product of data) {
           try {
-            const row = await syncWooCommerceProductToInventory(store.id, store_id, product);
+            const row = await syncWooCommerceProductToInventory(store.id, store.store_id, product);
             if (row) {
               synced++;
               console.log(`[WooCommerce BulkSync] Synced product ${product.id}: ${product.name}`);

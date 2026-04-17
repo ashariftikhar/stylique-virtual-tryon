@@ -20,6 +20,22 @@ export interface ShopifyRestProduct {
   }>;
 }
 
+const PLACEHOLDER_SIZE_LABELS = new Set(['default title', 'default', 'title']);
+
+function isPlaceholderSizeLabel(value: string): boolean {
+  return PLACEHOLDER_SIZE_LABELS.has(value.trim().toLowerCase());
+}
+
+function sanitizeSizeLabels(labels: string[]): string[] {
+  const unique = new Set<string>();
+  for (const label of labels) {
+    const trimmed = String(label || '').trim();
+    if (!trimmed || isPlaceholderSizeLabel(trimmed)) continue;
+    unique.add(trimmed);
+  }
+  return Array.from(unique).sort();
+}
+
 /**
  * Resolve internal store UUID by Shopify shop domain (header X-Shopify-Shop-Domain).
  */
@@ -134,8 +150,8 @@ function sizesFromVariants(product: ShopifyRestProduct): string[] {
     }
   }
 
-  // Convert Set to Array and return
-  return Array.from(allOptionValues).sort();
+  // Convert Set to Array, drop placeholder values, and return deterministic ordering.
+  return sanitizeSizeLabels(Array.from(allOptionValues));
 }
 
 
@@ -166,8 +182,9 @@ export async function syncShopifyProductToInventory(
 
   // If no sizes from variants but we have measurements (size chart), extract sizes from measurement keys
   let finalSizes = sizes;
-  if (finalSizes.length === 0 && Object.keys(measurements).length > 0) {
-    finalSizes = Object.keys(measurements).sort();
+  const measurementSizes = sanitizeSizeLabels(Object.keys(measurements));
+  if (finalSizes.length === 0 && measurementSizes.length > 0) {
+    finalSizes = measurementSizes;
     console.log(`[ShopifySync] No variant sizes found, extracted from measurements: ${finalSizes.join(', ')}`);
   }
 
