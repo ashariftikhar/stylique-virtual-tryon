@@ -132,12 +132,19 @@ router.post('/sync/products', requireSyncSecret, async (req: Request, res: Respo
           const sizes = product.variants
             ?.map((v: any) => v.option1)
             .filter((s: any) => s != null) || [];
+          const allImages = (product.images || [])
+            .map((img: any) => ({
+              url: img.src || img.url || '',
+              alt: img.alt || product.title || product.name,
+            }))
+            .filter((img: any) => img.url);
           record = {
             store_id: store.id,
             product_name: product.title || product.name,
             description: product.body_html || product.description || '',
             price: parseFloat(price),
             image_url: product.images?.[0]?.src || product.image?.src || '',
+            images: allImages,
             sizes,
             product_link: product.handle
               ? `https://${store_domain}/products/${product.handle}`

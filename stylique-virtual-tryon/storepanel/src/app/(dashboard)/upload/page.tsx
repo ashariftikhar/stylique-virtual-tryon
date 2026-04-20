@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Loader2, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Image as ImageIcon, Info, PackagePlus, Sparkles, Upload } from 'lucide-react';
+import { AlertBanner, Badge, Button, Card, Input, PageHeader, Textarea } from '@/components/ui';
 import { apiClient } from '@/lib/api';
+import { classNameMerge } from '@/lib/utils';
 
 const fade = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0 },
 };
+
+const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
 
 export default function UploadItem() {
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +24,10 @@ export default function UploadItem() {
   const [imageUrl, setImageUrl] = useState('');
   const [sizes, setSizes] = useState<string[]>([]);
 
-  const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
+  const priceValue = useMemo(() => {
+    const parsed = Number.parseFloat(price);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, [price]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,21 +38,23 @@ export default function UploadItem() {
     try {
       const storeId = localStorage.getItem('store_id');
       if (!storeId) {
-        setError('Store ID not found — please sign in again');
+        setError('Store ID not found. Please sign in again.');
         return;
       }
 
-      const productData = {
-        store_id: storeId,
-        product_name: productName,
-        description,
-        price: parseFloat(price) || 0,
-        image_url: imageUrl,
-        sizes,
-      };
+      if (imageUrl && !/^https?:\/\/.+/i.test(imageUrl)) {
+        setError('Image URL must start with http:// or https://.');
+        return;
+      }
 
-      // Use apiClient which includes Authorization header
-      await (apiClient as any).request('/api/inventory', 'POST', productData);
+      await apiClient.createInventory({
+        store_id: storeId,
+        product_name: productName.trim(),
+        description: description.trim(),
+        price: priceValue,
+        image_url: imageUrl.trim(),
+        sizes,
+      });
 
       setSuccess(true);
       setProductName('');
@@ -53,9 +62,9 @@ export default function UploadItem() {
       setPrice('');
       setImageUrl('');
       setSizes([]);
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccess(false), 4500);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while uploading');
+      setError(err.message || 'An error occurred while uploading.');
     } finally {
       setIsLoading(false);
     }
@@ -63,141 +72,217 @@ export default function UploadItem() {
 
   const toggleSize = (size: string) => {
     setSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
+      prev.includes(size) ? prev.filter((item) => item !== size) : [...prev, size],
     );
   };
 
   return (
     <motion.div
-      className="max-w-2xl space-y-6"
+      className="mx-auto max-w-6xl space-y-8"
       initial="hidden"
       animate="visible"
-      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } }}
+      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07 } } }}
     >
       <motion.div variants={fade}>
-        <h1 className="text-3xl font-bold text-white mb-1">Upload Product</h1>
-        <p className="text-gray-400 text-sm">Add a new item to your inventory</p>
+        <PageHeader
+          eyebrow="Product Intake"
+          title="Upload Product"
+          description="Create a manual inventory item with clean details, sizing, and a preview image before sending it into Stylique."
+        />
       </motion.div>
 
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-lg bg-red-900/20 border border-red-900/50 text-red-300 flex items-start gap-3 text-sm"
-        >
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p>{error}</p>
+        <motion.div variants={fade}>
+          <AlertBanner tone="danger" title="Upload failed">
+            {error}
+          </AlertBanner>
         </motion.div>
       )}
 
       {success && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-lg bg-emerald-900/20 border border-emerald-900/50 text-emerald-300 flex items-start gap-3 text-sm"
-        >
-          <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <p>Product uploaded successfully!</p>
+        <motion.div variants={fade}>
+          <AlertBanner tone="success" title="Product uploaded">
+            The item was added to inventory. Open Inventory to review the tier and try-on image.
+          </AlertBanner>
         </motion.div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <motion.div variants={fade}>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">
-            Product Name *
-          </label>
-          <input
-            type="text"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="Enter product name"
-            required
-            className="w-full px-4 py-2.5 rounded-lg bg-gray-900/50 border border-gray-800 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7]/50 focus:border-transparent"
-          />
+      <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[1fr_380px]">
+        <motion.div variants={fade} className="space-y-6">
+          <Card>
+            <div className="flex items-center gap-3 border-b border-white/10 pb-5">
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+                <PackagePlus className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white">Product details</h2>
+                <p className="text-sm text-zinc-500">Keep names clear and images direct.</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-5">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="productName">
+                  Product Name
+                </label>
+                <Input
+                  id="productName"
+                  type="text"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="Premium linen blazer"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="description">
+                  Description
+                </label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Add useful product notes for internal review."
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="price">
+                    Price
+                  </label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="imageUrl">
+                    Image URL
+                  </label>
+                  <Input
+                    id="imageUrl"
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex items-center gap-3 border-b border-white/10 pb-5">
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white">Available sizes</h2>
+                <p className="text-sm text-zinc-500">Choose every size that should appear in recommendations.</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-8">
+              {sizeOptions.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => toggleSize(size)}
+                  className={classNameMerge(
+                    'h-11 rounded-lg border text-sm font-bold transition',
+                    sizes.includes(size)
+                      ? 'border-white bg-white text-black'
+                      : 'border-white/10 bg-white/[0.035] text-zinc-500 hover:border-white/25 hover:text-white',
+                  )}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          <AlertBanner tone="info" title="Manual upload note">
+            Products added here stay inside Stylique inventory. Live Shopify or WooCommerce catalog changes should still be created in the store platform so sync remains accurate.
+          </AlertBanner>
         </motion.div>
 
-        <motion.div variants={fade}>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter product description"
-            rows={3}
-            className="w-full px-4 py-2.5 rounded-lg bg-gray-900/50 border border-gray-800 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7]/50 focus:border-transparent resize-none"
-          />
-        </motion.div>
+        <motion.aside variants={fade} className="space-y-6">
+          <Card className="sticky top-28">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Badge variant="teal">Preview</Badge>
+                <h2 className="mt-3 text-lg font-black text-white">Intake card</h2>
+              </div>
+              <Badge variant={productName ? 'success' : 'muted'}>{productName ? 'Ready' : 'Draft'}</Badge>
+            </div>
 
-        <motion.div variants={fade}>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Price</label>
-          <input
-            type="number"
-            step="0.01"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="0.00"
-            className="w-full px-4 py-2.5 rounded-lg bg-gray-900/50 border border-gray-800 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7]/50 focus:border-transparent"
-          />
-        </motion.div>
+            <div className="mt-5 overflow-hidden rounded-lg border border-white/10 bg-black/35">
+              {imageUrl ? (
+                <div
+                  className="h-72 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${imageUrl})` }}
+                  aria-label="Product image preview"
+                />
+              ) : (
+                <div className="grid h-72 place-items-center text-zinc-600">
+                  <div className="text-center">
+                    <ImageIcon className="mx-auto h-10 w-10" />
+                    <p className="mt-3 text-sm">Image preview</p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-        <motion.div variants={fade}>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Image URL</label>
-          <input
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://example.com/image.jpg"
-            className="w-full px-4 py-2.5 rounded-lg bg-gray-900/50 border border-gray-800 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7]/50 focus:border-transparent"
-          />
-        </motion.div>
+            <div className="mt-5 space-y-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-600">Product</p>
+                <p className="mt-1 truncate text-lg font-black text-white">{productName || 'Untitled product'}</p>
+              </div>
+              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
+                <span className="text-zinc-500">Price</span>
+                <span className="font-bold text-white">${priceValue.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
+                <span className="text-zinc-500">Sizes</span>
+                <span className="font-bold text-white">{sizes.length ? sizes.join(', ') : 'None selected'}</span>
+              </div>
+            </div>
 
-        <motion.div variants={fade}>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Available Sizes</label>
-          <div className="grid grid-cols-4 gap-2">
-            {sizeOptions.map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => toggleSize(size)}
-                className={`py-2 rounded-lg text-sm font-medium transition-colors ${
-                  sizes.includes(size)
-                    ? 'bg-[#642FD7] text-white'
-                    : 'bg-gray-900/50 text-gray-400 border border-gray-800 hover:border-[#642FD7]/40'
-                }`}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-        </motion.div>
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-6 w-full"
+              isLoading={isLoading}
+              disabled={!productName.trim()}
+            >
+              {isLoading ? (
+                'Uploading'
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Upload Product
+                </>
+              )}
+            </Button>
 
-        <motion.div
-          variants={fade}
-          className="p-4 rounded-lg bg-amber-900/20 border border-amber-900/50 flex items-start gap-3"
-        >
-          <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-300" />
-          <p className="text-sm text-amber-300">
-            <strong>Note:</strong> Products added here will not sync to your Shopify/WooCommerce store. To add live products, please create them directly in your store – they will then sync automatically.
-          </p>
-        </motion.div>
-
-        <motion.button
-          variants={fade}
-          type="submit"
-          disabled={isLoading || !productName}
-          className="w-full py-3 rounded-lg bg-gradient-to-r from-[#642FD7] to-[#F4536F] text-white font-medium text-sm hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <Upload className="w-4 h-4" />
-              Upload Product
-            </>
-          )}
-        </motion.button>
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
+              <p className="text-xs leading-5 text-zinc-500">
+                After upload, run image processing or set a manual tier from Inventory.
+              </p>
+            </div>
+          </Card>
+        </motion.aside>
       </form>
     </motion.div>
   );

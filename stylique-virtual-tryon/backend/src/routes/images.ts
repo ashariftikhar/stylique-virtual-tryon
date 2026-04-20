@@ -176,6 +176,15 @@ export async function processProductImages(
 
   if (filtered.length === 0) {
     console.log(`[Images] No usable images — assigning tier=3`);
+    await supabase
+      .from('inventory')
+      .update({
+        tryon_image_url: null,
+        tier: 3,
+        quality_score: 0,
+        images,
+      })
+      .eq('id', productId);
     return { bestUrl: '', tier: 3, scoredImages: [] };
   }
 

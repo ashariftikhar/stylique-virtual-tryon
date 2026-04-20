@@ -1,37 +1,37 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Store as StoreType } from '@/types/api';
+import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard,
-  Package,
-  Upload,
   BarChart3,
-  TrendingUp,
+  CheckCircle2,
+  Copy,
+  LayoutDashboard,
   LogOut,
   Menu,
+  Package,
+  Sparkles,
+  TrendingUp,
+  Upload,
   X,
-  CheckCircle,
-  Copy,
 } from 'lucide-react';
+import { StyliqueLogo } from '@/components/brand/StyliqueLogo';
+import { AlertBanner, Badge, Button } from '@/components/ui';
+import { Store as StoreType } from '@/types/api';
+import { classNameMerge } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/manage', label: 'Inventory', icon: Package },
-  { href: '/upload', label: 'Upload', icon: Upload },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/conversions', label: 'Conversions', icon: TrendingUp },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, desc: 'Command center' },
+  { href: '/manage', label: 'Inventory', icon: Package, desc: 'Products and readiness' },
+  { href: '/upload', label: 'Upload', icon: Upload, desc: 'Manual product entry' },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3, desc: 'Try-on events' },
+  { href: '/conversions', label: 'Conversions', icon: TrendingUp, desc: 'Cart movement' },
 ];
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-export default function StorePanelLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function StorePanelLayout({ children }: { children: React.ReactNode }) {
   const [store, setStore] = useState<StoreType | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,7 +41,6 @@ export default function StorePanelLayout({
   const pathname = usePathname();
 
   useEffect(() => {
-    // 1. Capture token from URL (auto-login after Shopify OAuth)
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
     const urlStoreId = params.get('store_id');
@@ -50,7 +49,6 @@ export default function StorePanelLayout({
     if (urlToken && urlStoreId) {
       localStorage.setItem('auth_token', urlToken);
       localStorage.setItem('store_id', urlStoreId);
-      console.log('[Layout] OAuth auto-login: token + store_id saved to localStorage');
 
       if (setupToken) {
         fetch(`${BACKEND_URL}/api/shopify/setup-credentials?token=${encodeURIComponent(setupToken)}`)
@@ -60,15 +58,14 @@ export default function StorePanelLayout({
               setOauthBanner({ storeId: data.storeId || urlStoreId, password: data.password });
             }
           })
-          .catch((error) => {
-            console.warn('[Layout] Failed to redeem Shopify setup token:', error);
+          .catch(() => {
+            setOauthBanner(null);
           });
       }
 
       window.history.replaceState({}, '', pathname);
     }
 
-    // 2. Check localStorage for auth
     const token = localStorage.getItem('auth_token');
     const storeId = localStorage.getItem('store_id');
 
@@ -89,31 +86,42 @@ export default function StorePanelLayout({
     setSidebarOpen(false);
   }, [pathname]);
 
+  const page = useMemo(
+    () =>
+      NAV_ITEMS.find((item) =>
+        item.href === '/' ? pathname === '/' : pathname.startsWith(item.href),
+      ) ?? NAV_ITEMS[0],
+    [pathname],
+  );
+
+  const storeName = store?.store_name || 'Stylique Store';
+  const storeInitial = storeName.slice(0, 1).toUpperCase();
+
   const handleSignOut = async () => {
     try {
       await fetch('/api/logout', { method: 'POST' });
     } catch {
-      // Best-effort
+      // Best-effort cleanup happens below.
     }
     localStorage.removeItem('auth_token');
     localStorage.removeItem('store_id');
     router.replace('/login');
   };
 
-  const handleCopyPassword = () => {
-    if (oauthBanner) {
-      navigator.clipboard.writeText(oauthBanner.password);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+  const handleCopyPassword = async () => {
+    if (!oauthBanner) return;
+    await navigator.clipboard.writeText(oauthBanner.password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-[#642FD7] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-white">Loading store panel...</p>
+      <div className="grid min-h-screen place-items-center bg-[#070707]">
+        <div className="space-y-4 text-center">
+          <StyliqueLogo className="justify-center" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-white" />
+          <p className="text-sm text-zinc-500">Preparing your store atelier...</p>
         </div>
       </div>
     );
@@ -122,136 +130,146 @@ export default function StorePanelLayout({
   if (!store) return null;
 
   return (
-    <div className="min-h-screen bg-black flex">
-      {/* Mobile overlay */}
+    <div className="min-h-screen bg-[#070707] text-white">
+      <div className="premium-grid pointer-events-none fixed inset-0" />
+
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+        <button
+          className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          aria-label="Close navigation"
         />
       )}
 
-      {/* Sidebar */}
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-40 w-64 bg-gray-950 border-r border-gray-800/60
-          flex flex-col transition-transform duration-200
-          lg:translate-x-0 lg:static lg:z-auto
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
+        className={classNameMerge(
+          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/10 bg-[#090909]/95 shadow-2xl backdrop-blur-xl transition-transform duration-200 lg:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
       >
-        {/* Brand */}
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-gray-800/60 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#642FD7] to-[#F4536F] flex items-center justify-center text-white text-sm font-bold">
-            S
-          </div>
-          <span className="text-white font-semibold tracking-tight">Stylique</span>
+        <div className="flex h-20 items-center justify-between border-b border-white/10 px-5">
+          <StyliqueLogo />
           <button
-            className="ml-auto p-1 text-gray-400 hover:text-white lg:hidden"
+            className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white lg:hidden"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active =
-              href === '/' ? pathname === '/' : pathname.startsWith(href);
+        <div className="border-b border-white/10 px-4 py-4">
+          <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-sm font-black text-black">
+              {storeInitial}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-white">{storeName}</p>
+              <p className="truncate text-xs text-zinc-500">{store.store_id}</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          {NAV_ITEMS.map(({ href, label, icon: Icon, desc }) => {
+            const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${
-                    active
-                      ? 'bg-[#642FD7]/15 text-white'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                  }
-                `}
+                className={classNameMerge(
+                  'group flex items-center gap-3 rounded-lg border px-3 py-3 transition',
+                  active
+                    ? 'border-white/15 bg-white text-black shadow-[0_18px_44px_rgba(255,255,255,0.08)]'
+                    : 'border-transparent text-zinc-500 hover:border-white/10 hover:bg-white/[0.055] hover:text-white',
+                )}
               >
-                <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-[#642FD7]' : ''}`} />
-                {label}
+                <Icon className="h-[18px] w-[18px] shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">{label}</span>
+                  <span
+                    className={classNameMerge(
+                      'block truncate text-[11px]',
+                      active ? 'text-black/55' : 'text-zinc-600 group-hover:text-zinc-400',
+                    )}
+                  >
+                    {desc}
+                  </span>
+                </span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Store info + sign out */}
-        <div className="border-t border-gray-800/60 p-4 space-y-3 shrink-0">
-          <div className="px-1">
-            <p className="text-xs text-gray-500 truncate">{store.store_id}</p>
-            <p className="text-sm text-white font-medium truncate">{store.store_name}</p>
+        <div className="border-t border-white/10 p-4">
+          <div className="mb-3 rounded-lg border border-teal-400/20 bg-teal-500/10 p-3">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-teal-200">
+              <Sparkles className="h-3.5 w-3.5" />
+              Premium Mode
+            </div>
+            <p className="mt-2 text-xs leading-5 text-teal-100/70">
+              Optimize products, track try-ons, and keep the storefront ready.
+            </p>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-950/30 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
+          <Button onClick={handleSignOut} variant="ghost" className="w-full justify-start text-red-300">
+            <LogOut className="h-4 w-4" />
             Sign Out
-          </button>
+          </Button>
         </div>
       </aside>
 
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="h-16 flex items-center gap-4 px-4 lg:px-8 border-b border-gray-800/60 bg-gray-950/50 backdrop-blur-sm shrink-0">
+      <div className="relative flex min-h-screen flex-col lg:pl-72">
+        <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-white/10 bg-[#070707]/82 px-4 backdrop-blur-xl lg:px-8">
           <button
-            className="p-2 -ml-2 text-gray-400 hover:text-white lg:hidden"
+            className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white lg:hidden"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open navigation"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="h-5 w-5" />
           </button>
-          <h1 className="text-lg font-semibold text-white truncate">
-            {NAV_ITEMS.find(
-              (n) =>
-                n.href === '/'
-                  ? pathname === '/'
-                  : pathname.startsWith(n.href),
-            )?.label ?? 'Dashboard'}
-          </h1>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-600">
+              Stylique Store Panel
+            </p>
+            <h1 className="truncate text-lg font-black text-white">{page.label}</h1>
+          </div>
+          <div className="hidden items-center gap-2 sm:flex">
+            <Badge variant="teal">Live store</Badge>
+            <Badge variant="default">Secure session</Badge>
+          </div>
         </header>
 
-        {/* OAuth success banner with credentials */}
         {oauthBanner && (
-          <div className="mx-4 lg:mx-8 mt-4 p-4 rounded-xl bg-emerald-900/30 border border-emerald-700/50">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-emerald-300">Shopify App Installed Successfully!</p>
-                <p className="text-xs text-emerald-400/80 mt-1">
-                  Your login credentials for future access:
-                </p>
-                <div className="mt-2 p-3 rounded-lg bg-black/40 font-mono text-xs text-white space-y-1">
-                  <p>Store ID: <span className="text-emerald-300">{oauthBanner.storeId}</span></p>
-                  <div className="flex items-center gap-2">
-                    <p>Password: <span className="text-emerald-300">{oauthBanner.password}</span></p>
-                    <button
-                      onClick={handleCopyPassword}
-                      className="p-1 rounded hover:bg-gray-700/50 text-gray-400 hover:text-white"
-                      title="Copy password"
-                    >
-                      {copied ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-                <p className="text-xs text-emerald-400/60 mt-2">Save these credentials. You can use them to log in at the login page.</p>
+          <div className="px-4 pt-5 lg:px-8">
+            <AlertBanner
+              tone="success"
+              title="Shopify app installed successfully"
+              action={
+                <Button onClick={handleCopyPassword} variant="success" size="sm">
+                  {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? 'Copied' : 'Copy password'}
+                </Button>
+              }
+            >
+              <div className="grid gap-2 text-xs sm:grid-cols-2">
+                <span>
+                  Store ID: <strong className="text-white">{oauthBanner.storeId}</strong>
+                </span>
+                <span>
+                  Password: <strong className="text-white">{oauthBanner.password}</strong>
+                </span>
               </div>
               <button
                 onClick={() => setOauthBanner(null)}
-                className="p-1 text-emerald-400/60 hover:text-emerald-300"
+                className="mt-2 text-xs font-semibold text-emerald-100/70 underline-offset-4 hover:text-white hover:underline"
               >
-                <X className="w-4 h-4" />
+                Dismiss credentials banner
               </button>
-            </div>
+            </AlertBanner>
           </div>
         )}
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto p-4 lg:p-8">{children}</main>
+        <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
       </div>
     </div>
   );

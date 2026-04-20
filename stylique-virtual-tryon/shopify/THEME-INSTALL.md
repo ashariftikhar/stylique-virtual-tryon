@@ -8,6 +8,14 @@
 4. Delete the default content, then paste the full contents of  
    `shopify/Shopify_new_tryon_upload_first.liquid` from this repo and **Save**.
 
+## 1b. Add the CSS asset
+
+The section references `{{ 'stylique.css' | asset_url | stylesheet_tag }}`, so the CSS asset must exist in the same Shopify theme.
+
+1. Under **Assets**, click **Add a new asset**.
+2. Create or upload `stylique.css`.
+3. Paste the full contents of `shopify/assets/stylique.css` from this repo and **Save**.
+
 ## 2. Show it on product pages
 
 1. Under **Templates**, open `product.json` (Online Store 2.0). If you only have `product.liquid`, use the theme editor **Customize** on a product page and add the section there, or migrate to JSON templates per Shopify docs.
@@ -28,6 +36,7 @@ After changing the API URL, **hard-refresh** the storefront (or preview) so the 
 - **CORS**: The backend allows `*.myshopify.com` (and ngrok hosts in development). Restart the API after pulling latest `index.ts`.
 - **Routes**: Storefront script calls `/api/plugin/...`. The backend mounts the plugin router at both `/plugin` and `/api/plugin`.
 - **Product in inventory**: On a product page the section sends `shopifyProductId`. The API matches **`inventory.shopify_product_id`** for your store UUID. Run OAuth product pull or webhooks so rows exist.
+- **Theme asset pair**: Confirm both `sections/stylique-virtual-try-on.liquid` and `assets/stylique.css` exist in the Shopify theme. The automatic injector uploads both; manual installs need both too.
 - **Theme password / preview**: Use the theme editor preview or a logged-in customer session if the section is hidden by other CSS or app embed rules.
 
 ## 5. Optional: Shopify CLI

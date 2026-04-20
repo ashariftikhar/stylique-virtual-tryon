@@ -1,9 +1,17 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Stylique Store Panel',
-  description: 'Manage your virtual try-on inventory and analytics',
+  title: {
+    default: 'Stylique Store Atelier',
+    template: '%s | Stylique',
+  },
+  description: 'Premium command center for Stylique virtual try-on stores.',
+  applicationName: 'Stylique Store Atelier',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#070707',
 };
 
 export default function RootLayout({
@@ -13,9 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white">
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -2180,12 +2180,12 @@
     // Show/hide modals
     function showBenefitsModal() {
       document.getElementById('stylique-benefits-modal').style.display = 'flex';
-      document.body.style.overflow = 'hidden';
+      lockStyliqueBodyScroll('benefits');
     }
 
     function hideBenefitsModal() {
       document.getElementById('stylique-benefits-modal').style.display = 'none';
-      document.body.style.overflow = '';
+      unlockStyliqueBodyScroll('benefits');
     }
 
     function showResultsModal() {
@@ -2265,7 +2265,12 @@
 
     function showProcessingOverlay() {
       const overlay = document.getElementById('stylique-processing-overlay');
+      const modalContent = document.querySelector('.stylique-modal-content');
+      if (!overlay) return;
+      if (modalContent) modalContent.classList.add('stylique-processing-active');
+      overlay.classList.remove('is-hiding');
       overlay.style.display = 'flex';
+      window.requestAnimationFrame(() => overlay.classList.add('is-active'));
       
       // Reset state
       window.styliqueProcessing.currentStep = 1;
@@ -2318,8 +2323,13 @@
       }, 500);
     }
 
-    function hideProcessingOverlay() {
+    function hideProcessingOverlay(onHidden) {
       var overlay = document.getElementById('stylique-processing-overlay');
+      var modalContent = document.querySelector('.stylique-modal-content');
+      if (!overlay) {
+        if (typeof onHidden === 'function') onHidden();
+        return;
+      }
       
       // Complete progress to 100% before hiding
       var progressPercent = document.getElementById('stylique-progress-percent');
@@ -2339,9 +2349,15 @@
         window.styliqueProcessing.stepInterval = null;
       }
       
+      overlay.classList.remove('is-active');
+      overlay.classList.add('is-hiding');
+
       // Hide overlay after brief delay to show 100%
       setTimeout(function() {
         overlay.style.display = 'none';
+        overlay.classList.remove('is-hiding');
+        if (modalContent) modalContent.classList.remove('stylique-processing-active');
+        if (typeof onHidden === 'function') onHidden();
       }, 300);
     }
 
@@ -2572,9 +2588,6 @@
               // Store product info for potential purchase
               window.styliqueOptions.currentProduct = result.product;
 
-              // Show the premium full-widget result view
-              showResultView(result.resultImage, result.product?.id);
-
               // Load recommendations in plugin interface after 2D try-on completes
               const storeStatus = window.styliqueOptions.storeStatus || window.styliqueOptions.stores?.find(s => s.store_id === window.styliqueOptions.storeId);
               const planName = storeStatus?.subscription_name;
@@ -2617,7 +2630,10 @@
               consumeTryonAndTrack('2d', result.product?.id).catch(() => { });
 
               clearInterval(textInterval);
-              hideProcessingOverlay();
+              hideProcessingOverlay(() => {
+                // Show the premium full-widget result view after the processing sheet fades.
+                showResultView(result.resultImage, result.product?.id);
+              });
               // Don't show result modal - result is now inline in the upload area
               // showResultsModal() removed - result displays inline instead
             }, 800);
@@ -3021,7 +3037,7 @@
     `;
 
       document.body.appendChild(modal);
-      document.body.style.overflow = 'hidden';
+      lockStyliqueBodyScroll('3d');
 
       // Load the 3D model
       load3DModel(result.threeDModelUrl);
@@ -3867,7 +3883,7 @@
 
         modal.remove();
       }
-      document.body.style.overflow = '';
+      unlockStyliqueBodyScroll('3d');
     }
 
     // Reset try-on
@@ -4318,7 +4334,7 @@
   function showOldOnboardingModal() {
     const modal = document.getElementById('stylique-onboarding-modal');
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    lockStyliqueBodyScroll('onboarding');
 
     // Reset to step 1
     document.getElementById('stylique-onboarding-step-1').style.display = 'block';
@@ -4339,7 +4355,7 @@
   // Hide onboarding modal
   function hideOnboardingModal() {
     document.getElementById('stylique-onboarding-modal').style.display = 'none';
-    document.body.style.overflow = '';
+    unlockStyliqueBodyScroll('onboarding');
   }
 
   // Go to step 2
@@ -4573,10 +4589,14 @@
       document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.setProperty('display', 'none', 'important'));
 
       // 3. Show result-view naturally
+      resultView.classList.remove('is-visible');
       resultView.classList.add('show-result');
       
       // Provide an aggressive backup style sequence just in case
-      resultView.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important; min-height: 500px !important; width: 100% !important; z-index: 99999 !important; background: #fafafa !important;';
+      resultView.style.cssText = 'display: grid !important; visibility: visible !important; min-height: 0 !important; width: 100% !important; z-index: 99999 !important; background: #fafafa !important;';
+      window.requestAnimationFrame(() => {
+        resultView.classList.add('is-visible');
+      });
 
       console.log('✅ Result-view teleported and shown.');
 
@@ -5194,6 +5214,7 @@
     if (resultView) {
       resultView.style.cssText = 'display: none !important;';
       resultView.classList.remove('show-result');
+      resultView.classList.remove('is-visible');
       
       const resultImg = document.getElementById('stylique-result-main-image');
       const loadingState = document.getElementById('stylique-result-image-loading');
@@ -5349,20 +5370,156 @@
   window.extractSkinTone = extractSkinTone;
   window.trackConversion = trackConversion;
 
+  function lockStyliqueBodyScroll(lockKey) {
+    const key = lockKey || 'main';
+    if (!window.styliqueBodyScrollLocks) {
+      window.styliqueBodyScrollLocks = new Set();
+    }
+
+    if (window.styliqueBodyScrollLocks.size === 0) {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      window.styliqueBodyScrollState = {
+        scrollY,
+        position: document.body.style.position,
+        top: document.body.style.top,
+        left: document.body.style.left,
+        right: document.body.style.right,
+        width: document.body.style.width,
+        overflow: document.body.style.overflow
+      };
+
+      document.documentElement.classList.add('stylique-modal-open');
+      document.body.classList.add('stylique-modal-open');
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+    }
+
+    window.styliqueBodyScrollLocks.add(key);
+  }
+
+  function unlockStyliqueBodyScroll(lockKey) {
+    const key = lockKey || 'main';
+    const locks = window.styliqueBodyScrollLocks;
+    if (!locks) return;
+
+    locks.delete(key);
+    if (locks.size > 0) return;
+
+    const state = window.styliqueBodyScrollState || {};
+    document.documentElement.classList.remove('stylique-modal-open');
+    document.body.classList.remove('stylique-modal-open');
+    document.body.style.position = state.position || '';
+    document.body.style.top = state.top || '';
+    document.body.style.left = state.left || '';
+    document.body.style.right = state.right || '';
+    document.body.style.width = state.width || '';
+    document.body.style.overflow = state.overflow || '';
+
+    const restoreY = Number.isFinite(state.scrollY) ? state.scrollY : 0;
+    window.styliqueBodyScrollState = null;
+    window.requestAnimationFrame(() => window.scrollTo(0, restoreY));
+  }
+
+  function initStyliqueMobileModalPolish() {
+    if (window.styliqueMobileModalPolishBound) return;
+
+    const modalContent = document.querySelector('#stylique-modal .stylique-modal-content');
+    if (!modalContent) return;
+
+    window.styliqueMobileModalPolishBound = true;
+    const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let trackingSwipe = false;
+    let downwardSwipe = false;
+    let swipeScrollTarget = modalContent;
+    const getSwipeScrollTarget = (event) => {
+      let el = event.target;
+      while (el && el !== modalContent) {
+        const style = window.getComputedStyle(el);
+        const canScrollY = /(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight;
+        if (canScrollY) return el;
+        el = el.parentElement;
+      }
+      return modalContent;
+    };
+
+    modalContent.addEventListener('touchstart', (event) => {
+      if (!isMobile() || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      touchStartY = touch.clientY;
+      touchStartX = touch.clientX;
+      swipeScrollTarget = getSwipeScrollTarget(event);
+      trackingSwipe = swipeScrollTarget.scrollTop <= 0;
+      downwardSwipe = false;
+    }, { passive: true });
+
+    modalContent.addEventListener('touchmove', (event) => {
+      if (!trackingSwipe || !isMobile() || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const deltaY = touch.clientY - touchStartY;
+      const deltaX = touch.clientX - touchStartX;
+      downwardSwipe = deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX);
+
+      if (downwardSwipe && swipeScrollTarget.scrollTop <= 0) {
+        event.preventDefault();
+      }
+    }, { passive: false });
+
+    modalContent.addEventListener('touchend', (event) => {
+      if (!trackingSwipe || !isMobile()) return;
+      const touch = event.changedTouches && event.changedTouches[0];
+      const deltaY = touch ? touch.clientY - touchStartY : 0;
+
+      if (downwardSwipe && deltaY >= 80 && swipeScrollTarget.scrollTop <= 0) {
+        window.closeStyliqueModal();
+      }
+
+      trackingSwipe = false;
+      downwardSwipe = false;
+      swipeScrollTarget = modalContent;
+    }, { passive: true });
+
+    modalContent.addEventListener('focusin', (event) => {
+      if (!isMobile()) return;
+      if (event.target && event.target.matches('input, select, textarea')) {
+        modalContent.classList.add('stylique-keyboard-active');
+      }
+    });
+
+    modalContent.addEventListener('focusout', () => {
+      window.setTimeout(() => {
+        const active = document.activeElement;
+        if (!active || !modalContent.contains(active) || !active.matches('input, select, textarea')) {
+          modalContent.classList.remove('stylique-keyboard-active');
+        }
+      }, 0);
+    });
+  }
+
   // Modal functions
   window.openStyliqueModal = function () {
     const modal = document.getElementById('stylique-modal');
     if (modal) {
-      modal.style.display = 'block';
-      document.body.style.overflow = 'hidden';
+      initStyliqueMobileModalPolish();
+      modal.style.display = 'flex';
+      lockStyliqueBodyScroll('main');
     }
   };
 
   window.closeStyliqueModal = function () {
     const modal = document.getElementById('stylique-modal');
     if (modal) {
+      const modalContent = modal.querySelector('.stylique-modal-content');
+      const processingOverlay = modal.querySelector('#stylique-processing-overlay');
+      if (modalContent) modalContent.classList.remove('stylique-keyboard-active', 'stylique-processing-active');
+      if (processingOverlay) processingOverlay.classList.remove('is-active', 'is-hiding');
       modal.style.display = 'none';
-      document.body.style.overflow = '';
+      unlockStyliqueBodyScroll('main');
     }
   };
 

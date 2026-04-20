@@ -1,29 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
-  Package,
-  Upload,
-  TrendingUp,
-  Store,
-  Mail,
-  Phone,
-  BarChart3,
-  Layers,
-  CheckCircle,
-  Star,
   AlertTriangle,
+  BarChart3,
+  CheckCircle2,
   ExternalLink,
+  Layers,
+  Package,
+  RefreshCw,
+  Sparkles,
+  Star,
+  Store,
+  TrendingUp,
+  Upload,
 } from 'lucide-react';
+import { AlertBanner, Badge, Button, Card, EmptyState, MetricCard, PageHeader, Skeleton } from '@/components/ui';
 import { apiClient } from '@/lib/api';
-import { StoreConfig, InventoryItem } from '@/types/api';
+import { InventoryItem, StoreConfig } from '@/types/api';
 
 const fade = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0 },
 };
+
+function formatNumber(value: number | null | undefined) {
+  if (value == null) return '0';
+  return new Intl.NumberFormat('en-US').format(value);
+}
 
 export default function StorePanelHome() {
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
@@ -34,334 +40,382 @@ export default function StorePanelHome() {
   const [themeInjection, setThemeInjection] = useState<{ done: boolean; status: string | null; shopDomain: string | null } | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const storeId = typeof window !== 'undefined' ? localStorage.getItem('store_id') : null;
-        if (!storeId) {
-          router.push('/login');
-          return;
-        }
-
-        try {
-          const configRes: any = await apiClient.getStoreConfig(storeId);
-          setStoreConfig(configRes.config);
-          if (configRes.themeInjection) {
-            setThemeInjection(configRes.themeInjection);
-          }
-        } catch {
-          // config endpoint may not be ready
-        }
-
-        try {
-          const inv: any = await apiClient.getInventory(storeId, 200);
-          setInventory(inv.inventory || inv.products || []);
-        } catch {
-          // inventory endpoint may not be ready
-        }
-
-        try {
-          const analytics: any = await apiClient.getAnalytics(storeId, 1);
-          setTryonCount(analytics.total ?? analytics.analytics?.length ?? 0);
-        } catch {
-          // analytics endpoint may not be ready
-        }
-      } catch (error) {
-        console.error('Error loading store data:', error);
-        setError('Failed to load store data');
-      } finally {
-        setLoading(false);
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const storeId = typeof window !== 'undefined' ? localStorage.getItem('store_id') : null;
+      if (!storeId) {
+        router.push('/login');
+        return;
       }
-    };
 
-    loadData();
+      const [configRes, inventoryRes, analyticsRes] = await Promise.allSettled([
+        apiClient.getStoreConfig(storeId),
+        apiClient.getInventory(storeId, 200),
+        apiClient.getAnalytics(storeId, 1),
+      ]);
+
+      if (configRes.status === 'fulfilled') {
+        const data: any = configRes.value;
+        setStoreConfig(data.config);
+        if (data.themeInjection) setThemeInjection(data.themeInjection);
+      }
+
+      if (inventoryRes.status === 'fulfilled') {
+        const data: any = inventoryRes.value;
+        setInventory(data.inventory || data.products || []);
+      } else {
+        setInventory([]);
+      }
+
+      if (analyticsRes.status === 'fulfilled') {
+        const data: any = analyticsRes.value;
+        setTryonCount(data.total ?? data.analytics?.length ?? 0);
+      } else {
+        setTryonCount(0);
+      }
+    } catch {
+      setError('Failed to load the store dashboard. Please refresh and try again.');
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const insights = useMemo(() => {
+    const tierCounts = { 1: 0, 2: 0, 3: 0, none: 0 };
+    let tryonReadyCount = 0;
+
+    inventory.forEach((item) => {
+      if (item.tier === 1) tierCounts[1] += 1;
+      else if (item.tier === 2) tierCounts[2] += 1;
+      else if (item.tier === 3) tierCounts[3] += 1;
+      else tierCounts.none += 1;
+
+      if (item.tryon_image_url && item.tier && item.tier <= 2) {
+        tryonReadyCount += 1;
+      }
+    });
+
+    const readiness = inventory.length ? Math.round((tryonReadyCount / inventory.length) * 100) : 0;
+    const quotaRemaining = storeConfig
+      ? Math.max(0, (storeConfig.tryons_quota || 0) - (storeConfig.tryons_used || 0))
+      : null;
+    const quotaUsage = storeConfig?.tryons_quota
+      ? Math.min(100, Math.round(((storeConfig.tryons_used || 0) / storeConfig.tryons_quota) * 100))
+      : 0;
+    const attention = inventory
+      .filter((item) => !item.tier || item.tier === 3 || item.sync_status === 'failed' || !item.tryon_image_url)
+      .slice(0, 5);
+
+    return { tierCounts, tryonReadyCount, readiness, quotaRemaining, quotaUsage, attention };
+  }, [inventory, storeConfig]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-[#642FD7] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-white">Loading...</p>
+      <div className="space-y-6">
+        <Skeleton className="h-24 w-full" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <Skeleton key={item} className="h-36" />
+          ))}
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center">
-        <p className="text-red-400">{error}</p>
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
 
   const storeName = storeConfig?.store_name?.split(' ')[0] || 'Store';
 
-  // Tier & readiness stats
-  const tierCounts = { 1: 0, 2: 0, 3: 0 };
-  let tryonReadyCount = 0;
-  inventory.forEach((i) => {
-    if (i.tier === 1) tierCounts[1]++;
-    else if (i.tier === 2) tierCounts[2]++;
-    else tierCounts[3]++;
-    if (i.tryon_image_url && i.tier && i.tier <= 2) tryonReadyCount++;
-  });
-
-  const quota = storeConfig
-    ? Math.max(0, storeConfig.tryons_quota - storeConfig.tryons_used)
-    : null;
-
   return (
     <motion.div
       className="space-y-8"
       initial="hidden"
       animate="visible"
-      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } }}
+      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07 } } }}
     >
-      {/* Welcome */}
       <motion.div variants={fade}>
-        <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
-          Welcome back, {storeName}!
-        </h1>
-        <p className="text-gray-400 text-sm">
-          Manage your inventory and track customer engagement
-        </p>
+        <PageHeader
+          eyebrow="Command Center"
+          title={`Welcome back, ${storeName}`}
+          description="A clean read on product quality, widget status, try-on volume, and the next actions that keep your storefront feeling premium."
+          action={
+            <>
+              <Button variant="secondary" onClick={loadData}>
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+              <Button onClick={() => router.push('/upload')}>
+                <Upload className="h-4 w-4" />
+                Upload Product
+              </Button>
+            </>
+          }
+        />
       </motion.div>
 
-      {/* Theme injection status banner */}
+      {error && (
+        <motion.div variants={fade}>
+          <AlertBanner tone="danger" title="Dashboard unavailable">
+            {error}
+          </AlertBanner>
+        </motion.div>
+      )}
+
       {themeInjection && !themeInjection.done && themeInjection.status && (
         <motion.div variants={fade}>
-          <div className="rounded-2xl bg-amber-950/30 border border-amber-800/50 p-5">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-amber-300">
-                  Widget Setup Required
-                </h3>
-                <p className="text-xs text-amber-400/80 mt-1">
-                  Automatic theme injection could not complete. Please add the Stylique Virtual Try-On section to your theme manually.
-                </p>
-                {themeInjection.shopDomain && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <a
-                      href={`https://${themeInjection.shopDomain}/admin/themes`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-800/30 hover:bg-amber-800/50 text-amber-200 text-xs font-medium transition-colors"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Open Theme Editor
-                    </a>
-                    <a
-                      href={`https://${themeInjection.shopDomain}/admin/themes/current/editor?context=apps`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#642FD7]/20 hover:bg-[#642FD7]/30 text-[#B794F6] text-xs font-medium transition-colors"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Theme Customizer
-                    </a>
-                  </div>
-                )}
-                <details className="mt-3">
-                  <summary className="text-xs text-amber-500/60 cursor-pointer hover:text-amber-400/80">
-                    View detailed instructions
-                  </summary>
-                  <pre className="mt-2 p-3 rounded-lg bg-black/40 text-xs text-gray-300 whitespace-pre-wrap overflow-x-auto max-h-48">
-                    {themeInjection.status}
-                  </pre>
-                </details>
-              </div>
-            </div>
-          </div>
+          <AlertBanner
+            tone="warning"
+            title="Widget setup needs attention"
+            action={
+              themeInjection.shopDomain ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => window.open(`https://${themeInjection.shopDomain}/admin/themes`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open Themes
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => window.open(`https://${themeInjection.shopDomain}/admin/themes/current/editor?context=apps`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Theme Customizer
+                  </Button>
+                </>
+              ) : undefined
+            }
+          >
+            Automatic theme injection did not complete. Add the Stylique Virtual Try-On section in the Shopify theme editor.
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs font-bold text-amber-100/80">View setup detail</summary>
+              <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-amber-50/75">
+                {themeInjection.status}
+              </pre>
+            </details>
+          </AlertBanner>
         </motion.div>
       )}
 
       {themeInjection && themeInjection.done && (
         <motion.div variants={fade}>
-          <div className="rounded-2xl bg-emerald-950/30 border border-emerald-800/50 p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-              <p className="text-sm text-emerald-300">
-                Widget installed in your Shopify theme
-              </p>
-            </div>
-          </div>
+          <AlertBanner tone="success" title="Widget installed">
+            Stylique is installed in your Shopify theme and ready for shoppers.
+          </AlertBanner>
         </motion.div>
       )}
 
-      {/* Primary stats */}
-      <motion.div variants={fade} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl bg-gradient-to-br from-[#642FD7] to-[#F4536F] p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/70 text-xs mb-1">Total Products</p>
-              <p className="text-white text-3xl font-bold">{inventory.length}</p>
-            </div>
-            <Package className="w-10 h-10 text-white/20" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-xs mb-1">Try-on Ready</p>
-              <p className="text-emerald-400 text-3xl font-bold">{tryonReadyCount}</p>
-            </div>
-            <CheckCircle className="w-10 h-10 text-gray-700" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-xs mb-1">Total Try-ons</p>
-              <p className="text-white text-3xl font-bold">{tryonCount}</p>
-            </div>
-            <TrendingUp className="w-10 h-10 text-gray-700" />
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-400 text-xs mb-1">Remaining Quota</p>
-              <p className="text-white text-3xl font-bold">{quota ?? '—'}</p>
-            </div>
-            <Star className="w-10 h-10 text-gray-700" />
-          </div>
-        </div>
+      <motion.div variants={fade} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Products"
+          value={formatNumber(inventory.length)}
+          detail="Synced and manually added inventory"
+          icon={Package}
+          accent="white"
+        />
+        <MetricCard
+          label="Try-on ready"
+          value={formatNumber(insights.tryonReadyCount)}
+          detail={`${insights.readiness}% of inventory is ready`}
+          icon={CheckCircle2}
+          accent="emerald"
+        />
+        <MetricCard
+          label="Try-ons"
+          value={formatNumber(tryonCount)}
+          detail="Customer try-on events tracked"
+          icon={TrendingUp}
+          accent="teal"
+        />
+        <MetricCard
+          label="Quota left"
+          value={insights.quotaRemaining == null ? 'Ready' : formatNumber(insights.quotaRemaining)}
+          detail={storeConfig ? `${insights.quotaUsage}% of quota used` : 'Plan data will appear here'}
+          icon={Star}
+          accent="amber"
+        />
       </motion.div>
 
-      {/* Tier breakdown */}
-      {inventory.length > 0 && (
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <motion.div variants={fade}>
-          <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
-            <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#642FD7]" />
-              Product Tier Distribution
-            </h2>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-xl bg-emerald-950/30 border border-emerald-900/30 p-4 text-center">
-                <p className="text-2xl font-bold text-emerald-400">{tierCounts[1]}</p>
-                <p className="text-xs text-emerald-500/70 mt-1">Tier 1 — Full Try-on</p>
+          <Card className="h-full">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+              <div>
+                <Badge variant={insights.readiness >= 70 ? 'success' : insights.readiness >= 35 ? 'warning' : 'danger'}>
+                  Readiness Score
+                </Badge>
+                <h2 className="mt-4 text-2xl font-black text-white">Storefront try-on health</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
+                  Tier 1 and Tier 2 products with selected try-on imagery create the best customer experience.
+                </p>
               </div>
-              <div className="rounded-xl bg-blue-950/30 border border-blue-900/30 p-4 text-center">
-                <p className="text-2xl font-bold text-blue-400">{tierCounts[2]}</p>
-                <p className="text-xs text-blue-500/70 mt-1">Tier 2 — Limited</p>
-              </div>
-              <div className="rounded-xl bg-amber-950/30 border border-amber-900/30 p-4 text-center">
-                <p className="text-2xl font-bold text-amber-400">{tierCounts[3]}</p>
-                <p className="text-xs text-amber-500/70 mt-1">Tier 3 — Size Only</p>
+              <div
+                className="grid h-36 w-36 shrink-0 place-items-center rounded-full"
+                style={{
+                  background: `conic-gradient(#14b8a6 ${insights.readiness * 3.6}deg, rgba(255,255,255,0.08) 0deg)`,
+                }}
+              >
+                <div className="grid h-28 w-28 place-items-center rounded-full bg-[#090909]">
+                  <div className="text-center">
+                    <p className="text-3xl font-black text-white">{insights.readiness}%</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">Ready</p>
+                  </div>
+                </div>
               </div>
             </div>
-            {/* Progress bar */}
-            {inventory.length > 0 && (
-              <div className="mt-4 h-2 rounded-full bg-gray-800 overflow-hidden flex">
-                {tierCounts[1] > 0 && (
-                  <div
-                    className="h-full bg-emerald-500"
-                    style={{ width: `${(tierCounts[1] / inventory.length) * 100}%` }}
-                  />
-                )}
-                {tierCounts[2] > 0 && (
-                  <div
-                    className="h-full bg-blue-500"
-                    style={{ width: `${(tierCounts[2] / inventory.length) * 100}%` }}
-                  />
-                )}
-                {tierCounts[3] > 0 && (
-                  <div
-                    className="h-full bg-amber-500"
-                    style={{ width: `${(tierCounts[3] / inventory.length) * 100}%` }}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        </motion.div>
-      )}
 
-      {/* Store Information */}
-      {storeConfig && (
-        <motion.div variants={fade} className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
-          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-            <Store className="w-4 h-4 text-[#642FD7]" />
-            Store Information
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="p-3 bg-gray-800/40 rounded-lg">
-              <p className="text-gray-500 text-xs mb-0.5">Store Name</p>
-              <p className="text-white text-sm font-medium">{storeConfig.store_name}</p>
+            <div className="mt-8 space-y-4">
+              {[
+                { label: 'Tier 1', value: insights.tierCounts[1], color: 'bg-emerald-400', text: 'Full try-on' },
+                { label: 'Tier 2', value: insights.tierCounts[2], color: 'bg-teal-300', text: 'Limited angle' },
+                { label: 'Tier 3', value: insights.tierCounts[3], color: 'bg-amber-300', text: 'Size only' },
+                { label: 'Unscored', value: insights.tierCounts.none, color: 'bg-zinc-500', text: 'Needs review' },
+              ].map((tier) => {
+                const pct = inventory.length ? Math.round((tier.value / inventory.length) * 100) : 0;
+                return (
+                  <div key={tier.label}>
+                    <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full ${tier.color}`} />
+                        <span className="font-bold text-white">{tier.label}</span>
+                        <span className="text-zinc-600">{tier.text}</span>
+                      </div>
+                      <span className="font-bold text-zinc-300">{tier.value}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                      <div className={`h-full rounded-full ${tier.color}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            {storeConfig.email && (
-              <div className="p-3 bg-gray-800/40 rounded-lg">
-                <p className="text-gray-500 text-xs mb-0.5 flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> Email
-                </p>
-                <p className="text-white text-sm font-medium">{storeConfig.email}</p>
-              </div>
-            )}
-            {storeConfig.phone && (
-              <div className="p-3 bg-gray-800/40 rounded-lg">
-                <p className="text-gray-500 text-xs mb-0.5 flex items-center gap-1">
-                  <Phone className="w-3 h-3" /> Phone
-                </p>
-                <p className="text-white text-sm font-medium">{storeConfig.phone}</p>
-              </div>
-            )}
-            {(storeConfig.subscription_plan || storeConfig.subscription_name) && (
-              <div className="p-3 bg-gray-800/40 rounded-lg">
-                <p className="text-gray-500 text-xs mb-0.5">Subscription</p>
-                <p className="text-white text-sm font-medium">
-                  {storeConfig.subscription_plan || storeConfig.subscription_name}
-                </p>
-              </div>
-            )}
-          </div>
+          </Card>
         </motion.div>
-      )}
 
-      {/* Quick Actions */}
-      <motion.div variants={fade} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          {
-            href: '/upload',
-            icon: Upload,
-            title: 'Upload Product',
-            desc: 'Add a new item manually',
-          },
-          {
-            href: '/manage',
-            icon: Package,
-            title: 'Manage Inventory',
-            desc: 'View scores & overrides',
-          },
-          {
-            href: '/analytics',
-            icon: BarChart3,
-            title: 'Analytics',
-            desc: 'Try-on performance',
-          },
-          {
-            href: '/conversions',
-            icon: TrendingUp,
-            title: 'Conversions',
-            desc: 'Cart & purchase tracking',
-          },
-        ].map((action) => (
-          <button
-            key={action.href}
-            onClick={() => router.push(action.href)}
-            className="p-4 rounded-xl bg-gray-900/40 border border-gray-800/60 hover:border-[#642FD7]/40 transition-all text-left group"
-          >
-            <action.icon className="w-5 h-5 text-[#642FD7] mb-2 group-hover:scale-110 transition-transform" />
-            <h3 className="font-semibold text-white text-sm">{action.title}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{action.desc}</p>
-          </button>
-        ))}
-      </motion.div>
+        <motion.div variants={fade}>
+          <Card className="h-full">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Badge variant="primary">Action Needed</Badge>
+                <h2 className="mt-4 text-2xl font-black text-white">Priority products</h2>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => router.push('/manage')}>
+                Review all
+              </Button>
+            </div>
+
+            {insights.attention.length === 0 ? (
+              <div className="mt-8 rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-5">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-300" />
+                  <div>
+                    <p className="font-bold text-emerald-100">Everything looks ready</p>
+                    <p className="mt-1 text-sm leading-6 text-emerald-100/70">
+                      No failed syncs, unscored products, or missing try-on images in the first review set.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-3">
+                {insights.attention.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => router.push('/manage')}
+                    className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-white/20 hover:bg-white/[0.06]"
+                  >
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-200">
+                      <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-white">{item.product_name}</p>
+                      <p className="text-xs text-zinc-500">
+                        {!item.tier ? 'Unscored' : item.tier === 3 ? 'Tier 3 product' : 'Missing try-on image'}
+                      </p>
+                    </div>
+                    <Badge variant={item.sync_status === 'failed' ? 'danger' : 'warning'}>
+                      {item.sync_status === 'failed' ? 'Sync failed' : 'Review'}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+            )}
+          </Card>
+        </motion.div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <motion.div variants={fade}>
+          {storeConfig ? (
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+                  <Store className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-white">Store profile</h2>
+                  <p className="text-sm text-zinc-500">Operational account details</p>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-3 text-sm">
+                {[
+                  ['Store name', storeConfig.store_name],
+                  ['Email', storeConfig.email || 'Not provided'],
+                  ['Phone', storeConfig.phone || 'Not provided'],
+                  ['Subscription', storeConfig.subscription_plan || storeConfig.subscription_name || 'Active'],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between gap-4 border-b border-white/10 pb-3 last:border-0 last:pb-0">
+                    <span className="text-zinc-500">{label}</span>
+                    <span className="truncate text-right font-semibold text-white">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ) : (
+            <EmptyState icon={Store} title="Store profile not loaded" description="Profile details will appear after the backend responds." />
+          )}
+        </motion.div>
+
+        <motion.div variants={fade}>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white">Quick actions</h2>
+                <p className="text-sm text-zinc-500">Move the store forward in one click</p>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {[
+                { href: '/upload', icon: Upload, title: 'Upload Product', desc: 'Add a manual item' },
+                { href: '/manage', icon: Package, title: 'Manage Inventory', desc: 'Review tiers and images' },
+                { href: '/analytics', icon: BarChart3, title: 'Analytics', desc: 'Track try-on events' },
+                { href: '/conversions', icon: Layers, title: 'Conversions', desc: 'Watch cart movement' },
+              ].map((action) => (
+                <button
+                  key={action.href}
+                  onClick={() => router.push(action.href)}
+                  className="rounded-lg border border-white/10 bg-white/[0.035] p-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]"
+                >
+                  <action.icon className="h-5 w-5 text-[#ff8ab0]" />
+                  <h3 className="mt-3 text-sm font-bold text-white">{action.title}</h3>
+                  <p className="mt-1 text-xs text-zinc-500">{action.desc}</p>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

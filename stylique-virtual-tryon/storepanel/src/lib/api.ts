@@ -1,5 +1,22 @@
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
+type InventoryCreatePayload = {
+  store_id: string;
+  product_name: string;
+  description?: string;
+  price?: number;
+  image_url?: string;
+  sizes?: string[];
+};
+
+type InventoryUpdatePayload = {
+  deleted?: boolean;
+  tier?: number;
+  tryon_image_url?: string | null;
+};
+
+type ImagePayload = Array<{ url: string; alt?: string }>;
+
 export class ApiClient {
   private baseUrl: string;
 
@@ -15,62 +32,62 @@ export class ApiClient {
   private async request<T>(
     endpoint: string,
     method: string = 'GET',
-    body?: any
+    body?: unknown,
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getAuthToken();
-    
-    console.log(`[API] ${method} ${endpoint} - Token present: ${!!token}`);
-    
-    const options: RequestInit = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
     };
 
-    // Add Authorization header if token exists
     if (token) {
-      (options.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-      console.log(`[API] Authorization header added`);
-    } else {
-      console.warn(`[API] No token found in localStorage for ${endpoint}`);
+      headers.Authorization = `Bearer ${token}`;
     }
+
+    const options: RequestInit = {
+      method,
+      headers,
+    };
 
     if (body) {
       options.body = JSON.stringify(body);
     }
 
-    try {
-      const response = await fetch(url, options);
+    const response = await fetch(url, options);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `HTTP ${response.status}`);
+    if (!response.ok) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const payload = (await response.json()) as { error?: string; message?: string };
+        message = payload.error || payload.message || message;
+      } catch {
+        // Keep the HTTP status fallback when the backend response is not JSON.
       }
-
-      return await response.json();
-    } catch (error) {
-      console.error(`API Error [${method} ${endpoint}]:`, error);
-      throw error;
+      throw new Error(message);
     }
+
+    return response.json() as Promise<T>;
   }
 
   async getStoreConfig(storeId: string) {
-    return this.request(`/api/store/${storeId}/config`);
+    return this.request(`/api/store/${encodeURIComponent(storeId)}/config`);
   }
 
   async getInventory(storeId: string, limit: number = 50, offset: number = 0) {
     return this.request(
-      `/api/inventory?store_id=${storeId}&limit=${limit}&offset=${offset}`
+      `/api/inventory?store_id=${encodeURIComponent(storeId)}&limit=${limit}&offset=${offset}`,
     );
   }
 
-  async updateInventory(productId: string, data: any) {
-    return this.request(`/api/inventory/${productId}`, 'PATCH', data);
+  async createInventory(data: InventoryCreatePayload) {
+    return this.request('/api/inventory', 'POST', data);
   }
 
-  async processImages(productId: string, images: Array<{ url: string; alt?: string }>) {
+  async updateInventory(productId: string, data: InventoryUpdatePayload) {
+    return this.request(`/api/inventory/${encodeURIComponent(productId)}`, 'PATCH', data);
+  }
+
+  async processImages(productId: string, images: ImagePayload) {
     return this.request('/api/process-images', 'POST', {
       product_id: productId,
       images,
@@ -78,14 +95,14 @@ export class ApiClient {
   }
 
   async getAnalytics(storeId: string, limit: number = 100, from?: string, to?: string) {
-    let url = `/api/analytics?store_id=${storeId}&limit=${limit}`;
+    let url = `/api/analytics?store_id=${encodeURIComponent(storeId)}&limit=${limit}`;
     if (from) url += `&from=${encodeURIComponent(from)}`;
     if (to) url += `&to=${encodeURIComponent(to)}`;
     return this.request(url);
   }
 
   async getConversions(storeId: string) {
-    return this.request(`/api/analytics/conversions?store_id=${storeId}`);
+    return this.request(`/api/analytics/conversions?store_id=${encodeURIComponent(storeId)}`);
   }
 }
 

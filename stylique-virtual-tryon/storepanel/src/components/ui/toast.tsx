@@ -21,14 +21,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const notify = useCallback(
     (message: string, type: ToastMessage['type'] = 'info') => {
-      const id = Math.random().toString(36).substr(2, 9);
+      const id =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${toasts.length}`;
       setToasts((prev) => [...prev, { id, message, type }]);
 
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, 3000);
     },
-    []
+    [toasts.length]
   );
 
   const removeToast = useCallback((id: string) => {

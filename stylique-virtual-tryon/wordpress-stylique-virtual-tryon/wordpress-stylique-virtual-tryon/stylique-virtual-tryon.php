@@ -160,7 +160,7 @@ class Stylique_Virtual_TryOn {
 
 		// Main widget modal - comprehensive JavaScript for modal, authentication, try-on, and results
 		wp_enqueue_script('stylique-widget-modal', plugin_dir_url(__FILE__) . 'assets/js/widget-modal.js', array('jquery', 'stylique-carousel-js'), '1.9.6', true);
-		wp_enqueue_style('stylique-tryon-style', plugin_dir_url(__FILE__) . 'assets/css/tryon-style.css', array(), '1.9.9');
+		wp_enqueue_style('stylique-tryon-style', plugin_dir_url(__FILE__) . 'assets/css/tryon-style.css', array(), '2.0.4');
 
 		wp_localize_script( 'stylique-widget-modal', 'styliqueConfig', array(
 			'storeId' => get_option( 'stylique_store_id' ),

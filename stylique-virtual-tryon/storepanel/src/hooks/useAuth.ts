@@ -28,8 +28,7 @@ export function useAuth() {
         // Store ID can be used to fetch store details if needed
         setIsAuthenticated(true);
         setIsLoading(false);
-      } catch (error) {
-        console.error('Auth check failed:', error);
+      } catch {
         setIsAuthenticated(false);
         setIsLoading(false);
         router.push('/login');

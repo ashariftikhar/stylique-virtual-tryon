@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Download, RefreshCw, ShoppingBag, ShoppingCart, Target, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Loader2, RefreshCw, Download } from 'lucide-react';
+import { AlertBanner, Badge, Button, Card, EmptyState, MetricCard, PageHeader, Skeleton } from '@/components/ui';
 import { apiClient } from '@/lib/api';
+import { formatDate } from '@/lib/utils';
 
 interface Conversion {
   id: string;
@@ -20,9 +22,15 @@ const fade = {
   visible: { opacity: 1, y: 0 },
 };
 
+function csvCell(value: string | number | boolean | null | undefined) {
+  const text = value == null ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 export default function Conversions() {
   const [conversions, setConversions] = useState<Conversion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState('');
 
   const loadConversions = useCallback(async () => {
@@ -34,7 +42,7 @@ export default function Conversions() {
       const session = await sessionRes.json();
 
       if (!session.authenticated || !session.store?.id) {
-        setError('Not authenticated');
+        setError('Not authenticated. Please sign in again.');
         return;
       }
 
@@ -43,10 +51,10 @@ export default function Conversions() {
         setConversions(data.conversions || []);
       } catch {
         setConversions([]);
+        setError('Conversion data could not be loaded.');
       }
-    } catch (err: any) {
-      console.error('Error loading conversions:', err);
-      setError('Failed to load conversion data');
+    } catch {
+      setError('Failed to load conversion data.');
     } finally {
       setIsLoading(false);
     }
@@ -56,146 +64,194 @@ export default function Conversions() {
     loadConversions();
   }, [loadConversions]);
 
-  const handleExport = () => {
-    const headers = ['Date', 'Product ID', 'User ID', 'Add to Cart', 'Status'];
-    const csvContent = [
-      headers.join(','),
-      ...conversions.map((c) =>
-        [
-          new Date(c.created_at).toLocaleDateString(),
-          c.product_id || '—',
-          c.user_id || '—',
-          c.add_to_cart ? 'Yes' : 'No',
-          c.status,
-        ].join(',')
-      ),
-    ].join('\n');
+  const stats = useMemo(() => {
+    const addToCartCount = conversions.filter((conversion) => conversion.add_to_cart).length;
+    const purchaseCount = conversions.filter((conversion) => /purchase|paid|complete/i.test(conversion.status)).length;
+    const conversionRate = conversions.length ? Math.round((addToCartCount / conversions.length) * 100) : 0;
+    const purchaseRate = conversions.length ? Math.round((purchaseCount / conversions.length) * 100) : 0;
+    const uniqueProducts = new Set(conversions.map((conversion) => conversion.product_id).filter(Boolean)).size;
+    return { addToCartCount, purchaseCount, conversionRate, purchaseRate, uniqueProducts };
+  }, [conversions]);
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `conversions-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+  const funnel = [
+    { label: 'Try-on intent', value: conversions.length, tone: 'bg-white' },
+    { label: 'Add to cart', value: stats.addToCartCount, tone: 'bg-[#14b8a6]' },
+    { label: 'Purchase signal', value: stats.purchaseCount, tone: 'bg-[#ff5c8a]' },
+  ];
+  const funnelMax = Math.max(...funnel.map((item) => item.value), 1);
+
+  const handleExport = () => {
+    setIsExporting(true);
+    try {
+      const headers = ['Date', 'Product ID', 'User ID', 'Add to Cart', 'Status'];
+      const csvContent = [
+        headers.map(csvCell).join(','),
+        ...conversions.map((conversion) =>
+          [
+            formatDate(conversion.created_at),
+            conversion.product_id || '',
+            conversion.user_id || '',
+            conversion.add_to_cart ? 'Yes' : 'No',
+            conversion.status,
+          ]
+            .map(csvCell)
+            .join(','),
+        ),
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `conversions-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const addToCartCount = conversions.filter((c) => c.add_to_cart).length;
-  const conversionRate =
-    conversions.length > 0 ? Math.round((addToCartCount / conversions.length) * 100) : 0;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-24" />
+        <div className="grid gap-4 md:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <Skeleton key={item} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
-      className="space-y-6"
+      className="space-y-8"
       initial="hidden"
       animate="visible"
-      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } }}
+      variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.07 } } }}
     >
-      <motion.div
-        variants={fade}
-        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1">Conversion Analytics</h1>
-          <p className="text-gray-400 text-sm">Track customer conversions from try-ons</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={loadConversions}
-            className="px-4 py-2 rounded-lg border border-gray-800 text-gray-300 hover:border-gray-700 transition-colors flex items-center gap-2 text-sm"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
-          <button
-            onClick={handleExport}
-            disabled={conversions.length === 0}
-            className="px-4 py-2 rounded-lg bg-[#642FD7] text-white hover:bg-[#542FCF] disabled:opacity-50 transition-colors flex items-center gap-2 text-sm"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-        </div>
+      <motion.div variants={fade}>
+        <PageHeader
+          eyebrow="Revenue Signals"
+          title="Conversion Analytics"
+          description="Follow the path from try-on intent to add-to-cart behavior and purchase signals."
+          action={
+            <>
+              <Button variant="secondary" onClick={loadConversions}>
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+              <Button onClick={handleExport} disabled={conversions.length === 0} isLoading={isExporting}>
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </>
+          }
+        />
       </motion.div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#642FD7]" />
-            <p className="text-white">Loading conversion data...</p>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="p-4 rounded-lg bg-red-900/20 border border-red-900/50 text-red-300 text-sm">
-          {error}
-        </div>
-      ) : conversions.length === 0 ? (
-        <motion.div
-          variants={fade}
-          className="p-12 rounded-2xl bg-gray-900/30 border border-gray-800/60 text-center"
-        >
-          <TrendingUp className="w-12 h-12 text-gray-700 mx-auto mb-4" />
-          <p className="text-gray-400">No conversion data yet</p>
-          <p className="text-xs text-gray-500 mt-2">
-            Conversions appear once customers interact with try-ons
-          </p>
+      {error && (
+        <motion.div variants={fade}>
+          <AlertBanner tone="danger" title="Conversion issue">
+            {error}
+          </AlertBanner>
+        </motion.div>
+      )}
+
+      {conversions.length === 0 ? (
+        <motion.div variants={fade}>
+          <EmptyState
+            icon={TrendingUp}
+            title="No conversion data yet"
+            description="Conversion signals will appear once shoppers interact with try-ons and storefront actions."
+          />
         </motion.div>
       ) : (
         <>
-          <motion.div variants={fade} className="grid md:grid-cols-3 gap-4">
-            <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
-              <p className="text-gray-400 text-xs mb-1">Total Conversions</p>
-              <p className="text-white text-3xl font-bold">{conversions.length}</p>
-            </div>
-            <div className="rounded-2xl bg-gray-900/40 border border-gray-800/60 p-5">
-              <p className="text-gray-400 text-xs mb-1">Add to Cart</p>
-              <p className="text-white text-3xl font-bold">{addToCartCount}</p>
-            </div>
-            <div className="rounded-2xl bg-gradient-to-r from-[#642FD7] to-[#F4536F] p-5">
-              <p className="text-white/70 text-xs mb-1">Conversion Rate</p>
-              <p className="text-white text-3xl font-bold">{conversionRate}%</p>
-            </div>
+          <motion.div variants={fade} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="Signals" value={conversions.length} detail="Tracked conversion events" icon={Target} />
+            <MetricCard label="Add to cart" value={stats.addToCartCount} detail={`${stats.conversionRate}% of signals`} icon={ShoppingCart} accent="teal" />
+            <MetricCard label="Purchase signal" value={stats.purchaseCount} detail={`${stats.purchaseRate}% of signals`} icon={ShoppingBag} accent="rose" />
+            <MetricCard label="Products" value={stats.uniqueProducts} detail="Unique products involved" icon={TrendingUp} accent="emerald" />
           </motion.div>
 
-          <motion.div
-            variants={fade}
-            className="rounded-2xl bg-gray-900/40 border border-gray-800/60 overflow-hidden"
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-gray-800 bg-gray-800/30">
-                  <tr>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-400">Date</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-400">Product</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-400">Add to Cart</th>
-                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-400">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800/50">
-                  {conversions.slice(0, 50).map((c) => (
-                    <tr key={c.id} className="hover:bg-gray-800/20 transition-colors">
-                      <td className="px-5 py-3.5 text-sm text-gray-300">
-                        {new Date(c.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-gray-400 font-mono text-xs">
-                        {c.product_id ? c.product_id.slice(0, 8) + '...' : '—'}
-                      </td>
-                      <td className="px-5 py-3.5 text-sm">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                            c.add_to_cart
-                              ? 'bg-emerald-900/30 text-emerald-300'
-                              : 'bg-gray-800/50 text-gray-500'
-                          }`}
-                        >
-                          {c.add_to_cart ? 'Yes' : 'No'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-gray-400">{c.status}</td>
+          <motion.div variants={fade} className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+            <Card>
+              <Badge variant="primary">Funnel</Badge>
+              <h2 className="mt-3 text-xl font-black text-white">Commerce movement</h2>
+              <div className="mt-8 space-y-5">
+                {funnel.map((step) => {
+                  const width = Math.max(8, (step.value / funnelMax) * 100);
+                  return (
+                    <div key={step.label}>
+                      <div className="mb-2 flex items-center justify-between text-sm">
+                        <span className="font-bold text-white">{step.label}</span>
+                        <span className="font-bold text-zinc-400">{step.value}</span>
+                      </div>
+                      <div className="h-4 overflow-hidden rounded-lg bg-white/[0.06]">
+                        <div className={`h-full rounded-lg ${step.tone}`} style={{ width: `${width}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card>
+              <Badge variant="teal">Quality Read</Badge>
+              <h2 className="mt-3 text-xl font-black text-white">What this means</h2>
+              <div className="mt-6 space-y-4 text-sm leading-6 text-zinc-400">
+                <p>
+                  A healthy Stylique flow keeps add-to-cart signals close to try-on volume. If add-to-cart is low, review product imagery, Tier 3 products, and widget placement.
+                </p>
+                <p>
+                  Strong purchase signals are usually tied to clear product photos, accurate sizing, and a smooth transition back to the storefront.
+                </p>
+              </div>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={fade}>
+            <Card className="overflow-hidden p-0">
+              <div className="border-b border-white/10 p-5">
+                <Badge variant="default">Conversion Ledger</Badge>
+                <h2 className="mt-3 text-xl font-black text-white">Recent conversion events</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px]">
+                  <thead className="bg-white/[0.035]">
+                    <tr>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Date</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Product</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Add to Cart</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {conversions.slice(0, 50).map((conversion) => (
+                      <tr key={conversion.id} className="transition hover:bg-white/[0.035]">
+                        <td className="px-5 py-4 text-sm text-zinc-300">{formatDate(conversion.created_at)}</td>
+                        <td className="px-5 py-4 text-xs font-mono text-zinc-500">
+                          {conversion.product_id ? conversion.product_id : 'Not linked'}
+                        </td>
+                        <td className="px-5 py-4">
+                          <Badge variant={conversion.add_to_cart ? 'success' : 'muted'}>
+                            {conversion.add_to_cart ? 'Yes' : 'No'}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-4">
+                          <Badge variant={/purchase|paid|complete/i.test(conversion.status) ? 'primary' : 'default'}>
+                            {conversion.status || 'Viewed'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </motion.div>
         </>
       )}

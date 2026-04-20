@@ -21,6 +21,7 @@ export interface InventoryItem {
   price?: number;
   image_url?: string;
   tryon_image_url?: string;
+  images?: Array<string | { url?: string; alt?: string }>;
   sizes: string[];
   measurements?: Record<string, any>;
   product_link?: string;

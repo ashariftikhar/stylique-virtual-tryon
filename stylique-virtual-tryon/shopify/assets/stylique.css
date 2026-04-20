@@ -5077,3 +5077,716 @@
     height: 68px;
   }
 }
+
+html.stylique-modal-open,
+body.stylique-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+body.stylique-modal-open {
+  position: fixed;
+  width: 100%;
+}
+
+/* Premium mobile experience: bottom sheet, compact flows, reachable actions */
+@media (max-width: 768px) {
+  .stylique-modal-wrapper {
+    display: flex;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    padding: 0 !important;
+  }
+
+  .stylique-modal-content {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 85dvh !important;
+    margin: 0 !important;
+    border-radius: 24px 24px 0 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: contain;
+    transform: none !important;
+    box-shadow: 0 22px 70px rgba(15, 23, 42, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+  }
+
+  .stylique-modal-content::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 42px;
+    height: 4px;
+    border-radius: 99px;
+    background: #d7dbe3;
+    transform: translateX(-50%);
+    z-index: 12;
+  }
+
+  .stylique-modal-content::-webkit-scrollbar,
+  .stylique-modal-content .stylique-section::-webkit-scrollbar,
+  .stylique-result-view::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stylique-modal-content .stylique-section {
+    padding: 64px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: inherit !important;
+    min-height: 0;
+    max-height: 85dvh;
+    overflow-y: auto;
+    scrollbar-width: none;
+    box-sizing: border-box;
+  }
+
+  .stylique-modal-content .stylique-section-content {
+    min-height: 0;
+  }
+
+  .stylique-modal-content.stylique-processing-active .stylique-section {
+    overflow: hidden !important;
+  }
+
+  .stylique-modal-content.stylique-keyboard-active {
+    max-height: min(92dvh, calc(100dvh - 20px)) !important;
+  }
+
+  .stylique-modal-content.stylique-keyboard-active .stylique-section {
+    max-height: min(92dvh, calc(100dvh - 20px)) !important;
+  }
+
+  .stylique-brand-lockup {
+    top: 22px !important;
+    left: 16px;
+    right: auto !important;
+    z-index: 13;
+    max-width: calc(100% - 72px);
+    overflow: hidden;
+  }
+
+  .stylique-brand-main {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .stylique-brand-main span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stylique-modal-close {
+    top: 18px !important;
+    right: 14px !important;
+    z-index: 14;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .stylique-modal-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 0 !important;
+  }
+
+  .stylique-left-column,
+  .stylique-right-column {
+    min-width: 0;
+    gap: 12px;
+  }
+
+  .stylique-tryon-interface .stylique-tryon-header {
+    padding: 0 !important;
+    margin-bottom: 10px;
+  }
+
+  .stylique-tryon-branding {
+    gap: 9px;
+  }
+
+  .stylique-tryon-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .stylique-tryon-title h3 {
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .stylique-tryon-title p {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .stylique-carousel-wrapper {
+    gap: 6px;
+    margin-bottom: 0;
+  }
+
+  .stylique-carousel-main {
+    width: 100%;
+    height: clamp(155px, 27dvh, 230px);
+    aspect-ratio: auto;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f7eef7 0%, #eef3fb 100%);
+    box-shadow: none;
+  }
+
+  .stylique-carousel-image {
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .stylique-upload-section {
+    margin-bottom: 8px;
+  }
+
+  .stylique-upload-section::before {
+    display: none;
+  }
+
+  .stylique-upload-core {
+    padding: 0;
+  }
+
+  .stylique-upload-area {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .stylique-upload-content {
+    align-items: center;
+    text-align: left;
+    gap: 10px;
+  }
+
+  .stylique-upload-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  .stylique-upload-text h5 {
+    font-size: 13px;
+  }
+
+  .stylique-upload-text p {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .stylique-btn-upload-round,
+  .stylique-btn-submit,
+  .stylique-btn-tryon,
+  .stylique-pill-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .stylique-btn-upload-round {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 16px;
+  }
+
+  .stylique-image-preview img {
+    width: 96px;
+    height: 128px;
+  }
+
+  .stylique-tryon-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stylique-requirements-note,
+  .stylique-privacy-box,
+  .stylique-best-results-badges {
+    display: none;
+  }
+
+  .stylique-login-prompt,
+  .stylique-inline-onboarding {
+    min-height: 0;
+  }
+
+  .stylique-login-content {
+    width: 100%;
+    max-width: 360px;
+    padding: 8px 0 0;
+    margin: 0 auto;
+  }
+
+  .stylique-minimal-header {
+    margin-bottom: 16px;
+  }
+
+  .stylique-login-form,
+  .stylique-minimal-form {
+    gap: 10px;
+  }
+
+  .stylique-form-group input,
+  .stylique-form-group select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .stylique-processing-overlay {
+    position: absolute;
+    inset: 54px 0 0 0;
+    width: auto;
+    height: auto;
+    z-index: 8;
+    padding: 14px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 0 0 20px 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+
+  .stylique-processing-overlay.is-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .stylique-processing-overlay.is-hiding {
+    opacity: 0;
+  }
+
+  .stylique-particles {
+    display: none;
+  }
+
+  .stylique-processing-content {
+    width: min(100%, 360px);
+    max-width: 360px;
+    padding: 20px 16px !important;
+    border-radius: 20px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    animation: none;
+    transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .stylique-processing-overlay.is-active .stylique-processing-content {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .stylique-processing-overlay.is-hiding .stylique-processing-content {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  .stylique-processing-icon-wrapper {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 12px;
+  }
+
+  .stylique-processing-icon {
+    width: 54px;
+    height: 54px;
+  }
+
+  .stylique-processing-logo-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stylique-processing-content h4 {
+    font-size: 18px;
+  }
+
+  .stylique-processing-status {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .stylique-processing-steps {
+    margin-bottom: 12px;
+  }
+
+  .stylique-proc-step-line {
+    width: 34px;
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  .stylique-proc-step-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .stylique-proc-step span {
+    font-size: 10px;
+  }
+
+  .stylique-fun-facts {
+    display: none;
+  }
+
+  .stylique-result-view[style*="display: grid"],
+  .stylique-result-view.show-result {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto !important;
+    gap: 8px !important;
+    padding: 56px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: inherit;
+    max-height: 85dvh;
+    overflow-y: auto;
+    scrollbar-width: none;
+    opacity: 0 !important;
+    transform: translateY(10px) scale(0.99);
+    transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .stylique-result-view.show-result.is-visible {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1);
+  }
+
+  .stylique-result-view:not(.show-result):not([style*="display: grid"]) {
+    display: none !important;
+  }
+
+  .stylique-result-left {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 14px;
+  }
+
+  .stylique-result-image-container {
+    min-height: 0 !important;
+    height: clamp(180px, 32dvh, 250px);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f7eef7 0%, #eef3fb 100%);
+    overflow: hidden;
+  }
+
+  .stylique-result-image-container img {
+    width: 100%;
+    height: 100%;
+    max-height: 100% !important;
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .stylique-result-right {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    gap: 8px !important;
+  }
+
+  .stylique-result-items-header {
+    padding: 0 0 2px !important;
+  }
+
+  .stylique-result-items-header h5 {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .stylique-result-item-main {
+    gap: 8px;
+  }
+
+  .stylique-result-item-thumb-wrap {
+    width: 48px !important;
+    height: 60px !important;
+    border-radius: 8px;
+  }
+
+  .stylique-result-item-name {
+    font-size: 15px;
+    line-height: 1.15;
+  }
+
+  .stylique-result-item-size,
+  .stylique-result-item-fit-summary-line {
+    font-size: 12px;
+  }
+
+  .stylique-result-confidence {
+    grid-template-columns: auto minmax(68px, 1fr) auto;
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .stylique-result-fit-popover {
+    position: fixed;
+    left: 18px;
+    right: 18px;
+    top: 50%;
+    bottom: auto;
+    width: auto;
+    max-width: 390px;
+    margin: 0 auto;
+    transform: translateY(-48%) scale(0.98);
+    max-height: min(62dvh, 460px);
+    overflow: auto;
+  }
+
+  .stylique-result-fit-details.is-open .stylique-result-fit-popover {
+    transform: translateY(-50%) scale(1);
+  }
+
+  .stylique-suggestions-carousel {
+    gap: 8px;
+    padding-bottom: 2px;
+  }
+
+  .stylique-suggestion-card {
+    width: 84px;
+  }
+
+  .stylique-suggestion-img-wrap {
+    width: 84px;
+    height: 72px;
+  }
+
+  .stylique-result-bottom-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px !important;
+    padding: 10px 0 max(2px, env(safe-area-inset-bottom, 0px)) !important;
+    margin-top: 0;
+    border-radius: 0 !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.96) 22%, rgba(255,255,255,0.98));
+  }
+
+  .stylique-pill-btn {
+    width: auto !important;
+    min-width: 0;
+    padding: 12px 8px !important;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .stylique-result-bottom-bar .stylique-pill-btn:first-child {
+    order: 3;
+    flex: 1 1 auto;
+    grid-column: auto;
+    min-height: 44px;
+    padding: 12px 14px !important;
+  }
+
+  .stylique-result-bottom-bar .stylique-pill-btn:last-child {
+    order: 1;
+  }
+
+  .stylique-result-bottom-bar #stylique-result-download {
+    order: 2;
+  }
+
+  .stylique-result-bottom-bar .stylique-pill-btn:last-child,
+  .stylique-result-bottom-bar #stylique-result-download {
+    flex: 0 0 40px;
+    width: 40px !important;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0 !important;
+    font-size: 0;
+    background: #f8fafc;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+    box-shadow: none;
+  }
+
+  .stylique-result-bottom-bar .stylique-pill-btn:last-child::before {
+    content: "\21BB";
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .stylique-result-bottom-bar #stylique-result-download::before {
+    content: "\21E9";
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .stylique-tier3-size-advisor {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .stylique-tier3-image-frame,
+  .stylique-tier3-image-placeholder {
+    height: clamp(190px, 32dvh, 270px);
+    min-height: 0 !important;
+    max-height: none !important;
+    border-radius: 14px;
+  }
+
+  .stylique-tier3-panel {
+    padding: 0 !important;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .stylique-tier3-copy h4 {
+    font-size: 18px;
+  }
+
+  .stylique-tier3-copy p {
+    font-size: 12px;
+    line-height: 1.35;
+    -webkit-line-clamp: 2;
+  }
+
+  .stylique-tier3-rec-grid {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+    gap: 8px;
+  }
+
+  .stylique-tier3-size-card,
+  .stylique-tier3-confidence-card {
+    min-height: 86px;
+  }
+
+  .stylique-tier3-size-card strong {
+    font-size: clamp(24px, 8vw, 34px);
+  }
+
+  .stylique-tier3-table-card {
+    overflow: hidden;
+  }
+
+  .stylique-tier3-fit-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .stylique-tier3-fit-table th,
+  .stylique-tier3-fit-table td {
+    padding: 7px 6px;
+    font-size: 10px;
+  }
+
+  .stylique-tier3-actions {
+    grid-template-columns: 1.4fr 1fr !important;
+    gap: 8px;
+  }
+
+  .stylique-tier3-primary-btn,
+  .stylique-tier3-secondary-btn {
+    min-height: 42px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stylique-modal-wrapper {
+    padding: 0 !important;
+  }
+
+  .stylique-modal-content {
+    width: 100% !important;
+    max-height: 85dvh !important;
+    border-radius: 24px 24px 0 0 !important;
+  }
+
+  .stylique-modal-content .stylique-section {
+    padding: 62px 12px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .stylique-brand-main {
+    font-size: 11.5px;
+  }
+
+  .stylique-modal-brand-mark {
+    width: 21px;
+    height: 21px;
+  }
+
+  .stylique-upload-content {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .stylique-upload-text {
+    text-align: center;
+  }
+
+  .stylique-tryon-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .stylique-result-image-container {
+    height: clamp(175px, 31dvh, 240px);
+  }
+
+  .stylique-result-bottom-bar {
+    display: flex !important;
+  }
+
+  .stylique-result-bottom-bar .stylique-pill-btn:first-child {
+    grid-column: auto;
+  }
+
+  .stylique-tier3-rec-grid,
+  .stylique-tier3-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stylique-tier3-image-frame,
+  .stylique-tier3-image-placeholder {
+    height: clamp(170px, 29dvh, 235px);
+  }
+}
+
+@media (max-width: 380px) {
+  .stylique-brand-main span {
+    max-width: 150px;
+  }
+
+  .stylique-result-image-container {
+    height: clamp(168px, 30dvh, 225px);
+  }
+
+  .stylique-suggestion-card {
+    width: 78px;
+  }
+
+  .stylique-suggestion-img-wrap {
+    width: 78px;
+    height: 66px;
+  }
+
+  .stylique-result-fit-popover {
+    left: 10px;
+    right: 10px;
+  }
+
+  .stylique-tier3-fit-table th,
+  .stylique-tier3-fit-table td {
+    padding: 6px 4px;
+    font-size: 9.5px;
+  }
+}

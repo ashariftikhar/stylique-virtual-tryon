@@ -1,20 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import {
-  Loader2,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Building2,
-  Shield,
-  Mail,
-  Store,
-  CheckCircle
-} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Building2, CheckCircle2, Eye, EyeOff, Mail, ShieldCheck, Store } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { StyliqueLogo } from '@/components/brand/StyliqueLogo';
+import { AlertBanner, Badge, Button, Input } from '@/components/ui';
+import { classNameMerge } from '@/lib/utils';
+
+function validateDomain(id: string) {
+  if (!id || id.trim() === '') return 'Store ID is required';
+  if (id.includes(' ')) return 'Store ID cannot contain spaces';
+  const domainRegex = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})?$/;
+  if (!domainRegex.test(id)) return 'Use a valid domain, for example mystore.com';
+  return '';
+}
 
 export default function StoreRegister() {
   const [store_id, setStore_id] = useState('');
@@ -29,34 +30,18 @@ export default function StoreRegister() {
   const [storeIdError, setStoreIdError] = useState('');
   const router = useRouter();
 
-  // Validate store ID format (domain name)
-  const validateStoreId = (id: string) => {
-    if (!id || id.trim() === '') {
-      setStoreIdError('Store ID is required');
-      return false;
-    }
-    if (id.includes(' ')) {
-      setStoreIdError('Store ID cannot contain spaces');
-      return false;
-    }
-    // Simple domain validation regex
-    const domainRegex = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})?$/;
-    if (!domainRegex.test(id)) {
-      setStoreIdError('Invalid domain format (e.g., mystore.com)');
-      return false;
-    }
-    setStoreIdError('');
-    return true;
-  };
+  const passwordScore = useMemo(() => {
+    let score = 0;
+    if (password.length >= 6) score += 1;
+    if (password.length >= 10) score += 1;
+    if (/[A-Z]/.test(password) && /[0-9]/.test(password)) score += 1;
+    return score;
+  }, [password]);
 
   const handleStoreIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setStore_id(value);
-    if (value) {
-      validateStoreId(value);
-    } else {
-      setStoreIdError('');
-    }
+    setStoreIdError(value ? validateDomain(value) : '');
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -64,46 +49,38 @@ export default function StoreRegister() {
     setIsLoading(true);
     setError('');
 
-    // Client-side validation
-    if (!store_id || !store_name || !password) {
-      setError('Store ID, Store Name, and Password are required');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!validateStoreId(store_id)) {
+    const domainError = validateDomain(store_id);
+    if (domainError) {
+      setStoreIdError(domainError);
       setIsLoading(false);
       return;
     }
 
     if (store_name.trim().length < 2 || store_name.trim().length > 100) {
-      setError('Store Name must be between 2 and 100 characters');
+      setError('Store name must be between 2 and 100 characters.');
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Password must be at least 6 characters.');
       setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       setIsLoading(false);
       return;
     }
 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Invalid email address');
+      setError('Enter a valid email address.');
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('Attempting to register store:', store_id);
-
-      // Step 1: Register the store
       const registerResponse = await fetch('/api/register', {
         method: 'POST',
         headers: {
@@ -118,17 +95,13 @@ export default function StoreRegister() {
       });
 
       const registerResult = await registerResponse.json();
-      console.log('Registration result:', registerResult);
 
       if (!registerResult.success) {
-        setError(registerResult.error || 'Registration failed');
+        setError(registerResult.error || 'Registration failed.');
         setIsLoading(false);
         return;
       }
 
-      console.log('Registration successful, attempting automatic login...');
-
-      // Step 2: Automatically login with the same credentials to get token
       const loginResponse = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -138,248 +111,218 @@ export default function StoreRegister() {
       });
 
       const loginResult = await loginResponse.json();
-      console.log('Automatic login result:', loginResult);
 
       if (!loginResult.success) {
-        // Login failed, fall back to login page with registration success message
-        console.warn('Automatic login failed, redirecting to login page');
         localStorage.setItem('registration_success', 'true');
         localStorage.setItem('registered_store_id', store_id);
         router.push('/login');
         return;
       }
 
-      // Step 3: Store token in localStorage for direct API calls
       if (loginResult.token) {
         localStorage.setItem('auth_token', loginResult.token);
         localStorage.setItem('store_id', store_id);
-        console.log('Auth token stored in localStorage');
       }
 
-      console.log('Automatic login successful, redirecting to dashboard...');
-
-      // Redirect to dashboard - user is already logged in via session cookie + localStorage token
       router.push('/');
-    } catch (error) {
-      console.error('Registration error:', error);
-      setError('An error occurred during registration');
+    } catch {
+      setError('Unable to create the store account right now. Please try again.');
       setIsLoading(false);
     }
   };
 
-  const isFormValid = store_id && store_name && password && confirmPassword === password && !storeIdError;
+  const isFormValid =
+    Boolean(store_id && store_name && password && confirmPassword) &&
+    confirmPassword === password &&
+    !storeIdError;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black overflow-hidden p-4">
-      {/* Static gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/15 via-transparent to-pink-900/15"></div>
-      <div className="absolute inset-0 bg-gradient-to-tl from-purple-900/10 via-transparent to-pink-900/10"></div>
+    <div className="relative min-h-screen overflow-hidden bg-[#070707] px-4 py-8 text-white">
+      <div className="premium-grid pointer-events-none absolute inset-0" />
+      <div className="pointer-events-none absolute left-0 top-0 h-72 w-72 bg-[#ff5c8a]/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 bg-[#14b8a6]/10 blur-3xl" />
 
-      {/* Floating gradient orbs */}
-      <div className="absolute top-20 left-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-20 right-10 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl"></div>
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
+      <div className="relative z-10 mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1fr_500px]">
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="hidden lg:block"
+        >
+          <StyliqueLogo markClassName="h-12 w-12" />
+          <Badge variant="primary" className="mt-8">
+            Launch Workspace
+          </Badge>
+          <h1 className="mt-5 max-w-2xl text-5xl font-black leading-[1.02] tracking-tight">
+            Start with a storefront that feels considered from day one.
+          </h1>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-zinc-400">
+            Create a secure store profile, connect product data, and begin managing virtual try-on quality with a polished operational cockpit.
+          </p>
+          <div className="mt-8 grid max-w-lg gap-3">
+            {['Store identity', 'Protected session', 'Automatic dashboard access'].map((item) => (
+              <div key={item} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                <span className="text-sm font-semibold text-zinc-300">{item}</span>
+                <CheckCircle2 className="h-4 w-4 text-teal-300" />
+              </div>
+            ))}
+          </div>
+        </motion.section>
 
-      {/* Sparkling dots */}
-      {[...Array(12)].map((_, i) => (
-        <div key={i} className="absolute w-1 h-1 bg-white/20 rounded-full" style={{
-          top: `${Math.random() * 100}%`,
-          left: `${Math.random() * 100}%`,
-          animation: `twinkle ${2 + Math.random() * 2}s ease-in-out infinite`,
-        }}></div>
-      ))}
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md"
-      >
-        <div className="backdrop-blur-sm bg-gray-900/50 border border-gray-800 shadow-2xl rounded-2xl p-8">
-          <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-r from-[#642FD7] to-[#F4536F] mb-4"
-            >
-              <Store className="w-7 h-7 text-white" />
-            </motion.div>
-            <h1 className="text-2xl font-bold text-white mb-2">Register Store</h1>
-            <p className="text-sm text-gray-400">Create your virtual try-on store account</p>
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.08 }}
+          className="rounded-lg border border-white/10 bg-zinc-950/82 p-6 shadow-[0_32px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8"
+        >
+          <div className="mb-8 text-center">
+            <StyliqueLogo className="justify-center" label="Store Setup" />
+            <div className="mt-7 inline-flex h-12 w-12 items-center justify-center rounded-lg border border-white/10 bg-white text-black">
+              <Store className="h-6 w-6" />
+            </div>
+            <h2 className="mt-4 text-2xl font-black text-white">Create store account</h2>
+            <p className="mt-2 text-sm text-zinc-500">Use the same domain you connect from Shopify or WooCommerce.</p>
           </div>
 
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 rounded-lg bg-red-900/20 border border-red-900/50 flex items-start gap-3"
-            >
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-300">{error}</p>
-            </motion.div>
+            <AlertBanner tone="danger" title="Registration failed">
+              {error}
+            </AlertBanner>
           )}
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            {/* Store ID Input */}
+          <form onSubmit={handleRegister} className="mt-6 space-y-5">
             <div>
-              <label htmlFor="store_id" className="block text-sm font-medium text-gray-300 mb-2">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
-                  Store ID (Domain)
-                </div>
+              <label htmlFor="store_id" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                <Building2 className="h-4 w-4" />
+                Store ID
               </label>
-              <input
+              <Input
                 id="store_id"
                 type="text"
                 value={store_id}
                 onChange={handleStoreIdChange}
-                placeholder="e.g., mystore.com or myshop.myshopify.com"
-                className={`w-full px-4 py-2 rounded-lg bg-gray-800/50 border ${
-                  storeIdError ? 'border-red-500' : 'border-gray-700'
-                } text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7] focus:border-transparent`}
+                placeholder="mystore.com or mystore.myshopify.com"
+                className={storeIdError ? 'border-red-500/70' : ''}
                 disabled={isLoading}
+                autoComplete="organization"
               />
-              {storeIdError && (
-                <p className="text-xs text-red-400 mt-1">{storeIdError}</p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">
-                This must match your website domain (used for WooCommerce/Shopify configuration)
-              </p>
+              {storeIdError && <p className="mt-2 text-xs font-medium text-red-300">{storeIdError}</p>}
             </div>
 
-            {/* Store Name Input */}
             <div>
-              <label htmlFor="store_name" className="block text-sm font-medium text-gray-300 mb-2">
-                <div className="flex items-center gap-2">
-                  <Store className="w-4 h-4" />
-                  Store Name
-                </div>
+              <label htmlFor="store_name" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                <Store className="h-4 w-4" />
+                Store Name
               </label>
-              <input
+              <Input
                 id="store_name"
                 type="text"
                 value={store_name}
                 onChange={(e) => setStore_name(e.target.value)}
                 placeholder="Your store name"
-                className="w-full px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7] focus:border-transparent"
                 disabled={isLoading}
+                autoComplete="organization-title"
               />
             </div>
 
-            {/* Email Input (Optional) */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email (Optional)
-                </div>
+              <label htmlFor="email" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                <Mail className="h-4 w-4" />
+                Email
+                <span className="text-xs font-normal text-zinc-600">Optional</span>
               </label>
-              <input
+              <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7] focus:border-transparent"
+                placeholder="owner@example.com"
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
 
-            {/* Password Input */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="password" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                  <ShieldCheck className="h-4 w-4" />
                   Password
+                </label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                    className="pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  className="w-full px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7] focus:border-transparent"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Confirm
+                </label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat password"
+                    disabled={isLoading}
+                    autoComplete="new-password"
+                    className="pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((value) => !value)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white"
+                    aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Confirm Password Input */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Confirm Password
-                </div>
-              </label>
-              <div className="relative">
-                <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter password"
-                  className="w-full px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#642FD7] focus:border-transparent"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
+            <div className="grid grid-cols-3 gap-2" aria-label="Password strength">
+              {[0, 1, 2].map((bar) => (
+                <div
+                  key={bar}
+                  className={classNameMerge(
+                    'h-1.5 rounded-full',
+                    passwordScore > bar ? 'bg-[#14b8a6]' : 'bg-white/10',
                   )}
-                </button>
-              </div>
+                />
+              ))}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading || !isFormValid}
-              className="w-full py-2 rounded-lg bg-gradient-to-r from-[#642FD7] to-[#F4536F] text-white font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-6"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating account...
-                </span>
-              ) : (
-                'Create Store Account'
-              )}
-            </button>
+            <Button type="submit" className="w-full" size="lg" isLoading={isLoading} disabled={!isFormValid}>
+              Create Store Account
+            </Button>
           </form>
 
-          {/* Login Link */}
-          <p className="text-center text-xs text-gray-500 mt-6">
+          <p className="mt-6 border-t border-white/10 pt-6 text-center text-xs text-zinc-500">
             Already have an account?{' '}
-            <Link href="/login" className="text-[#642FD7] hover:text-[#F4536F] font-medium transition-colors">
-              Sign in here
+            <Link href="/login" className="font-bold text-white underline-offset-4 hover:underline">
+              Sign in
             </Link>
           </p>
-
-          <p className="text-center text-xs text-gray-500 mt-4 pt-4 border-t border-gray-800">
-            Protected by secure authentication
-          </p>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

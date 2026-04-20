@@ -171,6 +171,12 @@ export async function syncShopifyProductToInventory(
   const imageUrl = product.images?.[0]?.src || '';
   const sizes = sizesFromVariants(product);
   const productLink = `https://${shopDomain}/products/${product.handle}`;
+  const allImages = (product.images || [])
+    .map((img) => ({
+      url: img.src || '',
+      alt: img.alt || productName,
+    }))
+    .filter((i) => i.url);
 
   // Fetch size chart from Shopify metafields if access token is provided
   let measurements: Record<string, Record<string, number>> = {};
@@ -194,6 +200,7 @@ export async function syncShopifyProductToInventory(
     description,
     price,
     image_url: imageUrl,
+    images: allImages,
     sizes: finalSizes.length > 0 ? finalSizes : [],
     measurements: Object.keys(measurements).length > 0 ? measurements : {},
     product_link: productLink,
@@ -236,13 +243,6 @@ export async function syncShopifyProductToInventory(
     console.error('[ShopifySync] upsert failed:', error?.message);
     return null;
   }
-
-  const allImages = (product.images || [])
-    .map((img) => ({
-      url: img.src || '',
-      alt: img.alt || productName,
-    }))
-    .filter((i) => i.url);
 
   if (allImages.length > 0) {
     processProductImages(row.id, allImages).catch((err) =>
