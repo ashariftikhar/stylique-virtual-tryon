@@ -332,6 +332,12 @@ function generateOTP(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+function maskEmailForLog(email: string): string {
+  const [name, domain] = email.split('@');
+  if (!name || !domain) return 'invalid-email';
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
 async function sendOtpEmail(toEmail: string, code: string): Promise<void> {
   const apiKey = process.env.SENDGRID_API_KEY;
   const fromEmail = process.env.OTP_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL;
@@ -370,7 +376,12 @@ function isOtpEmailProviderConfigured(): boolean {
   return Boolean(process.env.SENDGRID_API_KEY && (process.env.OTP_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL));
 }
 
+function isProductionEnv(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 function isDevOtpLoginEnabled(): boolean {
+  if (isProductionEnv()) return false;
   return process.env.ALLOW_DEV_OTP_LOGIN === 'true' || process.env.STYLIQUE_DEV_OTP_LOGIN === 'true';
 }
 
@@ -399,19 +410,32 @@ router.get('/test', (_req: Request, res: Response) => {
 // ──────────────────────────────────────────────
 router.post('/auth', async (req: Request, res: Response) => {
   try {
-    const supabase = getSupabase();
     const { email, action, otp } = req.body;
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const logEmail = maskEmailForLog(normalizedEmail);
 
     if (!normalizedEmail || !action) {
-      return res.status(400).json({ success: false, error: 'email and action required' });
+      return res.status(400).json({ success: false, code: 'missing_email_or_action', error: 'Email and action are required.' });
     }
 
     if (action === 'send_otp') {
+      const providerConfigured = isOtpEmailProviderConfigured();
+      const devFallbackEnabled = isDevOtpLoginEnabled();
+
+      if (!providerConfigured && !devFallbackEnabled) {
+        console.error('[Plugin Auth] OTP email provider is not configured. Set SENDGRID_API_KEY and OTP_FROM_EMAIL or SENDGRID_FROM_EMAIL.');
+        return res.status(503).json({
+          success: false,
+          code: 'otp_email_not_configured',
+          error: 'Verification email is not configured yet. Please contact the store owner.',
+        });
+      }
+
+      const supabase = getSupabase();
       const code = generateOTP();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-      console.log(`[Plugin Auth] send_otp requested for ${normalizedEmail}; expires=${expiresAt.toISOString()}`);
+      console.log(`[Plugin Auth] send_otp requested for ${logEmail}; expires=${expiresAt.toISOString()}`);
 
       // Ensure user row exists in DB
       const { data: existingUser } = await supabase
@@ -425,10 +449,10 @@ router.post('/auth', async (req: Request, res: Response) => {
           .from('users')
           .insert({ email: normalizedEmail });
         if (insertErr) {
-          console.error(`[Plugin Auth] Could not create user row: ${insertErr.message}`);
-          return res.status(500).json({ success: false, error: 'Failed to create user' });
+          console.error(`[Plugin Auth] Could not create user row for ${logEmail}: ${insertErr.message}`);
+          return res.status(500).json({ success: false, code: 'user_create_failed', error: 'Failed to create user.' });
         }
-        console.log(`[Plugin Auth] Created user row for ${normalizedEmail}`);
+        console.log(`[Plugin Auth] Created user row for ${logEmail}`);
       }
 
       // Store OTP in database only
@@ -438,45 +462,50 @@ router.post('/auth', async (req: Request, res: Response) => {
         .eq('email', normalizedEmail);
 
       if (updateErr) {
-        console.error(`[Plugin Auth] Failed to store OTP in DB: ${updateErr.message}`);
-        return res.status(500).json({ success: false, error: 'Failed to send OTP' });
+        console.error(`[Plugin Auth] Failed to store OTP in DB for ${logEmail}: ${updateErr.message}`);
+        return res.status(500).json({ success: false, code: 'otp_store_failed', error: 'Failed to send verification code.' });
+      }
+
+      if (!providerConfigured && devFallbackEnabled) {
+        console.warn(`[Plugin Auth] DEV OTP fallback enabled for ${logEmail}. Configure SendGrid before production use.`);
+        return res.json({
+          success: true,
+          code: 'dev_otp_sent',
+          message: `Development verification code: ${code}`,
+          dev_otp: code,
+        });
       }
 
       try {
         await sendOtpEmail(normalizedEmail, code);
       } catch (emailErr: any) {
-        if (!isOtpEmailProviderConfigured() && isDevOtpLoginEnabled()) {
-          console.warn(
-            `[Plugin Auth] DEV OTP fallback enabled for ${normalizedEmail}. Configure SendGrid before production use. OTP=${code}`,
-          );
-          return res.json({
-            success: true,
-            message: `Development OTP: ${code}`,
-            dev_otp: code,
-          });
-        }
-
         await supabase
           .from('users')
           .update({ otp_code: null, otp_expires_at: null })
           .eq('email', normalizedEmail);
-        console.error(`[Plugin Auth] Failed to deliver OTP email for ${normalizedEmail}: ${emailErr.message}`);
-        return res.status(500).json({ success: false, error: 'Failed to send OTP email' });
+        console.error(`[Plugin Auth] Failed to deliver OTP email for ${logEmail}: ${emailErr.message}`);
+        return res.status(502).json({
+          success: false,
+          code: 'otp_email_delivery_failed',
+          error: 'Verification email could not be delivered. Please try again shortly.',
+        });
       }
 
-      console.log(`[Plugin Auth] OTP email sent to ${normalizedEmail}`);
+      console.log(`[Plugin Auth] OTP email sent to ${logEmail}`);
 
-      return res.json({ success: true, message: 'OTP sent' });
+      return res.json({ success: true, code: 'otp_sent', message: 'Verification code sent.' });
     }
 
     if (action === 'verify_otp') {
       if (!otp) {
-        return res.status(400).json({ success: false, error: 'otp required' });
+        return res.status(400).json({ success: false, code: 'missing_otp', error: 'Verification code is required.' });
       }
 
       const receivedCode = String(otp).trim();
 
-      console.log(`[Plugin Auth] verify_otp requested for ${normalizedEmail}`);
+      console.log(`[Plugin Auth] verify_otp requested for ${logEmail}`);
+
+      const supabase = getSupabase();
 
       // Check OTP from database only
       const { data: user } = await supabase
@@ -486,13 +515,13 @@ router.post('/auth', async (req: Request, res: Response) => {
         .maybeSingle();
 
       if (!user) {
-        console.log(`[Plugin Auth] User not found for email: ${normalizedEmail}`);
-        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
+        console.log(`[Plugin Auth] User not found for email: ${logEmail}`);
+        return res.status(401).json({ success: false, code: 'invalid_or_expired_otp', error: 'Invalid or expired code.' });
       }
 
       if (!user.otp_code) {
-        console.log(`[Plugin Auth] No OTP found for user ${normalizedEmail}`);
-        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
+        console.log(`[Plugin Auth] No OTP found for user ${logEmail}`);
+        return res.status(401).json({ success: false, code: 'invalid_or_expired_otp', error: 'Invalid or expired code.' });
       }
 
       const storedCode = String(user.otp_code);
@@ -500,13 +529,13 @@ router.post('/auth', async (req: Request, res: Response) => {
       const isExpired = !expiresAt || expiresAt <= new Date();
 
       if (storedCode !== receivedCode) {
-        console.log(`[Plugin Auth] REJECTED: code mismatch for ${normalizedEmail}`);
-        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
+        console.log(`[Plugin Auth] REJECTED: code mismatch for ${logEmail}`);
+        return res.status(401).json({ success: false, code: 'invalid_or_expired_otp', error: 'Invalid or expired code.' });
       }
 
       if (isExpired) {
-        console.log(`[Plugin Auth] REJECTED: code expired for ${normalizedEmail}`);
-        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
+        console.log(`[Plugin Auth] REJECTED: code expired for ${logEmail}`);
+        return res.status(401).json({ success: false, code: 'invalid_or_expired_otp', error: 'Invalid or expired code.' });
       }
 
       // OTP verified - clear it from database
@@ -515,7 +544,7 @@ router.post('/auth', async (req: Request, res: Response) => {
         .update({ otp_code: null, otp_expires_at: null })
         .eq('id', user.id);
 
-      console.log(`[Plugin Auth] OTP VERIFIED for ${normalizedEmail}`);
+      console.log(`[Plugin Auth] OTP VERIFIED for ${logEmail}`);
 
       const isNewUser = !user.name && !user.height;
 

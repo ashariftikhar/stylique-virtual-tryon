@@ -31,7 +31,8 @@ Set these before deploying production services:
 - `JWT_SECRET`: required in production. The backend fails startup if it is missing.
 - `SYNC_API_SECRET` or `STYLIQUE_SYNC_SECRET`: shared secret for platform sync endpoints.
 - `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`: database access for backend routes.
-- `SENDGRID_API_KEY` and `OTP_FROM_EMAIL` or `SENDGRID_FROM_EMAIL`: OTP email delivery.
+- `SENDGRID_API_KEY` and `OTP_FROM_EMAIL` or `SENDGRID_FROM_EMAIL`: OTP email delivery for shopper login. `OTP_FROM_NAME` is optional and defaults to Stylique.
+- `ALLOW_DEV_OTP_LOGIN=false`: keep disabled in production. For local testing only, set `ALLOW_DEV_OTP_LOGIN=true` to show the generated OTP in the widget when SendGrid is not configured.
 - `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, and `SHOPIFY_REDIRECT_URI`: Shopify OAuth and webhook verification.
 - `FRONTEND_URL` and `PUBLIC_API_URL`: public store panel and API URLs.
 
@@ -46,6 +47,11 @@ cd stylique-virtual-tryon/backend
 npm install
 npm run dev
 ```
+
+Local OTP testing:
+
+- Without SendGrid, set `ALLOW_DEV_OTP_LOGIN=true` while running the backend locally. The widget will show the development verification code after Send Verification Code.
+- On Render/production, configure SendGrid and keep `ALLOW_DEV_OTP_LOGIN=false`; production never returns OTP codes to the browser.
 
 Store panel:
 

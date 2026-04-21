@@ -1207,15 +1207,134 @@ if ( isset( $product ) && $product ) {
           console.log('User logged in to Stylique:', window.styliqueOptions.user.email);
         } catch (e) {
           // Invalid stored data, clear it
-          localStorage.removeItem('stylique_auth_token');
-          localStorage.removeItem('stylique_user');
-          window.styliqueOptions.isLoggedIn = false;
-          showLoginRequired();
+          clearStyliqueSession();
+          showLoginScreen('Your session expired. Please log in again.');
         }
       } else {
-        window.styliqueOptions.isLoggedIn = false;
+        clearStyliqueSession();
         showLoginRequired();
       }
+    }
+
+    function isStyliqueLoggedIn() {
+      return !!(window.styliqueOptions && window.styliqueOptions.user && window.styliqueOptions.authToken);
+    }
+
+    function resetLoginFormState() {
+      const emailStep = document.getElementById('stylique-email-step');
+      const otpStep = document.getElementById('stylique-otp-step');
+      const otpInput = document.getElementById('stylique-otp');
+      const errorDiv = document.getElementById('stylique-login-error');
+      const successDiv = document.getElementById('stylique-login-success');
+
+      if (emailStep) emailStep.style.display = 'block';
+      if (otpStep) otpStep.style.display = 'none';
+      if (otpInput) otpInput.value = '';
+      if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.style.display = 'none';
+      }
+      if (successDiv) {
+        successDiv.textContent = '';
+        successDiv.style.display = 'none';
+      }
+    }
+
+    function clearStyliqueSession() {
+      localStorage.removeItem('stylique_auth_token');
+      localStorage.removeItem('stylique_user');
+      localStorage.removeItem('stylique_token');
+
+      window.styliqueOptions.isLoggedIn = false;
+      window.styliqueOptions.user = null;
+      window.styliqueOptions.authToken = null;
+      window.styliqueOptions.pendingEmail = null;
+      window.styliqueOptions.isNewUser = false;
+
+      const userInfo = document.getElementById('stylique-user-info-container');
+      const userEmail = document.getElementById('stylique-user-email');
+      const inlineOnboarding = document.getElementById('stylique-inline-onboarding');
+      const onboardingModal = document.getElementById('stylique-onboarding-modal');
+      const processingOverlay = document.getElementById('stylique-processing-overlay');
+
+      if (userInfo) userInfo.style.display = 'none';
+      if (userEmail) userEmail.textContent = '';
+      if (inlineOnboarding) inlineOnboarding.style.display = 'none';
+      if (onboardingModal) onboardingModal.style.display = 'none';
+      if (processingOverlay) {
+        processingOverlay.style.display = 'none';
+        processingOverlay.classList.remove('is-active', 'is-hiding');
+      }
+
+      resetLoginFormState();
+      if (typeof resetTryOn === 'function') {
+        try { resetTryOn(); } catch (err) { console.warn('[Stylique] Could not reset try-on state after logout:', err); }
+      }
+    }
+
+    function showLoginScreen(reason) {
+      const loginRequired = document.getElementById('stylique-login-required');
+      const tryOnInterface = document.getElementById('stylique-tryon-interface');
+      const inlineOnboarding = document.getElementById('stylique-inline-onboarding');
+      const successDiv = document.getElementById('stylique-login-success');
+
+      if (tryOnInterface) tryOnInterface.style.display = 'none';
+      if (inlineOnboarding) inlineOnboarding.style.display = 'none';
+      if (loginRequired) loginRequired.style.display = 'block';
+      resetLoginFormState();
+
+      if (reason && successDiv) {
+        successDiv.textContent = reason;
+        successDiv.style.display = 'block';
+      }
+
+      setTimeout(() => {
+        const emailInput = document.getElementById('stylique-email');
+        if (emailInput) emailInput.focus();
+      }, 50);
+      scrollToTryOn();
+    }
+
+    function requireLogin(reason) {
+      if (isStyliqueLoggedIn()) return true;
+      clearStyliqueSession();
+      showLoginScreen(reason || 'Please log in to continue.');
+      return false;
+    }
+
+    async function parseStyliqueJsonResponse(response) {
+      try {
+        return await response.json();
+      } catch (err) {
+        return {
+          success: false,
+          code: 'invalid_response',
+          error: 'The server returned an invalid response. Please try again shortly.'
+        };
+      }
+    }
+
+    function getStyliqueAuthErrorMessage(result, response) {
+      if (result && result.code === 'otp_email_not_configured') {
+        return 'Verification email is not configured yet. Please contact the store owner.';
+      }
+      if (result && result.code === 'otp_email_delivery_failed') {
+        return 'Verification email could not be delivered. Please try again shortly.';
+      }
+      if (result && result.code === 'invalid_response') {
+        return result.error;
+      }
+      if (response && response.status >= 500) {
+        return 'Login service is temporarily unavailable. Please try again shortly.';
+      }
+      return (result && result.error) || 'Something went wrong. Please try again.';
+    }
+
+    function getStyliqueOtpSuccessMessage(result) {
+      if (result && result.dev_otp) {
+        return 'Development verification code: ' + result.dev_otp;
+      }
+      return (result && result.message) || 'Verification code sent.';
     }
 
     // Show/hide interface states
@@ -1252,17 +1371,8 @@ if ( isset( $product ) && $product ) {
 
     // Intercept Upload Clicks
     window.handleUploadClick = function() {
-       if (!window.styliqueOptions.user) {
-         // User is not logged in, force them to the login form
-         document.getElementById('stylique-tryon-interface').style.display = 'none';
-         document.getElementById('stylique-login-required').style.display = 'block';
-         
-         // Optionally, scroll to top of section for better UX when switching to login
-         scrollToTryOn();
-       } else {
-         // User is logged in, trigger file input
-         document.getElementById('stylique-file-input').click();
-       }
+      if (!requireLogin('Please log in to upload your photo.')) return;
+      document.getElementById('stylique-file-input').click();
     };
 
     // Check if current product is available for try-on
@@ -1970,18 +2080,8 @@ if ( isset( $product ) && $product ) {
 
     // Logout from Stylique
     function logoutFromStylique() {
-      // Clear stored auth data
-      localStorage.removeItem('stylique_auth_token');
-      localStorage.removeItem('stylique_user');
-
-      // Reset state
-      window.styliqueOptions.isLoggedIn = false;
-      window.styliqueOptions.user = null;
-      window.styliqueOptions.authToken = null;
-
-      // Show login required
-      showLoginRequired();
-
+      clearStyliqueSession();
+      showLoginScreen('You have been logged out. Please log in to continue.');
       console.log('Logged out from Stylique');
     }
 
@@ -2018,11 +2118,11 @@ if ( isset( $product ) && $product ) {
           })
         });
 
-        const result = await response.json();
+        const result = await parseStyliqueJsonResponse(response);
 
-        if (result.success) {
+        if (response.ok && result.success) {
           // Show success message
-          successDiv.textContent = result.message;
+          successDiv.textContent = getStyliqueOtpSuccessMessage(result);
           successDiv.style.display = 'block';
 
           // Store email for verification step
@@ -2042,7 +2142,7 @@ if ( isset( $product ) && $product ) {
 
         } else {
           // Show error message
-          errorDiv.textContent = result.error || 'Failed to send verification code';
+          errorDiv.textContent = getStyliqueAuthErrorMessage(result, response);
           errorDiv.style.display = 'block';
         }
 
@@ -2099,9 +2199,9 @@ if ( isset( $product ) && $product ) {
           })
         });
 
-        const result = await response.json();
+        const result = await parseStyliqueJsonResponse(response);
 
-        if (result.success) {
+        if (response.ok && result.success) {
           // Store auth data
           localStorage.setItem('stylique_auth_token', result.token);
           localStorage.setItem('stylique_user', JSON.stringify(result.user));
@@ -2134,7 +2234,7 @@ if ( isset( $product ) && $product ) {
 
         } else {
           // Show error message
-          errorDiv.textContent = result.error || 'Invalid verification code';
+          errorDiv.textContent = getStyliqueAuthErrorMessage(result, response);
           errorDiv.style.display = 'block';
         }
 
@@ -2186,14 +2286,14 @@ if ( isset( $product ) && $product ) {
           })
         });
 
-        const result = await response.json();
+        const result = await parseStyliqueJsonResponse(response);
 
-        if (result.success) {
+        if (response.ok && result.success) {
           const successDiv = document.getElementById('stylique-login-success');
-          successDiv.textContent = 'Verification code sent!';
+          successDiv.textContent = getStyliqueOtpSuccessMessage(result);
           successDiv.style.display = 'block';
         } else {
-          showError(result.error || 'Failed to send verification code');
+          showError(getStyliqueAuthErrorMessage(result, response));
         }
 
       } catch (error) {
@@ -2484,6 +2584,7 @@ if ( isset( $product ) && $product ) {
 
     // 2D Virtual try-on process
     async function start2DTryOn() {
+      if (!requireLogin('Please log in to start your virtual try-on.')) return;
       if (!window.styliqueOptions.selectedImage) {
         alert('Please select a full-body image first.');
         return;
@@ -2713,6 +2814,7 @@ if ( isset( $product ) && $product ) {
 
     // 3D Virtual try-on process
     async function start3DTryOn() {
+      if (!requireLogin('Please log in to start your virtual try-on.')) return;
       if (!window.styliqueOptions.selectedImage) {
         alert('Please select a full-body image first.');
         return;
