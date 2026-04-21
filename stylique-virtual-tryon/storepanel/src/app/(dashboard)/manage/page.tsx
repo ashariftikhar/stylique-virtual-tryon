@@ -120,20 +120,20 @@ export default function ManageInventory() {
     try {
       setIsLoading(true);
       setError('');
-      const sessionResponse = await fetch('/api/get-store-session');
-      const sessionData = await sessionResponse.json();
+      const storeId = typeof window !== 'undefined' ? localStorage.getItem('store_id') : null;
 
-      if (!sessionData.authenticated || !sessionData.store?.id) {
+      if (!storeId) {
         setError('Not authenticated. Please sign in again.');
         return;
       }
 
       try {
-        const data: any = await apiClient.getInventory(sessionData.store.id, 200);
+        const data: any = await apiClient.getInventory(storeId, 200);
         setInventory(data.inventory || data.products || []);
-      } catch {
+      } catch (inventoryError) {
         setInventory([]);
-        setError('Inventory could not be loaded from the backend.');
+        const message = inventoryError instanceof Error ? inventoryError.message : 'Inventory could not be loaded from the backend.';
+        setError(message);
       }
     } catch {
       setError('Failed to load inventory.');
