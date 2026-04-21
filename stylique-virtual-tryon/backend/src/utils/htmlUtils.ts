@@ -61,12 +61,147 @@ export function parseSizeChart(data: any): Record<string, Record<string, number>
       const parsed = JSON.parse(data);
       return validateSizeChartObject(parsed);
     } catch (err) {
-      console.warn('[parseSizeChart] Failed to parse JSON string:', err);
+      const parsedTable = parseHtmlSizeChart(data);
+      if (Object.keys(parsedTable).length > 0) {
+        return parsedTable;
+      }
+
+      console.warn('[parseSizeChart] Failed to parse JSON/table string:', err);
       return {};
     }
   }
   
   return {};
+}
+
+function normalizeMeasurementKey(value: string): string {
+  return stripHtmlTags(value)
+    .toLowerCase()
+    .replace(/\(.+?\)/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function looksLikeMeasurementKey(value: string): boolean {
+  const normalized = normalizeMeasurementKey(value);
+  return [
+    'bust',
+    'chest',
+    'waist',
+    'hips',
+    'hip',
+    'shoulder',
+    'sleeve',
+    'length',
+    'inseam',
+    'height',
+  ].includes(normalized);
+}
+
+function toMeasurementNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const matches = stripHtmlTags(value).match(/-?\d+(?:\.\d+)?/g);
+  if (!matches || matches.length === 0) {
+    return null;
+  }
+
+  const numbers = matches.map(Number).filter(Number.isFinite);
+  if (numbers.length === 0) {
+    return null;
+  }
+
+  if (numbers.length >= 2 && /-|to/i.test(value)) {
+    const first = numbers[0];
+    const second = numbers[1];
+    if (first != null && second != null) {
+      return Math.round(((first + second) / 2) * 10) / 10;
+    }
+  }
+
+  return numbers[0] ?? null;
+}
+
+function parseTableRows(html: string): string[][] {
+  const rowMatches = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  return rowMatches
+    .map((row) => {
+      const cellMatches = row.match(/<(?:th|td)[^>]*>[\s\S]*?<\/(?:th|td)>/gi) || [];
+      return cellMatches
+        .map((cell) => stripHtmlTags(cell).trim())
+        .filter((cell) => cell !== '');
+    })
+    .filter((row) => row.length > 1);
+}
+
+function parseHtmlSizeChart(html: string): Record<string, Record<string, number>> {
+  if (!/<table|<tr|<td|<th/i.test(html)) {
+    return {};
+  }
+
+  const rows = parseTableRows(html);
+  if (rows.length < 2) {
+    return {};
+  }
+
+  const headers = rows[0] || [];
+  const bodyRows = rows.slice(1);
+  const headerMeasurements = headers.slice(1).filter(looksLikeMeasurementKey).length;
+  const result: Record<string, Record<string, number>> = {};
+
+  if (headerMeasurements > 0) {
+    for (const row of bodyRows) {
+      const size = row[0]?.trim();
+      if (!size) continue;
+
+      const measurements: Record<string, number> = {};
+      headers.slice(1).forEach((header, index) => {
+        const key = normalizeMeasurementKey(header);
+        const value = toMeasurementNumber(row[index + 1]);
+        if (key && value != null) {
+          measurements[key] = value;
+        }
+      });
+
+      if (Object.keys(measurements).length > 0) {
+        result[size] = measurements;
+      }
+    }
+  } else {
+    const sizes = headers.slice(1).map((size) => size.trim()).filter(Boolean);
+    for (const size of sizes) {
+      result[size] = {};
+    }
+
+    for (const row of bodyRows) {
+      const key = normalizeMeasurementKey(row[0] || '');
+      if (!key) continue;
+
+      row.slice(1).forEach((value, index) => {
+        const size = sizes[index];
+        const numberValue = toMeasurementNumber(value);
+        if (size && numberValue != null) {
+          result[size] = result[size] || {};
+          result[size][key] = numberValue;
+        }
+      });
+    }
+
+    for (const size of Object.keys(result)) {
+      const measurements = result[size] || {};
+      if (Object.keys(measurements).length === 0) {
+        delete result[size];
+      }
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -85,8 +220,8 @@ function validateSizeChartObject(obj: any): Record<string, Record<string, number
       let hasValidMeasurement = false;
       
       for (const [measureKey, measureValue] of Object.entries(sizeData)) {
-        const num = Number(measureValue);
-        if (!isNaN(num) && isFinite(num)) {
+        const num = toMeasurementNumber(measureValue);
+        if (num != null) {
           measurements[measureKey] = num;
           hasValidMeasurement = true;
         }

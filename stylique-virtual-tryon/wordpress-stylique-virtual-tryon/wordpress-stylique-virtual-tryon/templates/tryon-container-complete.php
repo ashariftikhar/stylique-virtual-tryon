@@ -1,9 +1,22 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { exit; } ?>
-<div style="display: flex; justify-content: center; width: 100%; margin: 24px 0 0 0;">
-  <button id="stylique-open-modal" class="stylique-trigger-btn" onclick="window.openStyliqueModal()">
+<?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+$stylique_modal_only = isset( $stylique_modal_only ) ? (bool) $stylique_modal_only : false;
+$stylique_options    = isset( $stylique_options ) && is_array( $stylique_options ) ? $stylique_options : array(
+  'logo_url'        => '',
+  'primary_color'   => get_option( 'stylique_primary_color', '#642FD7' ),
+  'secondary_color' => get_option( 'stylique_secondary_color', '#F4536F' ),
+  'text_color'      => '#1f2937',
+  'border_radius'   => '12',
+);
+?>
+<?php if ( ! $stylique_modal_only ) : ?>
+<div class="stylique-trigger-wrap">
+  <button type="button" id="stylique-open-modal" class="stylique-trigger-btn" onclick="window.openStyliqueModal && window.openStyliqueModal()">
     ✨ Virtual Try-On
   </button>
 </div>
+<?php endif; ?>
 
 
 <div id="stylique-modal" class="stylique-modal-wrapper" style="display: none;">
@@ -900,15 +913,39 @@
 
 
 
-  
-<?php endif; ?>
+<?php
+$stylique_product_image_urls = array();
+if ( isset( $product ) && $product ) {
+  $featured_image_id = $product->get_image_id();
+  if ( $featured_image_id ) {
+    $featured_image_url = wp_get_attachment_image_url( $featured_image_id, 'large' );
+    if ( $featured_image_url ) {
+      $stylique_product_image_urls[] = $featured_image_url;
+    }
+  }
 
+  foreach ( $product->get_gallery_image_ids() as $gallery_image_id ) {
+    $gallery_image_url = wp_get_attachment_image_url( $gallery_image_id, 'large' );
+    if ( $gallery_image_url ) {
+      $stylique_product_image_urls[] = $gallery_image_url;
+    }
+  }
 
-  
-<?php endif; ?>
+  $stylique_product_image_urls = array_values( array_unique( $stylique_product_image_urls ) );
+}
+?>
 
 <script>
   (function () {
+    window.styliqueOptions = Object.assign(window.styliqueOptions || {}, {
+      storeId: <?php echo wp_json_encode( get_option( 'stylique_store_id' ) ); ?>,
+      backendUrl: <?php echo wp_json_encode( get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL ) ); ?>,
+      primaryColor: <?php echo wp_json_encode( get_option( 'stylique_primary_color', '#642FD7' ) ); ?>,
+      secondaryColor: <?php echo wp_json_encode( get_option( 'stylique_secondary_color', '#F4536F' ) ); ?>,
+      wooProductId: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : 'null'; ?>,
+      wooProductTitle: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_name() ) : 'null'; ?>
+    });
+
     var STYLIQUE_API_BASE = window.styliqueOptions.backendUrl || "https://www.styliquetechnologies.com";
 
     console.log('[Stylique] API base URL:', STYLIQUE_API_BASE);
@@ -951,16 +988,14 @@
       tryonsUsed: 0,
       storeStatus: null,
       stores: null
-    };
+    });
 
     console.log('[Stylique] Section initialized, store:', window.styliqueOptions.storeId);
 
     // Capture ALL Shopify product images for carousel (primary source, not fallback)
     window.styliqueOptions.shopifyProductImages = [];
-    
-      window.styliqueOptions.shopifyProductImages = wp_json_encode($image_urls);
-      console.log('[Stylique] Shopify product images captured:', window.styliqueOptions.shopifyProductImages.length, 'images');
-    <?php endif; ?>
+    window.styliqueOptions.shopifyProductImages = <?php echo wp_json_encode( $stylique_product_image_urls ); ?>;
+    console.log('[Stylique] WooCommerce product images captured:', window.styliqueOptions.shopifyProductImages.length, 'images');
 
     async function _styProbe(label, url, opts) {
       console.log('[Stylique probe]', label, '→', url);
@@ -1244,7 +1279,7 @@
       const payload = {
         storeId: window.styliqueOptions.storeId,
         currentUrl: window.styliqueOptions.currentUrl,
-        shopifyProductId: <?php echo isset($product) && $product ? esc_js($product->get_id()) : "null"; ?>
+        shopifyProductId: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : 'null'; ?>
       };
       console.log('Stylique check-product payload:', payload);
 
@@ -3969,10 +4004,11 @@
     .then(data => {
       console.log('Added to cart:', data);
       
-      // Track conversion
-      
-        trackConversion(<?php echo isset($product) && $product ? esc_js($product->get_id()) : ""; ?>);
-      <?php endif; ?>
+      // Track conversion when a WooCommerce product is available on this page.
+      var styliqueConversionProductId = <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : 'null'; ?>;
+      if (styliqueConversionProductId) {
+        trackConversion(styliqueConversionProductId);
+      }
 
       hideResultsModal();
       // Show cart notification or redirect to cart
@@ -3982,7 +4018,6 @@
       console.error('Error adding to cart:', error);
       alert('Error adding to cart. Please try again.');
     });
-  <?php endif; ?>
   }
 
   // Event listeners
@@ -5253,9 +5288,9 @@
   async function loadSizeRecommendationForResult(productId) {
     // Redirect to new V2 function
     const product = window.styliqueOptions.currentProduct || {};
-    const productTitle = product.title || '<?php echo isset($product) && $product ? esc_js($product->get_name()) : ""; ?>';
-    const productImage = product.featured_image || '<?php echo isset($product) && $product && $product->get_image_id() ? esc_js(wp_get_attachment_image_url($product->get_image_id(), "medium")) : ""; ?>';
-    const productUrl = product.url || '<?php echo isset($product) && $product ? esc_js($product->get_permalink()) : ""; ?>';
+    const productTitle = product.title || <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_name() ) : '""'; ?>;
+    const productImage = product.featured_image || <?php echo isset( $product ) && $product && $product->get_image_id() ? wp_json_encode( wp_get_attachment_image_url( $product->get_image_id(), 'medium' ) ) : '""'; ?>;
+    const productUrl = product.url || <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_permalink() ) : '""'; ?>;
     await loadSizeRecommendationForResultV2(productId, productTitle, productImage, productUrl);
   }
 
@@ -5538,7 +5573,7 @@
          /* 
             Since this snippet is usually on the product page, we can inject the product ID via Liquid.
          */
-         const currentPageProductId = "<?php echo isset($product) && $product ? esc_js($product->get_id()) : ""; ?>"; 
+         const currentPageProductId = <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : '""'; ?>;
          if (currentPageProductId) {
             trackConversion(currentPageProductId);
          }
@@ -5550,7 +5585,7 @@
   document.addEventListener('click', function(e) {
     const target = e.target.closest('[name="add"], .product-form__submit, .add-to-cart');
     if (target && window.styliqueOptions.user) {
-       const currentPageProductId = "<?php echo isset($product) && $product ? esc_js($product->get_id()) : ""; ?>"; 
+       const currentPageProductId = <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : '""'; ?>;
        if (currentPageProductId) {
           trackConversion(currentPageProductId);
        }

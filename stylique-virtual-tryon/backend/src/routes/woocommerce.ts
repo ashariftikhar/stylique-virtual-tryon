@@ -38,6 +38,16 @@ function storeNameFromDomain(domain: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase()) || domain;
 }
 
+function isWooCommerceSizeAttribute(name: string | undefined): boolean {
+  const normalized = String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^pa[_-]/, '')
+    .replace(/[_-]+/g, ' ');
+
+  return normalized === 'size' || normalized === 'sizes' || normalized.includes(' size');
+}
+
 function timingSafeStringEqual(a: string, b: string): boolean {
   const aBuf = Buffer.from(a);
   const bBuf = Buffer.from(b);
@@ -149,8 +159,9 @@ async function syncWooCommerceProductToInventory(
   const sizes: string[] = [];
   product.variants?.forEach((variant) => {
     variant.attributes?.forEach((attr) => {
-      if (attr.name.toLowerCase() === 'size' && !sizes.includes(attr.option)) {
-        sizes.push(attr.option);
+      const option = String(attr.option || '').trim();
+      if (isWooCommerceSizeAttribute(attr.name) && option && !sizes.includes(option)) {
+        sizes.push(option);
       }
     });
   });
@@ -535,7 +546,10 @@ router.post('/sync/woocommerce', async (req: Request, res: Response) => {
         sizes: product.variants && product.variants.length > 0
           ? Array.from(new Set(
               product.variants.flatMap((v) =>
-                v.attributes?.filter((a) => a.name.toLowerCase() === 'size').map((a) => a.option) || []
+                v.attributes
+                  ?.filter((a) => isWooCommerceSizeAttribute(a.name))
+                  .map((a) => String(a.option || '').trim())
+                  .filter(Boolean) || []
               )
             )).sort()
           : Object.keys(extractWooCommerceSizeChart(product.meta_data)).sort(),

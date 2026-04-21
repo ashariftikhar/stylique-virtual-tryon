@@ -366,6 +366,14 @@ async function sendOtpEmail(toEmail: string, code: string): Promise<void> {
   }
 }
 
+function isOtpEmailProviderConfigured(): boolean {
+  return Boolean(process.env.SENDGRID_API_KEY && (process.env.OTP_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL));
+}
+
+function isDevOtpLoginEnabled(): boolean {
+  return process.env.ALLOW_DEV_OTP_LOGIN === 'true' || process.env.STYLIQUE_DEV_OTP_LOGIN === 'true';
+}
+
 // ──────────────────────────────────────────────
 // GET /plugin/simple, /plugin/test-2d — storefront widget testAPIConnection()
 // ──────────────────────────────────────────────
@@ -437,6 +445,17 @@ router.post('/auth', async (req: Request, res: Response) => {
       try {
         await sendOtpEmail(normalizedEmail, code);
       } catch (emailErr: any) {
+        if (!isOtpEmailProviderConfigured() && isDevOtpLoginEnabled()) {
+          console.warn(
+            `[Plugin Auth] DEV OTP fallback enabled for ${normalizedEmail}. Configure SendGrid before production use. OTP=${code}`,
+          );
+          return res.json({
+            success: true,
+            message: `Development OTP: ${code}`,
+            dev_otp: code,
+          });
+        }
+
         await supabase
           .from('users')
           .update({ otp_code: null, otp_expires_at: null })

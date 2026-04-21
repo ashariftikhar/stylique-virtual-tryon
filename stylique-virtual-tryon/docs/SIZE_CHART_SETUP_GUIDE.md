@@ -136,7 +136,11 @@ Use the same JSON format as Shopify:
 ### Step 4: Trigger Product Sync
 
 1. **Automatic:** When you update a product in WooCommerce, Stylique webhook automatically triggers a sync.
-2. **Manual:** If needed, trigger a manual sync from the Stylique Store Panel.
+2. **Manual:** If needed, use **Settings -> Stylique Try-On -> Sync All Products** in WordPress.
+
+The WordPress plugin sends only the supported size chart meta keys to the backend:
+`_size_chart`, `_wc_size_chart`, `size_chart`, and `wc_size_chart`.
+If the value is valid JSON or an object-like custom field value, the backend stores it in `inventory.measurements`.
 
 ### Verification
 

@@ -3,7 +3,7 @@
  * Plugin Name: Stylique Virtual Try-On
  * Plugin URI: https://styliquetechnologies.com
  * Description: Adds AI-powered Virtual Try-On and Size Recommendations to your WooCommerce product pages.
- * Version: 1.9.6
+ * Version: 1.9.7
  * Author: Stylique Technologies
  * Author URI: https://styliquetechnologies.com
  * License: GPL-2.0+
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'STYLIQUE_PLUGIN_VERSION', '1.9.6' );
+define( 'STYLIQUE_PLUGIN_VERSION', '1.9.7' );
 define( 'STYLIQUE_DEFAULT_BACKEND_URL', 'https://stylique-api.onrender.com' );
 
 // Check if WooCommerce is active
@@ -35,6 +35,12 @@ class Stylique_Virtual_TryOn {
 	/** @var bool */
 	private static $shutdown_sync_registered = false;
 
+	/** @var bool Prevent duplicate modal output on product pages. */
+	private $modal_rendered = false;
+
+	/** @var bool Tracks whether the classic WooCommerce hook rendered the trigger. */
+	private $trigger_rendered = false;
+
 	public function __construct() {
 		// Admin Settings
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
@@ -47,6 +53,7 @@ class Stylique_Virtual_TryOn {
 
 		// Frontend Content Injection
 		add_action( 'woocommerce_after_add_to_cart_form', array( $this, 'render_tryon_section' ), 30 );
+		add_action( 'wp_footer', array( $this, 'render_tryon_modal' ), 20 );
 
 		// ── Product Sync Hooks (multiple layers for reliability) ──
 
@@ -457,29 +464,21 @@ class Stylique_Virtual_TryOn {
 		wp_enqueue_script( 'three-obj-loader', 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js', array('three-js'), '0.128.0', true );
 
 		// Enqueue carousel assets
-		wp_enqueue_style('stylique-carousel-style', plugin_dir_url(__FILE__) . 'assets/css/carousel.css', array(), '1.0.0');
-		wp_enqueue_script('stylique-carousel-js', plugin_dir_url(__FILE__) . 'assets/js/carousel.js', array(), '1.0.0', true);
+		wp_enqueue_style( 'stylique-carousel-style', plugin_dir_url( __FILE__ ) . 'assets/css/carousel.css', array(), $this->asset_version( 'assets/css/carousel.css' ) );
+		wp_enqueue_script( 'stylique-carousel-js', plugin_dir_url( __FILE__ ) . 'assets/js/carousel.js', array(), $this->asset_version( 'assets/js/carousel.js' ), true );
 
-		// Main widget modal - comprehensive JavaScript for modal, authentication, try-on, and results
-		wp_enqueue_script('stylique-widget-modal', plugin_dir_url(__FILE__) . 'assets/js/widget-modal.js', array('jquery', 'stylique-carousel-js'), '1.9.6', true);
-		wp_enqueue_style('stylique-tryon-style', plugin_dir_url(__FILE__) . 'assets/css/tryon-style.css', array(), '2.0.4');
+		// The complete WooCommerce template contains the modal controller inline.
+		// Do not enqueue widget-modal.js here; it defines duplicate open/close handlers.
+		wp_enqueue_style( 'stylique-tryon-style', plugin_dir_url( __FILE__ ) . 'assets/css/tryon-style.css', array(), $this->asset_version( 'assets/css/tryon-style.css' ) );
+	}
 
-		wp_localize_script( 'stylique-widget-modal', 'styliqueConfig', array(
-			'storeId' => get_option( 'stylique_store_id' ),
-			'backendUrl' => get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL ),
-			'colors' => array(
-				'primary' => get_option( 'stylique_primary_color', '#642FD7' ),
-				'secondary' => get_option( 'stylique_secondary_color', '#F4536F' ),
-			),
-			'product' => array(
-				'id' => $product->get_id(),
-				'title' => $product->get_name(),
-				'price' => $product->get_price(),
-				'image' => wp_get_attachment_url( $product->get_image_id() ),
-                'url' => get_permalink( $product->get_id() )
-			),
-            'siteUrl' => get_site_url()
-		));
+	private function asset_version( $relative_path ) {
+		$path = plugin_dir_path( __FILE__ ) . ltrim( $relative_path, '/\\' );
+		if ( file_exists( $path ) ) {
+			return (string) filemtime( $path );
+		}
+
+		return STYLIQUE_PLUGIN_VERSION;
 	}
 
 	public function render_tryon_section() {
@@ -493,8 +492,48 @@ class Stylique_Virtual_TryOn {
 		}
 
 		?>
-		<div id="stylique-virtual-tryon-container" class="stylique-section">
-            <?php include( plugin_dir_path( __FILE__ ) . 'templates/tryon-container-complete.php' ); ?>
+		<div id="stylique-virtual-tryon-container" class="stylique-section" data-stylique-trigger-root="true">
+			<?php $this->render_tryon_trigger(); ?>
+		</div>
+		<?php
+		$this->trigger_rendered = true;
+	}
+
+	public function render_tryon_modal() {
+		if ( $this->modal_rendered || ! is_product() ) {
+			return;
+		}
+
+		global $post;
+		if ( ! $post || $post->post_type !== 'product' ) {
+			return;
+		}
+
+		$product = wc_get_product( $post->ID );
+		if ( ! $product ) {
+			return;
+		}
+
+		$this->modal_rendered = true;
+		$stylique_modal_only = true;
+		?>
+		<?php if ( ! $this->trigger_rendered ) : ?>
+			<div id="stylique-virtual-tryon-container" class="stylique-section stylique-footer-trigger" data-stylique-trigger-root="true">
+				<?php $this->render_tryon_trigger(); ?>
+			</div>
+		<?php endif; ?>
+		<div id="stylique-modal-root">
+			<?php include( plugin_dir_path( __FILE__ ) . 'templates/tryon-container-complete.php' ); ?>
+		</div>
+		<?php
+	}
+
+	private function render_tryon_trigger() {
+		?>
+		<div class="stylique-trigger-wrap">
+			<button type="button" id="stylique-open-modal" class="stylique-trigger-btn" onclick="window.openStyliqueModal && window.openStyliqueModal()">
+				✨ Virtual Try-On
+			</button>
 		</div>
 		<?php
 	}
@@ -812,6 +851,7 @@ class Stylique_Virtual_TryOn {
 				'permalink'   => $product->get_permalink(),
 				'images'      => $this->get_product_images( $product ),
 				'variants'    => $this->get_product_variants( $product ),
+				'meta_data'   => $this->get_product_sync_meta_data( $product ),
 			),
 		);
 	}
@@ -939,11 +979,95 @@ class Stylique_Virtual_TryOn {
 		} else {
 			$variants[] = array(
 				'price'      => $product->get_price(),
-				'attributes' => array(),
+				'attributes' => $this->get_product_attribute_options( $product ),
 			);
 		}
 
 		return $variants;
+	}
+
+	private function get_product_attribute_options( $product ) {
+		$options = array();
+
+		if ( ! $product || ! method_exists( $product, 'get_attributes' ) ) {
+			return $options;
+		}
+
+		foreach ( $product->get_attributes() as $attribute ) {
+			if ( ! is_object( $attribute ) || ! method_exists( $attribute, 'get_name' ) ) {
+				continue;
+			}
+
+			$name  = wc_attribute_label( $attribute->get_name() );
+			$terms = array();
+
+			if ( method_exists( $attribute, 'is_taxonomy' ) && $attribute->is_taxonomy() ) {
+				$term_names = wc_get_product_terms( $product->get_id(), $attribute->get_name(), array( 'fields' => 'names' ) );
+				if ( ! is_wp_error( $term_names ) ) {
+					$terms = $term_names;
+				}
+			} elseif ( method_exists( $attribute, 'get_options' ) ) {
+				$terms = $attribute->get_options();
+			}
+
+			foreach ( $terms as $term ) {
+				$option = trim( (string) $term );
+				if ( $option === '' ) {
+					continue;
+				}
+				$options[] = array(
+					'name'   => $name,
+					'option' => $option,
+				);
+			}
+		}
+
+		return $options;
+	}
+
+	private function get_product_sync_meta_data( $product ) {
+		$meta_data = array();
+		$keys      = array( '_size_chart', '_wc_size_chart', 'size_chart', 'wc_size_chart' );
+		$seen_keys = array();
+
+		foreach ( $keys as $key ) {
+			$value = get_post_meta( $product->get_id(), $key, true );
+			if ( $value === '' || $value === null || $value === array() ) {
+				continue;
+			}
+
+			$meta_data[] = array(
+				'key'   => $key,
+				'value' => $value,
+			);
+			$seen_keys[ $key ] = true;
+		}
+
+		$all_meta = get_post_meta( $product->get_id() );
+		foreach ( $all_meta as $key => $values ) {
+			if ( isset( $seen_keys[ $key ] ) ) {
+				continue;
+			}
+
+			if ( ! preg_match( '/(size.*chart|chart.*size|measurement|measurements)/i', $key ) ) {
+				continue;
+			}
+
+			$value = is_array( $values ) ? reset( $values ) : $values;
+			if ( $value === '' || $value === null || $value === array() ) {
+				continue;
+			}
+
+			$meta_data[] = array(
+				'key'   => $key,
+				'value' => maybe_unserialize( $value ),
+			);
+			$seen_keys[ $key ] = true;
+		}
+
+		error_log( '[Stylique][sync] Size chart meta keys found: ' . count( $meta_data ) );
+
+		return $meta_data;
 	}
 
 	/* ------------------------------------------------------------------ */

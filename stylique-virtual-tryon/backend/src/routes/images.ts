@@ -29,6 +29,39 @@ interface ScoredImage extends ImageCandidate {
   labels?: string[];
 }
 
+function isPublicHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = url.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname.endsWith('.local') ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.')
+    ) {
+      return false;
+    }
+
+    const private172 = hostname.match(/^172\.(\d+)\./);
+    if (private172) {
+      const secondOctet = Number(private172[1]);
+      if (secondOctet >= 16 && secondOctet <= 31) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ──────────────────────────────────────────────
 // Rule-based pre-filter
 // ──────────────────────────────────────────────
@@ -40,7 +73,7 @@ function filterImages(images: ImageCandidate[]): ImageCandidate[] {
         return false;
       }
     }
-    if (!img.url || !img.url.startsWith('http')) return false;
+    if (!img.url || !isPublicHttpUrl(img.url)) return false;
     return true;
   });
 }
@@ -143,7 +176,7 @@ async function scoreImageWithRekognition(imageUrl: string): Promise<{ score: num
     };
   } catch (error) {
     console.error('[Images] Rekognition error:', error);
-    return { score: 50, labels: ['rekognition-error'] };
+    return { score: 0, labels: ['rekognition-error'] };
   }
 }
 
