@@ -42,7 +42,7 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select(
-        'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used, shopify_theme_injection_done, shopify_theme_injection_status, shopify_shop_domain'
+        'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used, shopify_theme_injection_done, shopify_theme_injection_status, shopify_shop_domain, woocommerce_site_url, woocommerce_connected_at, woocommerce_last_sync_at, woocommerce_last_sync_status'
       )
       .eq('id', authStore.storeId)
       .maybeSingle();
@@ -85,6 +85,13 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
         done: store.shopify_theme_injection_done ?? false,
         status: store.shopify_theme_injection_status ?? null,
         shopDomain: store.shopify_shop_domain ?? null,
+      },
+      woocommerceIntegration: {
+        connected: Boolean(store.woocommerce_site_url || store.woocommerce_connected_at),
+        siteUrl: store.woocommerce_site_url ?? null,
+        connectedAt: store.woocommerce_connected_at ?? null,
+        lastSyncAt: store.woocommerce_last_sync_at ?? null,
+        lastSyncStatus: store.woocommerce_last_sync_status ?? null,
       },
     });
   } catch (error: any) {

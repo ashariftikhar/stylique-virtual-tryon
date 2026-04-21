@@ -27,6 +27,11 @@ CREATE TABLE public.stores (
   subscription_end_at timestamp with time zone NULL,
   tryons_quota integer NOT NULL DEFAULT 0,
   tryons_used integer NOT NULL DEFAULT 0,
+  woocommerce_site_url text NULL,
+  woocommerce_sync_secret_hash text NULL,
+  woocommerce_connected_at timestamp with time zone NULL,
+  woocommerce_last_sync_at timestamp with time zone NULL,
+  woocommerce_last_sync_status text NULL,
   CONSTRAINT stores_pkey PRIMARY KEY (id),
   CONSTRAINT stores_store_id_key UNIQUE (store_id),
   CONSTRAINT stores_tryons_nonneg CHECK (tryons_quota >= 0 AND tryons_used >= 0),
@@ -35,6 +40,7 @@ CREATE TABLE public.stores (
 
 CREATE INDEX IF NOT EXISTS idx_stores_store_id ON public.stores USING btree (store_id);
 CREATE INDEX IF NOT EXISTS idx_stores_subscription_end_at ON public.stores USING btree (subscription_end_at);
+CREATE INDEX IF NOT EXISTS idx_stores_woocommerce_site_url ON public.stores (woocommerce_site_url) WHERE woocommerce_site_url IS NOT NULL;
 
 CREATE TRIGGER update_stores_updated_at
   BEFORE UPDATE ON stores

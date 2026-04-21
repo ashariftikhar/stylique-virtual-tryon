@@ -1,3 +1,5 @@
+import type { StoreConfigResponse } from '@/types/api';
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 type InventoryCreatePayload = {
@@ -69,7 +71,7 @@ export class ApiClient {
     return response.json() as Promise<T>;
   }
 
-  async getStoreConfig(storeId: string) {
+  async getStoreConfig(storeId: string): Promise<StoreConfigResponse> {
     return this.request(`/api/store/${encodeURIComponent(storeId)}/config`);
   }
 

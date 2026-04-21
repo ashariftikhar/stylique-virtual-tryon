@@ -1,11 +1,15 @@
 import express from 'express';
 import type { Router, Request, Response } from 'express';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { getSupabase } from '../services/supabase.ts';
 import { processProductImages } from './images.ts';
 import { stripHtmlTags, parseSizeChart } from '../utils/htmlUtils.ts';
-import { requireAuth, requireSyncSecret, type AuthenticatedRequest } from '../middleware/auth.ts';
+import { getJwtSecret, requireAuth, type AuthenticatedRequest } from '../middleware/auth.ts';
 
 const router: Router = express.Router();
+const SALT_ROUNDS = 10;
 
 function isUUID(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
@@ -13,6 +17,110 @@ function isUUID(value: string): boolean {
 
 function normalizeHost(value: string): string {
   return value.trim().toLowerCase().replace(/^www\./, '').replace(/\.+$/, '');
+}
+
+function parseSiteUrl(value: string | undefined): URL | null {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  try {
+    return new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+  } catch {
+    return null;
+  }
+}
+
+function storeNameFromDomain(domain: string): string {
+  const firstPart = domain.split('.')[0] ?? domain;
+  return firstPart
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase()) || domain;
+}
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  return aBuf.length === bBuf.length && crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+function getGlobalSyncSecret(): string | undefined {
+  return process.env.SYNC_API_SECRET || process.env.STYLIQUE_SYNC_SECRET;
+}
+
+function getProvidedSyncSecret(req: Request): string | undefined {
+  return (
+    req.get('X-Stylique-Sync-Secret') ||
+    req.get('X-Webhook-Secret') ||
+    req.get('X-Sync-Secret') ||
+    undefined
+  );
+}
+
+async function verifyWooCommerceSyncSecret(
+  req: Request,
+  storeDomain: string,
+  storeSecretHash?: string | null,
+): Promise<{ ok: true; usedGlobalFallback: boolean } | { ok: false; error: string; message: string }> {
+  const providedSecret = getProvidedSyncSecret(req);
+  if (!providedSecret) {
+    return {
+      ok: false,
+      error: 'missing_secret',
+      message: 'Missing WooCommerce sync secret',
+    };
+  }
+
+  if (storeSecretHash) {
+    try {
+      const validStoreSecret = await bcrypt.compare(providedSecret, storeSecretHash);
+      if (validStoreSecret) {
+        return { ok: true, usedGlobalFallback: false };
+      }
+    } catch (error: any) {
+      console.error(`[WooCommerce Sync] Failed to verify store secret for ${storeDomain}:`, error.message);
+    }
+  }
+
+  const globalSecret = getGlobalSyncSecret();
+  if (globalSecret && timingSafeStringEqual(providedSecret, globalSecret)) {
+    console.warn(
+      `[WooCommerce Sync] Deprecated global sync secret fallback used for ${storeDomain}. Reconnect the WordPress plugin to use a per-store secret.`,
+    );
+    return { ok: true, usedGlobalFallback: true };
+  }
+
+  return {
+    ok: false,
+    error: 'invalid_secret',
+    message: 'Invalid WooCommerce sync secret',
+  };
+}
+
+async function updateWooCommerceSyncStatus(
+  storeUuid: string,
+  status: string,
+): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('stores')
+    .update({
+      woocommerce_last_sync_at: new Date().toISOString(),
+      woocommerce_last_sync_status: status.slice(0, 500),
+    })
+    .eq('id', storeUuid);
+
+  if (error) {
+    console.error('[WooCommerce Sync] Failed to update sync status:', error.message);
+  }
+}
+
+interface WooCommerceConnectPayload {
+  store_domain?: string;
+  site_url?: string;
+  store_name?: string;
+  admin_email?: string | null;
+  plugin_version?: string;
 }
 
 /**
@@ -218,22 +326,152 @@ interface WooCommerceWebhookPayload {
   product: WooCommerceProduct;
 }
 
+// POST /api/woocommerce/connect
+// Called by the WordPress plugin during first-time setup. It creates or updates
+// the store, then returns one-time credentials and a per-store sync secret.
+router.post('/woocommerce/connect', async (req: Request, res: Response) => {
+  try {
+    const supabase = getSupabase();
+    const payload: WooCommerceConnectPayload = req.body || {};
+    const parsedSiteUrl = parseSiteUrl(payload.site_url || payload.store_domain);
+
+    if (!parsedSiteUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_site_url',
+        message: 'A valid WordPress site URL or store domain is required',
+      });
+    }
+
+    const storeId = normalizeHost(parsedSiteUrl.hostname);
+    if (!storeId || !storeId.includes('.')) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_store_domain',
+        message: 'Store domain must be a valid hostname',
+      });
+    }
+
+    const siteUrl = parsedSiteUrl.origin;
+    const storeName = String(payload.store_name || '').trim() || storeNameFromDomain(storeId);
+    const adminEmail = payload.admin_email ? String(payload.admin_email).trim() : null;
+    const plainPassword = crypto.randomBytes(6).toString('hex');
+    const syncSecret = crypto.randomBytes(32).toString('hex');
+    const [passwordHash, syncSecretHash] = await Promise.all([
+      bcrypt.hash(plainPassword, SALT_ROUNDS),
+      bcrypt.hash(syncSecret, SALT_ROUNDS),
+    ]);
+
+    const { data: existing, error: existingError } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('store_id', storeId)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error('[WooCommerce Connect] Store lookup failed:', existingError.message);
+      return res.status(500).json({
+        success: false,
+        error: 'store_lookup_failed',
+        message: 'Unable to check existing store',
+      });
+    }
+
+    const storeFields = {
+      store_name: storeName,
+      store_id: storeId,
+      email: adminEmail || null,
+      password_hash: passwordHash,
+      woocommerce_site_url: siteUrl,
+      woocommerce_sync_secret_hash: syncSecretHash,
+      woocommerce_connected_at: new Date().toISOString(),
+      woocommerce_last_sync_status: 'Connected; product sync not run yet',
+    };
+
+    let store: { id: string; store_id: string; store_name: string } | null = null;
+    let dbError: { message: string } | null = null;
+
+    if (existing?.id) {
+      const result = await supabase
+        .from('stores')
+        .update(storeFields)
+        .eq('id', existing.id)
+        .select('id, store_id, store_name')
+        .single();
+      store = result.data;
+      dbError = result.error;
+    } else {
+      const result = await supabase
+        .from('stores')
+        .insert({
+          ...storeFields,
+          subscription_name: 'FREE',
+          tryons_quota: 100,
+          tryons_used: 0,
+        })
+        .select('id, store_id, store_name')
+        .single();
+      store = result.data;
+      dbError = result.error;
+    }
+
+    if (dbError || !store) {
+      console.error('[WooCommerce Connect] Store save failed:', dbError?.message);
+      return res.status(500).json({
+        success: false,
+        error: 'store_save_failed',
+        message: 'Unable to save WooCommerce store connection',
+      });
+    }
+
+    const token = jwt.sign(
+      { storeId: store.id, store_id: store.store_id },
+      getJwtSecret(),
+      { expiresIn: '7d' },
+    );
+    const storePanelUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+    console.log(
+      `[WooCommerce Connect] ${existing?.id ? 'Updated' : 'Created'} store ${store.store_id} (${store.id}) from plugin ${payload.plugin_version || 'unknown'}`,
+    );
+
+    return res.status(existing?.id ? 200 : 201).json({
+      success: true,
+      store_id: store.store_id,
+      store_uuid: store.id,
+      store_name: store.store_name,
+      store_panel_url: storePanelUrl,
+      token,
+      password_once: plainPassword,
+      sync_secret: syncSecret,
+    });
+  } catch (error: any) {
+    console.error('[WooCommerce Connect] Error:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'internal_server_error',
+      message: 'Unable to connect WooCommerce store',
+    });
+  }
+});
+
 // POST /api/sync/woocommerce
-router.post('/sync/woocommerce', requireSyncSecret, async (req: Request, res: Response) => {
+router.post('/sync/woocommerce', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
     const payload: WooCommerceWebhookPayload = req.body;
 
     console.log('[WooCommerce Sync] Received request');
-    console.log('[WooCommerce Sync] store_domain:', payload.store_domain);
-    console.log('[WooCommerce Sync] product:', payload.product?.name, 'id:', payload.product?.id);
+    console.log('[WooCommerce Sync] store_domain:', payload?.store_domain);
+    console.log('[WooCommerce Sync] product:', payload?.product?.name, 'id:', payload?.product?.id);
 
     // Extract store domain
-    const storeDomain = payload.store_domain;
+    const storeDomain = payload?.store_domain ? normalizeHost(String(payload.store_domain)) : '';
     if (!storeDomain) {
       console.log('[WooCommerce Sync] ERROR: Missing store_domain');
       return res.status(400).json({
-        error: 'Missing store_domain in webhook payload',
+        error: 'missing_domain',
+        message: 'Missing store_domain in WooCommerce sync payload',
       });
     }
 
@@ -241,15 +479,36 @@ router.post('/sync/woocommerce', requireSyncSecret, async (req: Request, res: Re
     console.log('[WooCommerce Sync] Looking up store with store_id =', storeDomain);
     const { data: store, error: storeError } = await supabase
       .from('stores')
-      .select('id')
+      .select('id, woocommerce_sync_secret_hash')
       .eq('store_id', storeDomain)
-      .single();
+      .maybeSingle();
 
     if (storeError || !store) {
       console.log('[WooCommerce Sync] Store NOT FOUND for domain:', storeDomain, 'error:', storeError?.message);
       return res.status(404).json({
-        error: 'Store not found',
+        error: 'store_not_found',
+        message: 'Store not found for WooCommerce sync',
         details: `No store found with domain: ${storeDomain}`,
+      });
+    }
+
+    const secretResult = await verifyWooCommerceSyncSecret(
+      req,
+      storeDomain,
+      store.woocommerce_sync_secret_hash,
+    );
+    if (!secretResult.ok) {
+      return res.status(401).json({
+        error: secretResult.error,
+        message: secretResult.message,
+      });
+    }
+
+    if (!payload?.product || !payload.product.id || !payload.product.name) {
+      await updateWooCommerceSyncStatus(store.id, 'Failed: invalid product payload');
+      return res.status(400).json({
+        error: 'invalid_payload',
+        message: 'WooCommerce sync payload must include product id and name',
       });
     }
 
@@ -259,10 +518,13 @@ router.post('/sync/woocommerce', requireSyncSecret, async (req: Request, res: Re
     const row = await syncWooCommerceProductToInventory(store.id, storeDomain, product);
 
     if (!row) {
+      await updateWooCommerceSyncStatus(store.id, `Failed: product ${product.id} could not be synced`);
       return res.status(500).json({
         error: 'Failed to sync product to inventory',
       });
     }
+
+    await updateWooCommerceSyncStatus(store.id, `Synced product ${product.id}: ${product.name}`);
 
     res.status(200).json({
       status: 'success',

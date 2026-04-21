@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+define( 'STYLIQUE_PLUGIN_VERSION', '1.9.6' );
+define( 'STYLIQUE_DEFAULT_BACKEND_URL', 'https://stylique-api.onrender.com' );
+
 // Check if WooCommerce is active
 if ( ! in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
 	return;
@@ -36,6 +39,8 @@ class Stylique_Virtual_TryOn {
 		// Admin Settings
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_post_stylique_connect_store', array( $this, 'handle_connect_store' ) );
+		add_action( 'wp_ajax_stylique_bulk_sync_products', array( $this, 'ajax_bulk_sync_products' ) );
 
 		// Frontend Assets
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
@@ -86,9 +91,157 @@ class Stylique_Virtual_TryOn {
 	}
 
 	public function settings_page_html() {
+		$backend_url = esc_url( get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL ) );
+		$store_id    = get_option( 'stylique_store_id' );
+		$last_sync   = get_option( 'stylique_last_bulk_sync', array() );
 		?>
 		<div class="wrap">
 			<h1>Stylique Virtual Try-On Settings</h1>
+			<div class="card" style="max-width: 860px; padding: 18px; margin-top: 16px;">
+				<h2 style="margin-top: 0;">Connect Stylique</h2>
+				<p>Connect this WooCommerce store to Stylique. This creates or links your Store Panel account, saves the Store ID, and generates a secure product sync secret automatically.</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( 'stylique_connect_store', 'stylique_connect_nonce' ); ?>
+					<input type="hidden" name="action" value="stylique_connect_store" />
+					<table class="form-table" role="presentation">
+						<tr valign="top">
+							<th scope="row">Backend API URL</th>
+							<td>
+								<input type="url" name="stylique_backend_url" value="<?php echo esc_attr( $backend_url ); ?>" class="regular-text" />
+								<p class="description">Packaged default: <?php echo esc_html( STYLIQUE_DEFAULT_BACKEND_URL ); ?>. Replace this for client delivery if their backend is hosted elsewhere.</p>
+							</td>
+						</tr>
+						<tr valign="top">
+							<th scope="row">Connection Status</th>
+							<td>
+								<?php if ( $store_id ) : ?>
+									<p><strong>Connected Store ID:</strong> <code><?php echo esc_html( $store_id ); ?></code></p>
+								<?php else : ?>
+									<p>Not connected yet.</p>
+								<?php endif; ?>
+							</td>
+						</tr>
+					</table>
+					<?php submit_button( $store_id ? 'Reconnect Stylique' : 'Connect Stylique', 'primary', 'submit', false ); ?>
+				</form>
+			</div>
+			<div class="card" style="max-width: 860px; padding: 18px; margin-top: 16px;">
+				<h2 style="margin-top: 0;">Sync Existing Products</h2>
+				<p>Push all published WooCommerce products to Stylique in batches of 20. New and updated products will still auto-sync when saved.</p>
+				<?php if ( ! empty( $last_sync ) && is_array( $last_sync ) ) : ?>
+					<p>
+						<strong>Last bulk sync:</strong>
+						<?php echo esc_html( isset( $last_sync['status'] ) ? $last_sync['status'] : 'unknown' ); ?>
+						<?php if ( ! empty( $last_sync['finished_at'] ) ) : ?>
+							at <?php echo esc_html( $last_sync['finished_at'] ); ?>
+						<?php endif; ?>
+					</p>
+					<p>
+						Synced: <strong><?php echo esc_html( isset( $last_sync['synced'] ) ? (int) $last_sync['synced'] : 0 ); ?></strong>,
+						Failed: <strong><?php echo esc_html( isset( $last_sync['failed'] ) ? (int) $last_sync['failed'] : 0 ); ?></strong>,
+						Total: <strong><?php echo esc_html( isset( $last_sync['total'] ) ? (int) $last_sync['total'] : 0 ); ?></strong>
+					</p>
+					<?php if ( ! empty( $last_sync['last_error'] ) ) : ?>
+						<p><strong>Last error:</strong> <?php echo esc_html( $last_sync['last_error'] ); ?></p>
+					<?php endif; ?>
+				<?php endif; ?>
+				<p>
+					<button
+						type="button"
+						id="stylique-sync-all-products"
+						class="button button-secondary"
+						data-nonce="<?php echo esc_attr( wp_create_nonce( 'stylique_bulk_sync_products' ) ); ?>"
+						<?php disabled( empty( $store_id ) ); ?>
+					>
+						Sync All Products
+					</button>
+				</p>
+				<div id="stylique-bulk-sync-status" style="margin-top: 10px;"></div>
+				<?php if ( empty( $store_id ) ) : ?>
+					<p class="description">Connect Stylique first before syncing existing products.</p>
+				<?php endif; ?>
+			</div>
+			<script>
+				(function() {
+					var button = document.getElementById('stylique-sync-all-products');
+					var statusBox = document.getElementById('stylique-bulk-sync-status');
+					if (!button || !statusBox) {
+						return;
+					}
+
+					function setStatus(message, isError) {
+						statusBox.innerHTML = '';
+						var paragraph = document.createElement('p');
+						if (isError) {
+							paragraph.style.color = '#b32d2e';
+						}
+						paragraph.textContent = message;
+						statusBox.appendChild(paragraph);
+					}
+
+					button.addEventListener('click', function() {
+						var nonce = button.getAttribute('data-nonce');
+						var offset = 0;
+						var synced = 0;
+						var failed = 0;
+						var total = 0;
+						var lastError = '';
+						button.disabled = true;
+						setStatus('Starting bulk sync...', false);
+
+						function runBatch() {
+							var body = new URLSearchParams();
+							body.set('action', 'stylique_bulk_sync_products');
+							body.set('nonce', nonce);
+							body.set('offset', String(offset));
+							body.set('synced', String(synced));
+							body.set('failed', String(failed));
+							body.set('last_error', lastError);
+
+							fetch(ajaxurl, {
+								method: 'POST',
+								credentials: 'same-origin',
+								headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+								body: body.toString()
+							})
+								.then(function(response) { return response.json(); })
+								.then(function(result) {
+									if (!result || !result.success) {
+										var message = result && result.data && result.data.message ? result.data.message : 'Bulk sync failed.';
+										throw new Error(message);
+									}
+
+									var data = result.data;
+									offset = data.next_offset;
+									synced = data.synced;
+									failed = data.failed;
+									total = data.total;
+									lastError = data.last_error || '';
+
+									setStatus(
+										'Processed ' + data.processed + ' of ' + total + ' products. Synced: ' + synced + '. Failed: ' + failed + (lastError ? '. Last error: ' + lastError : ''),
+										false
+									);
+
+									if (data.done) {
+										button.disabled = false;
+										setStatus('Bulk sync complete. Synced: ' + synced + '. Failed: ' + failed + '. Total: ' + total + '.', failed > 0);
+										return;
+									}
+
+									runBatch();
+								})
+								.catch(function(error) {
+									button.disabled = false;
+									setStatus(error.message || 'Bulk sync failed.', true);
+								});
+						}
+
+						runBatch();
+					});
+				})();
+			</script>
+			<hr />
 			<form method="post" action="options.php">
 				<?php
 				settings_fields( 'stylique_options' );
@@ -105,15 +258,15 @@ class Stylique_Virtual_TryOn {
 					<tr valign="top">
 						<th scope="row">Backend API URL</th>
 						<td>
-                            <input type="url" name="stylique_backend_url" value="<?php echo esc_attr( get_option( 'stylique_backend_url', 'http://localhost:5000' ) ); ?>" />
-                            <p class="description">The base URL of your Stylique backend server (e.g., http://localhost:5000 or https://api.example.com).</p>
+                            <input type="url" name="stylique_backend_url" value="<?php echo esc_attr( get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL ) ); ?>" />
+                            <p class="description">The base URL of your Stylique backend server. Packaged default: <?php echo esc_html( STYLIQUE_DEFAULT_BACKEND_URL ); ?>.</p>
                         </td>
 					</tr>
 					<tr valign="top">
 						<th scope="row">Sync Secret</th>
 						<td>
                             <input type="password" name="stylique_sync_secret" value="<?php echo esc_attr( get_option( 'stylique_sync_secret' ) ); ?>" autocomplete="new-password" />
-                            <p class="description">Shared secret sent to the backend for product sync requests.</p>
+                            <p class="description">Generated automatically by Connect Stylique and sent to the backend for product sync requests.</p>
                         </td>
 					</tr>
 					<tr valign="top">
@@ -129,6 +282,155 @@ class Stylique_Virtual_TryOn {
 			</form>
 		</div>
 		<?php
+	}
+
+	public function handle_connect_store() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to connect Stylique.', 'stylique' ) );
+		}
+
+		check_admin_referer( 'stylique_connect_store', 'stylique_connect_nonce' );
+
+		$redirect_url = admin_url( 'options-general.php?page=stylique-virtual-tryon' );
+		$backend_url  = isset( $_POST['stylique_backend_url'] )
+			? esc_url_raw( wp_unslash( $_POST['stylique_backend_url'] ) )
+			: get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL );
+		$backend_url  = rtrim( $backend_url ? $backend_url : STYLIQUE_DEFAULT_BACKEND_URL, '/' );
+
+		if ( ! wp_http_validate_url( $backend_url ) ) {
+			$this->store_sync_notice( false, 'Connection failed: Backend API URL is not valid.' );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		update_option( 'stylique_backend_url', $backend_url );
+
+		$site_url = get_site_url();
+		$payload  = array(
+			'store_domain'   => wp_parse_url( $site_url, PHP_URL_HOST ),
+			'site_url'       => $site_url,
+			'store_name'     => get_bloginfo( 'name' ),
+			'admin_email'    => get_option( 'admin_email' ),
+			'plugin_version' => STYLIQUE_PLUGIN_VERSION,
+		);
+
+		$response = wp_remote_post( $backend_url . '/api/woocommerce/connect', array(
+			'method'  => 'POST',
+			'headers' => array( 'Content-Type' => 'application/json' ),
+			'body'    => wp_json_encode( $payload ),
+			'timeout' => 20,
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			$this->store_sync_notice( false, 'Connection failed: ' . $response->get_error_message() );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		$status_code = wp_remote_retrieve_response_code( $response );
+		$body        = wp_remote_retrieve_body( $response );
+		$data        = json_decode( $body, true );
+
+		if ( $status_code < 200 || $status_code >= 300 || ! is_array( $data ) || empty( $data['success'] ) ) {
+			$message = is_array( $data ) && ! empty( $data['message'] ) ? $data['message'] : $body;
+			$this->store_sync_notice( false, 'Connection failed: HTTP ' . $status_code . ' ' . wp_strip_all_tags( (string) $message ) );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		if ( empty( $data['store_id'] ) || empty( $data['sync_secret'] ) || empty( $data['password_once'] ) ) {
+			$this->store_sync_notice( false, 'Connection failed: Backend response was missing setup credentials.' );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		update_option( 'stylique_store_id', sanitize_text_field( $data['store_id'] ) );
+		update_option( 'stylique_sync_secret', sanitize_text_field( $data['sync_secret'] ) );
+
+		set_transient( 'stylique_connect_credentials_' . get_current_user_id(), array(
+			'store_id'        => sanitize_text_field( $data['store_id'] ),
+			'password_once'   => sanitize_text_field( $data['password_once'] ),
+			'store_panel_url' => ! empty( $data['store_panel_url'] ) ? esc_url_raw( $data['store_panel_url'] ) : '',
+		), 10 * MINUTE_IN_SECONDS );
+
+		$this->store_sync_notice( true, 'WooCommerce store connected successfully. Save the one-time Store Panel password shown below.' );
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	public function ajax_bulk_sync_products() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'You do not have permission to sync products.' ), 403 );
+		}
+
+		check_ajax_referer( 'stylique_bulk_sync_products', 'nonce' );
+
+		$backend_url = get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL );
+		$store_id    = get_option( 'stylique_store_id' );
+		$sync_secret = get_option( 'stylique_sync_secret' );
+
+		if ( ! $backend_url || ! $store_id || ! $sync_secret ) {
+			wp_send_json_error( array( 'message' => 'Connect Stylique before running bulk sync.' ), 400 );
+		}
+
+		$limit      = 20;
+		$offset     = isset( $_POST['offset'] ) ? max( 0, intval( $_POST['offset'] ) ) : 0;
+		$synced     = isset( $_POST['synced'] ) ? max( 0, intval( $_POST['synced'] ) ) : 0;
+		$failed     = isset( $_POST['failed'] ) ? max( 0, intval( $_POST['failed'] ) ) : 0;
+		$last_error = isset( $_POST['last_error'] ) ? sanitize_text_field( wp_unslash( $_POST['last_error'] ) ) : '';
+
+		$query = new WP_Query( array(
+			'post_type'      => 'product',
+			'post_status'    => 'publish',
+			'fields'         => 'ids',
+			'posts_per_page' => $limit,
+			'offset'         => $offset,
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
+			'no_found_rows'  => false,
+		) );
+
+		$total = (int) $query->found_posts;
+		$ids   = array_map( 'intval', $query->posts );
+
+		foreach ( $ids as $product_id ) {
+			$result = $this->run_product_sync_to_backend( $product_id, null, false );
+			if ( ! empty( $result['success'] ) ) {
+				$synced++;
+			} else {
+				$failed++;
+				$last_error = 'Product ' . $product_id . ': ' . ( isset( $result['error'] ) ? $result['error'] : 'Unknown sync error' );
+			}
+		}
+
+		wp_reset_postdata();
+
+		$processed   = min( $total, $offset + count( $ids ) );
+		$next_offset = $offset + count( $ids );
+		$done        = $processed >= $total || count( $ids ) === 0;
+		$status      = $done ? ( $failed > 0 ? 'completed_with_errors' : 'completed' ) : 'in_progress';
+		$summary     = array(
+			'status'      => $status,
+			'total'       => $total,
+			'processed'   => $processed,
+			'synced'      => $synced,
+			'failed'      => $failed,
+			'last_error'  => $last_error,
+			'finished_at' => $done ? current_time( 'mysql' ) : '',
+			'updated_at'  => current_time( 'mysql' ),
+		);
+
+		update_option( 'stylique_last_bulk_sync', $summary, false );
+
+		wp_send_json_success( array(
+			'total'       => $total,
+			'processed'   => $processed,
+			'synced'      => $synced,
+			'failed'      => $failed,
+			'last_error'  => $last_error,
+			'next_offset' => $next_offset,
+			'done'        => $done,
+		) );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -164,7 +466,7 @@ class Stylique_Virtual_TryOn {
 
 		wp_localize_script( 'stylique-widget-modal', 'styliqueConfig', array(
 			'storeId' => get_option( 'stylique_store_id' ),
-			'backendUrl' => get_option( 'stylique_backend_url', 'http://localhost:5000' ),
+			'backendUrl' => get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL ),
 			'colors' => array(
 				'primary' => get_option( 'stylique_primary_color', '#642FD7' ),
 				'secondary' => get_option( 'stylique_secondary_color', '#F4536F' ),
@@ -293,6 +595,20 @@ class Stylique_Virtual_TryOn {
 			echo '</div>';
 			delete_transient( 'stylique_sync_notice_' . get_current_user_id() );
 		}
+
+		$credentials = get_transient( 'stylique_connect_credentials_' . get_current_user_id() );
+		if ( $credentials ) {
+			echo '<div class="notice notice-success is-dismissible">';
+			echo '<p><strong>Stylique Store Panel Credentials</strong></p>';
+			echo '<p>Store ID: <code>' . esc_html( $credentials['store_id'] ) . '</code></p>';
+			echo '<p>One-time password: <code>' . esc_html( $credentials['password_once'] ) . '</code></p>';
+			if ( ! empty( $credentials['store_panel_url'] ) ) {
+				echo '<p><a class="button button-secondary" href="' . esc_url( $credentials['store_panel_url'] ) . '" target="_blank" rel="noopener">Open Store Panel</a></p>';
+			}
+			echo '<p><em>Copy this password now. For security, it is shown only after connection.</em></p>';
+			echo '</div>';
+			delete_transient( 'stylique_connect_credentials_' . get_current_user_id() );
+		}
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -401,7 +717,7 @@ class Stylique_Virtual_TryOn {
 	 * @param mixed $product_id_or_object Product ID (int) or WC_Product object
 	 * @param mixed $updated_props        Optional (from woocommerce_product_object_updated_props)
 	 */
-	private function run_product_sync_to_backend( $product_id_or_object, $updated_props = null ) {
+	private function run_product_sync_to_backend( $product_id_or_object, $updated_props = null, $store_notice = true ) {
 		$caller = $this->get_caller_hook();
 		error_log( '[Stylique][run_product_sync_to_backend] CALLED via ' . $caller );
 
@@ -415,17 +731,17 @@ class Stylique_Virtual_TryOn {
 			error_log( '[Stylique][sync] Received product object, ID=' . $product_id );
 		} else {
 			error_log( '[Stylique][sync] ERROR: Invalid argument type: ' . gettype( $product_id_or_object ) );
-			return;
+			return array( 'success' => false, 'error' => 'Invalid product argument', 'status_code' => 0 );
 		}
 
 		if ( ! $product ) {
 			error_log( '[Stylique][sync] ERROR: wc_get_product returned null for ID=' . $product_id );
-			return;
+			return array( 'success' => false, 'error' => 'WooCommerce product not found', 'status_code' => 0 );
 		}
 
 		if ( in_array( $product->get_id(), self::$synced_this_request, true ) ) {
 			error_log( '[Stylique][sync] SKIP: product ' . $product->get_id() . ' already synced this request' );
-			return;
+			return array( 'success' => true, 'error' => '', 'status_code' => 0, 'skipped' => true );
 		}
 
 		error_log( '[Stylique][sync] Product retrieved: ID=' . $product->get_id() . ' name="' . $product->get_name() . '" status=' . $product->get_status() );
@@ -441,7 +757,7 @@ class Stylique_Virtual_TryOn {
 			$product = $refreshed;
 		}
 
-		$backend_url = get_option( 'stylique_backend_url', 'http://localhost:5000' );
+		$backend_url = get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL );
 		$store_id    = get_option( 'stylique_store_id' );
 		$store_domain = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( $_SERVER['HTTP_HOST'] ) : wp_parse_url( get_site_url(), PHP_URL_HOST );
 
@@ -449,23 +765,13 @@ class Stylique_Virtual_TryOn {
 
 		if ( ! $backend_url || ! $store_id ) {
 			error_log( '[Stylique][sync] ABORT: backend_url or store_id not configured' );
-			$this->store_sync_notice( false, 'Sync skipped: Backend URL or Store ID not configured in Stylique settings.' );
-			return;
+			if ( $store_notice ) {
+				$this->store_sync_notice( false, 'Sync skipped: Backend URL or Store ID not configured in Stylique settings.' );
+			}
+			return array( 'success' => false, 'error' => 'Backend URL or Store ID not configured', 'status_code' => 0 );
 		}
 
-		// Build payload
-		$product_data = array(
-			'store_domain' => $store_domain,
-			'product'      => array(
-				'id'          => $product->get_id(),
-				'name'        => $product->get_name(),
-				'description' => wp_strip_all_tags( $product->get_description() ), // Strip HTML tags for plain text display
-				'price'       => $product->get_price(),
-				'permalink'   => $product->get_permalink(),
-				'images'      => $this->get_product_images( $product ),
-				'variants'    => $this->get_product_variants( $product ),
-			),
-		);
+		$product_data = $this->build_product_sync_payload( $product, $store_id, $store_domain );
 
 		$images_count = count( $product_data['product']['images'] );
 		$variants_count = count( $product_data['product']['variants'] );
@@ -479,13 +785,35 @@ class Stylique_Virtual_TryOn {
 		self::$synced_this_request[] = $product->get_id();
 
 		// Store admin notice
-		if ( $result['success'] ) {
-			$msg = 'Product "' . $product->get_name() . '" (ID ' . $product->get_id() . ') synced successfully! Status ' . $result['status_code'];
-			$this->store_sync_notice( true, $msg );
-		} else {
-			$msg = 'Product "' . $product->get_name() . '" (ID ' . $product->get_id() . ') sync FAILED: ' . $result['error'];
-			$this->store_sync_notice( false, $msg );
+		if ( $store_notice ) {
+			if ( $result['success'] ) {
+				$msg = 'Product "' . $product->get_name() . '" (ID ' . $product->get_id() . ') synced successfully! Status ' . $result['status_code'];
+				$this->store_sync_notice( true, $msg );
+			} else {
+				$msg = 'Product "' . $product->get_name() . '" (ID ' . $product->get_id() . ') sync FAILED: ' . $result['error'];
+				$this->store_sync_notice( false, $msg );
+			}
 		}
+
+		$result['product_id'] = $product->get_id();
+		$result['product_name'] = $product->get_name();
+		return $result;
+	}
+
+	private function build_product_sync_payload( $product, $store_id, $store_domain ) {
+		return array(
+			'store_domain' => $store_id,
+			'site_domain'  => $store_domain,
+			'product'      => array(
+				'id'          => $product->get_id(),
+				'name'        => $product->get_name(),
+				'description' => wp_strip_all_tags( $product->get_description() ),
+				'price'       => $product->get_price(),
+				'permalink'   => $product->get_permalink(),
+				'images'      => $this->get_product_images( $product ),
+				'variants'    => $this->get_product_variants( $product ),
+			),
+		);
 	}
 
 	/* ------------------------------------------------------------------ */

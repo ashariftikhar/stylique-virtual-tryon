@@ -63,6 +63,12 @@ CREATE TABLE public.stores (
   -- Shopify theme injection tracking (migration 004)
   shopify_theme_injection_done boolean NOT NULL DEFAULT false,
   shopify_theme_injection_status text NULL,
+  -- WooCommerce plugin connection tracking (migration 008)
+  woocommerce_site_url text NULL,
+  woocommerce_sync_secret_hash text NULL,
+  woocommerce_connected_at timestamp with time zone NULL,
+  woocommerce_last_sync_at timestamp with time zone NULL,
+  woocommerce_last_sync_status text NULL,
   CONSTRAINT stores_pkey PRIMARY KEY (id),
   CONSTRAINT stores_store_id_key UNIQUE (store_id),
   CONSTRAINT stores_tryons_nonneg CHECK (tryons_quota >= 0 AND tryons_used >= 0),
@@ -192,6 +198,7 @@ CREATE TABLE public.tryon_analytics (
 CREATE INDEX IF NOT EXISTS idx_stores_store_id ON public.stores USING btree (store_id);
 CREATE INDEX IF NOT EXISTS idx_stores_subscription_end_at ON public.stores USING btree (subscription_end_at);
 CREATE INDEX IF NOT EXISTS idx_stores_shopify_shop_domain ON public.stores (shopify_shop_domain) WHERE shopify_shop_domain IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_stores_woocommerce_site_url ON public.stores (woocommerce_site_url) WHERE woocommerce_site_url IS NOT NULL;
 
 -- Inventory indexes
 CREATE INDEX IF NOT EXISTS idx_inventory_gender ON public.inventory USING btree (gender);
@@ -223,6 +230,11 @@ COMMENT ON COLUMN public.stores.shopify_access_token IS 'Shopify Admin API offli
 COMMENT ON COLUMN public.stores.shopify_shop_domain IS 'Shopify permanent domain e.g. mystore.myshopify.com — used for webhook + API routing';
 COMMENT ON COLUMN public.stores.shopify_theme_injection_done IS 'True after the Liquid section was successfully injected into the Shopify theme';
 COMMENT ON COLUMN public.stores.shopify_theme_injection_status IS 'Human-readable log of the last injection attempt (success message or error details)';
+COMMENT ON COLUMN public.stores.woocommerce_site_url IS 'WooCommerce site origin connected through the WordPress plugin';
+COMMENT ON COLUMN public.stores.woocommerce_sync_secret_hash IS 'Bcrypt hash of the per-store WordPress plugin sync secret';
+COMMENT ON COLUMN public.stores.woocommerce_connected_at IS 'Timestamp when the WooCommerce plugin last connected this store';
+COMMENT ON COLUMN public.stores.woocommerce_last_sync_at IS 'Timestamp of the last WooCommerce product sync attempt';
+COMMENT ON COLUMN public.stores.woocommerce_last_sync_status IS 'Human-readable status from the last WooCommerce connection or sync attempt';
 
 -- Inventory table comments
 COMMENT ON COLUMN public.inventory.woocommerce_product_id IS 'WooCommerce product post ID (string) for plugin lookup';

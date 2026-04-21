@@ -13,6 +13,28 @@ export interface StoreConfig {
   tryons_remaining: number;
 }
 
+export interface WooCommerceIntegration {
+  connected: boolean;
+  siteUrl?: string | null;
+  connectedAt?: string | null;
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+}
+
+export interface ThemeInjectionStatus {
+  done: boolean;
+  status?: string | null;
+  shopDomain?: string | null;
+}
+
+export interface StoreConfigResponse {
+  status: string;
+  config: StoreConfig;
+  subscriptionActive?: boolean;
+  themeInjection?: ThemeInjectionStatus;
+  woocommerceIntegration?: WooCommerceIntegration;
+}
+
 export interface InventoryItem {
   id: string;
   store_id: string;

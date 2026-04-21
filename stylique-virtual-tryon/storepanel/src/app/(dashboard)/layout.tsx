@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Settings,
   Sparkles,
   TrendingUp,
   Upload,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: '/upload', label: 'Upload', icon: Upload, desc: 'Manual product entry' },
   { href: '/analytics', label: 'Analytics', icon: BarChart3, desc: 'Try-on events' },
   { href: '/conversions', label: 'Conversions', icon: TrendingUp, desc: 'Cart movement' },
+  { href: '/settings', label: 'Settings', icon: Settings, desc: 'Integrations' },
 ];
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
