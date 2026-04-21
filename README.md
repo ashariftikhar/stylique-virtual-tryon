@@ -33,6 +33,7 @@ Set these before deploying production services:
 - `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`: database access for backend routes.
 - `SENDGRID_API_KEY` and `OTP_FROM_EMAIL` or `SENDGRID_FROM_EMAIL`: OTP email delivery for shopper login. `OTP_FROM_NAME` is optional and defaults to Stylique.
 - `ALLOW_DEV_OTP_LOGIN=false`: keep disabled in production. For local testing only, set `ALLOW_DEV_OTP_LOGIN=true` to show the generated OTP in the widget when SendGrid is not configured.
+- `ALLOW_LOG_ONLY_OTP_LOGIN=true`: temporary testing mode that logs OTP codes in backend logs when SendGrid is not configured. Turn this off before client production.
 - `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, and `SHOPIFY_REDIRECT_URI`: Shopify OAuth and webhook verification.
 - `FRONTEND_URL` and `PUBLIC_API_URL`: public store panel and API URLs.
 
@@ -51,6 +52,7 @@ npm run dev
 Local OTP testing:
 
 - Without SendGrid, set `ALLOW_DEV_OTP_LOGIN=true` while running the backend locally. The widget will show the development verification code after Send Verification Code.
+- For Render testing without SendGrid, set `ALLOW_LOG_ONLY_OTP_LOGIN=true`. The backend log will contain a line like `OTP=123456`; copy that code into the widget.
 - On Render/production, configure SendGrid and keep `ALLOW_DEV_OTP_LOGIN=false`; production never returns OTP codes to the browser.
 
 Store panel:

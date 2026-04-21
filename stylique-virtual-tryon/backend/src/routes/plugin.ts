@@ -385,6 +385,14 @@ function isDevOtpLoginEnabled(): boolean {
   return process.env.ALLOW_DEV_OTP_LOGIN === 'true' || process.env.STYLIQUE_DEV_OTP_LOGIN === 'true';
 }
 
+function isLogOnlyOtpLoginEnabled(): boolean {
+  return process.env.ALLOW_LOG_ONLY_OTP_LOGIN === 'true' || process.env.STYLIQUE_LOG_ONLY_OTP_LOGIN === 'true';
+}
+
+function shouldLogOtpCode(): boolean {
+  return isLogOnlyOtpLoginEnabled() || process.env.LOG_OTP_CODES === 'true' || process.env.STYLIQUE_LOG_OTP_CODES === 'true';
+}
+
 // ──────────────────────────────────────────────
 // GET /plugin/simple, /plugin/test-2d — storefront widget testAPIConnection()
 // ──────────────────────────────────────────────
@@ -421,8 +429,9 @@ router.post('/auth', async (req: Request, res: Response) => {
     if (action === 'send_otp') {
       const providerConfigured = isOtpEmailProviderConfigured();
       const devFallbackEnabled = isDevOtpLoginEnabled();
+      const logOnlyOtpEnabled = isLogOnlyOtpLoginEnabled();
 
-      if (!providerConfigured && !devFallbackEnabled) {
+      if (!providerConfigured && !devFallbackEnabled && !logOnlyOtpEnabled) {
         console.error('[Plugin Auth] OTP email provider is not configured. Set SENDGRID_API_KEY and OTP_FROM_EMAIL or SENDGRID_FROM_EMAIL.');
         return res.status(503).json({
           success: false,
@@ -464,6 +473,19 @@ router.post('/auth', async (req: Request, res: Response) => {
       if (updateErr) {
         console.error(`[Plugin Auth] Failed to store OTP in DB for ${logEmail}: ${updateErr.message}`);
         return res.status(500).json({ success: false, code: 'otp_store_failed', error: 'Failed to send verification code.' });
+      }
+
+      if (shouldLogOtpCode()) {
+        console.warn(`[Plugin Auth] OTP for ${logEmail}: OTP=${code} expires=${expiresAt.toISOString()}`);
+      }
+
+      if (!providerConfigured && logOnlyOtpEnabled) {
+        console.warn(`[Plugin Auth] LOG-ONLY OTP mode enabled for ${logEmail}. Turn this off before client production.`);
+        return res.json({
+          success: true,
+          code: 'otp_logged',
+          message: 'Verification code generated. Check backend logs.',
+        });
       }
 
       if (!providerConfigured && devFallbackEnabled) {

@@ -17,6 +17,16 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: OTP_FROM_EMAIL
+        sync: false
+      - key: OTP_FROM_NAME
+        value: Stylique
+      - key: ALLOW_DEV_OTP_LOGIN
+        value: "false"
+      - key: ALLOW_LOG_ONLY_OTP_LOGIN
+        value: "true"
       - key: SHOPIFY_API_KEY
         sync: false
       - key: SHOPIFY_API_SECRET

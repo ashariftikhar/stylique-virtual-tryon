@@ -278,7 +278,8 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 const server = app.listen(PORT, () => {
   const otpEmailConfigured = Boolean(process.env.SENDGRID_API_KEY && (process.env.OTP_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL));
   const devOtpEnabled = process.env.NODE_ENV !== 'production' && (process.env.ALLOW_DEV_OTP_LOGIN === 'true' || process.env.STYLIQUE_DEV_OTP_LOGIN === 'true');
-  console.log(`[Config] OTP email: ${otpEmailConfigured ? 'configured' : 'missing'}; dev OTP fallback: ${devOtpEnabled ? 'enabled' : 'disabled'}`);
+  const logOnlyOtpEnabled = process.env.ALLOW_LOG_ONLY_OTP_LOGIN === 'true' || process.env.STYLIQUE_LOG_ONLY_OTP_LOGIN === 'true';
+  console.log(`[Config] OTP email: ${otpEmailConfigured ? 'configured' : 'missing'}; dev OTP fallback: ${devOtpEnabled ? 'enabled' : 'disabled'}; log-only OTP: ${logOnlyOtpEnabled ? 'enabled' : 'disabled'}`);
 
   console.log(`\n🚀 Server is running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
