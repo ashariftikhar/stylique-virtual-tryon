@@ -262,7 +262,7 @@ export default function StorePanelHome() {
             )}
             {shopifyExtension.links?.addAppBlockApps && (
               <button
-                className="mt-2 text-xs font-semibold text-sky-100/80 underline-offset-4 hover:text-[#161616] hover:underline"
+                className="mt-2 text-xs font-semibold text-sky-700 underline-offset-4 hover:text-[#161616] hover:underline"
                 onClick={() => window.open(shopifyExtension.links?.addAppBlockApps, '_blank')}
               >
                 App block did not land in the main section? Try the Apps section fallback.
@@ -310,12 +310,12 @@ export default function StorePanelHome() {
             }
           >
             <p>{themeReason}</p>
-            <p className="mt-2 text-sm text-amber-50/80">
+            <p className="mt-2 text-sm text-amber-900/80">
               Products and webhooks can continue syncing. To finish the storefront widget, add the Stylique section manually or retry after Shopify theme-write access is fixed.
             </p>
-            <div className="mt-4 grid gap-2 text-sm text-amber-50/85 md:grid-cols-2">
+            <div className="mt-4 grid gap-2 text-sm text-amber-900/85 md:grid-cols-2">
               <div className="rounded-lg bg-[#f2f6f4] p-3">
-                <strong className="block text-amber-50">Manual setup steps</strong>
+                <strong className="block text-amber-900">Manual setup steps</strong>
                 <ol className="mt-2 list-decimal space-y-1 pl-4">
                   <li>Create <code>sections/stylique-virtual-try-on.liquid</code>.</li>
                   <li>Paste the Stylique Liquid section code.</li>
@@ -325,7 +325,7 @@ export default function StorePanelHome() {
                 </ol>
               </div>
               <div className="rounded-lg bg-[#f2f6f4] p-3">
-                <strong className="block text-amber-50">Copy install code</strong>
+                <strong className="block text-amber-900">Copy install code</strong>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => copyThemeAsset('section')}>
                     <Clipboard className="h-4 w-4" />
@@ -337,16 +337,16 @@ export default function StorePanelHome() {
                   </Button>
                 </div>
                 {themeInjection.themeName && (
-                  <p className="mt-3 text-xs text-amber-50/70">
+                  <p className="mt-3 text-xs text-amber-900/70">
                     Theme: {themeInjection.themeName}{themeInjection.themeId ? ` (${themeInjection.themeId})` : ''}
                   </p>
                 )}
               </div>
             </div>
-            {themeCopyStatus && <p className="mt-3 text-sm font-semibold text-amber-50">{themeCopyStatus}</p>}
+            {themeCopyStatus && <p className="mt-3 text-sm font-semibold text-amber-900">{themeCopyStatus}</p>}
             <details className="mt-3">
-              <summary className="cursor-pointer text-xs font-bold text-amber-100/80">View setup detail</summary>
-              <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-[#f2f6f4] p-3 text-xs leading-5 text-amber-50/75">
+              <summary className="cursor-pointer text-xs font-bold text-amber-800/90">View setup detail</summary>
+              <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-[#f2f6f4] p-3 text-xs leading-5 text-amber-900/75">
                 {themeDetails}
               </pre>
             </details>
@@ -464,10 +464,10 @@ export default function StorePanelHome() {
             {insights.attention.length === 0 ? (
               <div className="mt-8 rounded-lg border border-emerald-400/20 bg-emerald-500/10 p-5">
                 <div className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-300" />
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
                   <div>
-                    <p className="font-bold text-emerald-100">Everything looks ready</p>
-                    <p className="mt-1 text-sm leading-6 text-emerald-100/70">
+                    <p className="font-bold text-emerald-800">Everything looks ready</p>
+                    <p className="mt-1 text-sm leading-6 text-emerald-800/80">
                       No failed syncs, unscored products, or missing try-on images in the first review set.
                     </p>
                   </div>
@@ -481,7 +481,7 @@ export default function StorePanelHome() {
                     onClick={() => router.push('/manage')}
                     className="flex w-full items-center gap-3 rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-3 text-left transition hover:border-[#161616]/18 hover:bg-[#edf4f1]"
                   >
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-200">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-700">
                       <AlertTriangle className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">

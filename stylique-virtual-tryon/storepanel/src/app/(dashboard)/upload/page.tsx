@@ -201,7 +201,7 @@ export default function UploadItem() {
                   className={classNameMerge(
                     'h-11 rounded-lg border text-sm font-bold transition',
                     sizes.includes(size)
-                      ? 'border-white bg-[#161616] text-white'
+                      ? 'border-[#161616] bg-[#161616] text-white'
                       : 'border-[#161616]/10 bg-[#f5f8f6] text-[#66736f] hover:border-[#161616]/20 hover:text-[#161616]',
                   )}
                 >

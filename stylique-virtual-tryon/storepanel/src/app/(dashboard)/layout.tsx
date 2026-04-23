@@ -192,7 +192,7 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
                   <span
                     className={classNameMerge(
                       'block truncate text-[11px]',
-                      active ? 'text-black/55' : 'text-[#7b8783] group-hover:text-[#66736f]',
+                      active ? 'text-white/75' : 'text-[#7b8783] group-hover:text-[#66736f]',
                     )}
                   >
                     {desc}
@@ -205,15 +205,15 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
 
         <div className="border-t border-[#161616]/10 p-4">
           <div className="mb-3 rounded-lg border border-teal-400/20 bg-teal-500/10 p-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-teal-200">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[#08786e]">
               <Sparkles className="h-3.5 w-3.5" />
               Premium Mode
             </div>
-            <p className="mt-2 text-xs leading-5 text-teal-100/70">
+            <p className="mt-2 text-xs leading-5 text-[#08786e]/80">
               Optimize products, track try-ons, and keep the storefront ready.
             </p>
           </div>
-          <Button onClick={handleSignOut} variant="ghost" className="w-full justify-start text-red-300">
+          <Button onClick={handleSignOut} variant="ghost" className="w-full justify-start text-red-700">
             <LogOut className="h-4 w-4" />
             Sign Out
           </Button>
@@ -263,7 +263,7 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
               </div>
               <button
                 onClick={() => setOauthBanner(null)}
-                className="mt-2 text-xs font-semibold text-emerald-100/70 underline-offset-4 hover:text-[#161616] hover:underline"
+                className="mt-2 text-xs font-semibold text-emerald-800/80 underline-offset-4 hover:text-[#161616] hover:underline"
               >
                 Dismiss credentials banner
               </button>

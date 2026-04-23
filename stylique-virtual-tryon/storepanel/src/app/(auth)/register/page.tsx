@@ -163,7 +163,7 @@ export default function StoreRegister() {
             {['Store identity', 'Protected session', 'Automatic dashboard access'].map((item) => (
               <div key={item} className="flex items-center justify-between rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-3">
                 <span className="text-sm font-semibold text-[#4f5d58]">{item}</span>
-                <CheckCircle2 className="h-4 w-4 text-teal-300" />
+                <CheckCircle2 className="h-4 w-4 text-[#08786e]" />
               </div>
             ))}
           </div>
@@ -206,7 +206,7 @@ export default function StoreRegister() {
                 disabled={isLoading}
                 autoComplete="organization"
               />
-              {storeIdError && <p className="mt-2 text-xs font-medium text-red-300">{storeIdError}</p>}
+              {storeIdError && <p className="mt-2 text-xs font-medium text-red-700">{storeIdError}</p>}
             </div>
 
             <div>
@@ -304,7 +304,7 @@ export default function StoreRegister() {
                   key={bar}
                   className={classNameMerge(
                     'h-1.5 rounded-full',
-                    passwordScore > bar ? 'bg-[#14b8a6]' : 'bg-white/10',
+                    passwordScore > bar ? 'bg-[#0f9f91]' : 'bg-[#d9e4df]',
                   )}
                 />
               ))}

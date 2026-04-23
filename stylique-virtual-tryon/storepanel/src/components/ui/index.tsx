@@ -18,7 +18,7 @@ type Size = 'sm' | 'md' | 'lg';
 
 const buttonVariants: Record<Variant, string> = {
   primary:
-    'border-transparent bg-[#161616] text-[#161616] shadow-[0_14px_30px_rgba(22,22,22,0.14)] hover:bg-[#2b3431]',
+    'border-transparent bg-[#161616] text-white shadow-[0_14px_30px_rgba(22,22,22,0.14)] hover:bg-[#2b3431]',
   secondary:
     'border-[#161616]/10 bg-white text-[#161616] shadow-[0_10px_24px_rgba(22,22,22,0.06)] hover:border-[#161616]/18 hover:bg-[#f2f6f4]',
   ghost:
@@ -221,7 +221,7 @@ export function MetricCard({
           <p className="mt-3 text-3xl font-black tracking-tight text-[#161616]">{value}</p>
           {detail && <p className="mt-2 text-xs leading-5 text-[#66736f]">{detail}</p>}
           {trend && (
-            <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-teal-300">
+            <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#08786e]">
               <ArrowUpRight className="h-3.5 w-3.5" />
               {trend}
             </p>

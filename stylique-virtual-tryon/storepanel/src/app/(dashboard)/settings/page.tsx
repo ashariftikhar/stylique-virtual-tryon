@@ -156,7 +156,7 @@ export default function SettingsPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-4">
               <div className="flex items-center gap-2 text-sm font-bold text-[#161616]">
-                <PlugZap className="h-4 w-4 text-teal-300" />
+                <PlugZap className="h-4 w-4 text-[#08786e]" />
                 Connection
               </div>
               <dl className="mt-4 space-y-3 text-sm">
@@ -173,7 +173,7 @@ export default function SettingsPage() {
 
             <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-4">
               <div className="flex items-center gap-2 text-sm font-bold text-[#161616]">
-                <Settings2 className="h-4 w-4 text-amber-300" />
+                <Settings2 className="h-4 w-4 text-amber-700" />
                 Sync Activity
               </div>
               <dl className="mt-4 space-y-3 text-sm">

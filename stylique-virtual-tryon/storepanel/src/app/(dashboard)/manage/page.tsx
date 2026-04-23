@@ -424,7 +424,7 @@ export default function ManageInventory() {
           <select
             value={tierFilter ?? 'all'}
             onChange={(e) => setTierFilter(e.target.value === 'all' ? null : Number(e.target.value))}
-            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-[#0f9f91]/12"
           >
             <option value="all">All tiers</option>
             <option value="1">Tier 1</option>
@@ -434,7 +434,7 @@ export default function ManageInventory() {
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-[#0f9f91]/12"
           >
             <option value="all">All sources</option>
             <option value="shopify">Shopify</option>
@@ -444,7 +444,7 @@ export default function ManageInventory() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-[#0f9f91]/12"
           >
             <option value="all">All sync states</option>
             <option value="success">Synced</option>
@@ -455,7 +455,7 @@ export default function ManageInventory() {
           <select
             value={readinessFilter}
             onChange={(e) => setReadinessFilter(e.target.value as ReadinessFilter)}
-            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-[#0f9f91]/12"
           >
             <option value="all">All readiness</option>
             <option value="ready">Try-on ready</option>
@@ -479,7 +479,7 @@ export default function ManageInventory() {
               className={classNameMerge(
                 'rounded-lg border p-3 text-left transition',
                 tierFilter === item.filter
-                  ? 'border-white bg-[#161616] text-white'
+                  ? 'border-[#161616] bg-[#161616] text-white'
                   : 'border-[#161616]/10 bg-[#f5f8f6] hover:border-[#161616]/18',
               )}
             >
@@ -585,7 +585,7 @@ export default function ManageInventory() {
                         className={classNameMerge(
                           'h-10 rounded-lg border text-sm font-bold transition',
                           overrideState.tier === tier
-                            ? 'border-white bg-[#161616] text-white'
+                            ? 'border-[#161616] bg-[#161616] text-white'
                             : 'border-[#161616]/10 bg-[#f5f8f6] text-[#66736f] hover:text-[#161616]',
                         )}
                       >
@@ -848,7 +848,7 @@ function ProductActions({
         <Star className="h-4 w-4" />
         Override
       </Button>
-      <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-300">
+      <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-700">
         <Trash2 className="h-4 w-4" />
       </Button>
     </div>
