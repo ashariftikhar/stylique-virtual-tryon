@@ -1,0 +1,78 @@
+name: Deploy Shopify Theme App Extension
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shopify-theme-extension-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Theme Extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: stylique-virtual-tryon/shopify-app
+
+    env:
+      SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+      SHOPIFY_APP_CLIENT_ID: ${{ secrets.SHOPIFY_APP_CLIENT_ID || vars.SHOPIFY_APP_CLIENT_ID }}
+      COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate required configuration
+        run: |
+          if [ -z "${SHOPIFY_CLI_PARTNERS_TOKEN}" ]; then
+            echo "::error::Missing GitHub secret SHOPIFY_CLI_PARTNERS_TOKEN"
+            exit 1
+          fi
+
+          if [ -z "${SHOPIFY_APP_CLIENT_ID}" ]; then
+            echo "::error::Missing SHOPIFY_APP_CLIENT_ID. Add it as a repository secret or variable."
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: stylique-virtual-tryon/shopify-app/package.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Generate Shopify app config
+        run: |
+          sed "s/REPLACE_WITH_SHOPIFY_API_KEY/${SHOPIFY_APP_CLIENT_ID}/g" shopify.app.toml.example > shopify.app.toml
+
+      - name: Verify extension JavaScript syntax
+        run: node --check ./extensions/stylique-virtual-tryon/assets/stylique-widget.js
+
+      - name: Verify extension size limits
+        run: |
+          liquid_bytes=$(find ./extensions/stylique-virtual-tryon -type f -name '*.liquid' -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')
+          total_bytes=$(find ./extensions/stylique-virtual-tryon -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')
+
+          echo "Liquid bytes: ${liquid_bytes}"
+          echo "Total extension bytes: ${total_bytes}"
+
+          if [ "${liquid_bytes}" -ge 102400 ]; then
+            echo "::error::Theme app extension Liquid files exceed Shopify's 100 KB limit."
+            exit 1
+          fi
+
+          if [ "${total_bytes}" -ge 10485760 ]; then
+            echo "::error::Theme app extension contents exceed Shopify's 10 MB limit."
+            exit 1
+          fi
+
+      - name: Deploy extension to Shopify
+        run: npx shopify app deploy --config shopify.app.toml --allow-updates --source-control-url "${COMMIT_URL}"
