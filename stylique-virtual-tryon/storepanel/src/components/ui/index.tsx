@@ -18,15 +18,15 @@ type Size = 'sm' | 'md' | 'lg';
 
 const buttonVariants: Record<Variant, string> = {
   primary:
-    'border-transparent bg-white text-black shadow-[0_16px_34px_rgba(255,255,255,0.08)] hover:bg-zinc-200',
+    'border-transparent bg-[#161616] text-[#161616] shadow-[0_14px_30px_rgba(22,22,22,0.14)] hover:bg-[#2b3431]',
   secondary:
-    'border-white/10 bg-zinc-900/80 text-zinc-100 hover:border-white/20 hover:bg-zinc-800',
+    'border-[#161616]/10 bg-white text-[#161616] shadow-[0_10px_24px_rgba(22,22,22,0.06)] hover:border-[#161616]/18 hover:bg-[#f2f6f4]',
   ghost:
-    'border-transparent bg-transparent text-zinc-400 hover:bg-white/[0.06] hover:text-white',
+    'border-transparent bg-transparent text-[#66736f] hover:bg-[#edf4f1] hover:text-[#161616]',
   danger:
-    'border-red-500/25 bg-red-950/40 text-red-200 hover:border-red-400/40 hover:bg-red-900/40',
+    'border-red-500/20 bg-red-50 text-red-700 hover:border-red-500/30 hover:bg-red-100',
   success:
-    'border-emerald-500/25 bg-emerald-950/40 text-emerald-200 hover:border-emerald-400/40 hover:bg-emerald-900/40',
+    'border-emerald-500/20 bg-emerald-50 text-emerald-700 hover:border-emerald-500/30 hover:bg-emerald-100',
 };
 
 const buttonSizes: Record<Size, string> = {
@@ -50,7 +50,7 @@ export function Button({
   return (
     <button
       className={classNameMerge(
-        'inline-flex items-center justify-center gap-2 rounded-lg border font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-white/25',
+        'inline-flex items-center justify-center gap-2 rounded-lg border font-semibold transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#0f9f91]/18',
         buttonVariants[variant],
         buttonSizes[size],
         className,
@@ -68,7 +68,7 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
   return (
     <input
       className={classNameMerge(
-        'h-11 w-full rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white placeholder:text-zinc-600 transition focus:border-white/25 focus:outline-none focus:ring-2 focus:ring-white/10 disabled:cursor-not-allowed disabled:opacity-60',
+        'h-11 w-full rounded-lg border border-[#161616]/10 bg-white px-3 text-sm text-[#161616] placeholder:text-[#8a9692] shadow-[0_8px_18px_rgba(22,22,22,0.04)] transition duration-200 focus:border-[#0f9f91]/45 focus:outline-none focus:ring-2 focus:ring-[#0f9f91]/12 disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}
       {...props}
@@ -83,7 +83,7 @@ export function Textarea({
   return (
     <textarea
       className={classNameMerge(
-        'w-full rounded-lg border border-white/10 bg-black/35 px-3 py-3 text-sm text-white placeholder:text-zinc-600 transition focus:border-white/25 focus:outline-none focus:ring-2 focus:ring-white/10 disabled:cursor-not-allowed disabled:opacity-60',
+        'w-full rounded-lg border border-[#161616]/10 bg-white px-3 py-3 text-sm text-[#161616] placeholder:text-[#8a9692] shadow-[0_8px_18px_rgba(22,22,22,0.04)] transition duration-200 focus:border-[#0f9f91]/45 focus:outline-none focus:ring-2 focus:ring-[#0f9f91]/12 disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}
       {...props}
@@ -102,7 +102,7 @@ export function Card({
   return (
     <div
       className={classNameMerge(
-        'rounded-lg border border-white/10 bg-zinc-950/70 p-5 shadow-[0_22px_60px_rgba(0,0,0,0.28)]',
+        'rounded-lg border border-[#161616]/10 bg-white p-5 shadow-[0_18px_44px_rgba(22,22,22,0.07)]',
         className,
       )}
       {...props}
@@ -122,13 +122,13 @@ type BadgeVariant =
   | 'muted';
 
 const badgeVariants: Record<BadgeVariant, string> = {
-  default: 'border-white/10 bg-white/[0.06] text-zinc-300',
-  primary: 'border-fuchsia-400/25 bg-fuchsia-500/10 text-fuchsia-200',
-  success: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200',
-  danger: 'border-red-400/25 bg-red-500/10 text-red-200',
-  warning: 'border-amber-400/25 bg-amber-500/10 text-amber-200',
-  teal: 'border-teal-400/25 bg-teal-500/10 text-teal-200',
-  muted: 'border-white/10 bg-zinc-900/70 text-zinc-500',
+  default: 'border-[#161616]/10 bg-[#f2f6f4] text-[#4f5d58]',
+  primary: 'border-[#e84d78]/20 bg-[#e84d78]/10 text-[#b92e58]',
+  success: 'border-emerald-500/20 bg-emerald-50 text-emerald-700',
+  danger: 'border-red-500/20 bg-red-50 text-red-700',
+  warning: 'border-amber-500/22 bg-amber-50 text-amber-700',
+  teal: 'border-[#0f9f91]/20 bg-[#0f9f91]/10 text-[#08786e]',
+  muted: 'border-[#161616]/10 bg-[#f5f8f6] text-[#66736f]',
 };
 
 export function Badge({
@@ -169,18 +169,18 @@ export function PageHeader({
   return (
     <div
       className={classNameMerge(
-        'flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-end md:justify-between',
+        'flex flex-col gap-4 border-b border-[#161616]/10 pb-6 md:flex-row md:items-end md:justify-between',
         className,
       )}
     >
       <div className="min-w-0">
         {eyebrow && (
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#ff8ab0]">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#e84d78]">
             {eyebrow}
           </p>
         )}
-        <h1 className="text-2xl font-black tracking-tight text-white md:text-4xl">{title}</h1>
-        {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">{description}</p>}
+        <h1 className="text-2xl font-black tracking-tight text-[#161616] md:text-4xl">{title}</h1>
+        {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-[#66736f]">{description}</p>}
       </div>
       {action && <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div>}
     </div>
@@ -205,21 +205,21 @@ export function MetricCard({
   className?: string;
 }) {
   const accents = {
-    white: 'text-white bg-white/10 border-white/10',
-    teal: 'text-teal-200 bg-teal-500/10 border-teal-400/20',
-    rose: 'text-rose-200 bg-rose-500/10 border-rose-400/20',
-    amber: 'text-amber-200 bg-amber-500/10 border-amber-400/20',
-    emerald: 'text-emerald-200 bg-emerald-500/10 border-emerald-400/20',
+    white: 'text-[#161616] bg-[#f2f6f4] border-[#161616]/10',
+    teal: 'text-[#08786e] bg-[#0f9f91]/10 border-[#0f9f91]/20',
+    rose: 'text-[#b92e58] bg-[#e84d78]/10 border-[#e84d78]/20',
+    amber: 'text-amber-700 bg-amber-50 border-amber-500/20',
+    emerald: 'text-emerald-700 bg-emerald-50 border-emerald-500/20',
   };
 
   return (
     <Card className={classNameMerge('relative overflow-hidden p-5', className)}>
-      <div className="absolute right-0 top-0 h-24 w-24 bg-white/[0.035] blur-2xl" />
+      <div className="absolute right-0 top-0 h-24 w-24 bg-[#0f9f91]/5 blur-2xl" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">{label}</p>
-          <p className="mt-3 text-3xl font-black tracking-tight text-white">{value}</p>
-          {detail && <p className="mt-2 text-xs leading-5 text-zinc-500">{detail}</p>}
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#66736f]">{label}</p>
+          <p className="mt-3 text-3xl font-black tracking-tight text-[#161616]">{value}</p>
+          {detail && <p className="mt-2 text-xs leading-5 text-[#66736f]">{detail}</p>}
           {trend && (
             <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-teal-300">
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -251,10 +251,10 @@ export function AlertBanner({
   className?: string;
 }) {
   const styles = {
-    warning: 'border-amber-400/25 bg-amber-500/10 text-amber-100',
-    success: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100',
-    danger: 'border-red-400/25 bg-red-500/10 text-red-100',
-    info: 'border-teal-400/25 bg-teal-500/10 text-teal-100',
+    warning: 'border-amber-500/20 bg-amber-50 text-amber-800',
+    success: 'border-emerald-500/20 bg-emerald-50 text-emerald-800',
+    danger: 'border-red-500/20 bg-red-50 text-red-800',
+    info: 'border-[#0f9f91]/20 bg-[#0f9f91]/10 text-[#08786e]',
   };
   const Icon = tone === 'success' ? CheckCircle2 : AlertTriangle;
 
@@ -287,16 +287,16 @@ export function EmptyState({
 }) {
   return (
     <Card className={classNameMerge('flex min-h-64 flex-col items-center justify-center text-center', className)}>
-      <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-zinc-400">
+      <div className="mb-4 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-3 text-[#66736f]">
         <Icon className="h-7 w-7" />
       </div>
-      <p className="text-base font-bold text-white">{title}</p>
-      {description && <p className="mt-2 max-w-md text-sm leading-6 text-zinc-500">{description}</p>}
+      <p className="text-base font-bold text-[#161616]">{title}</p>
+      {description && <p className="mt-2 max-w-md text-sm leading-6 text-[#66736f]">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
     </Card>
   );
 }
 
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={classNameMerge('animate-pulse rounded-lg bg-white/[0.07]', className)} />;
+  return <div className={classNameMerge('animate-pulse rounded-lg bg-[#e7efeb]', className)} />;
 }

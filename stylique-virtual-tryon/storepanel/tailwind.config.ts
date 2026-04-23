@@ -9,13 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: '#F7F3ED',
-        ink: '#090909',
-        carbon: '#111111',
-        metal: '#A1A1AA',
-        couture: '#FF5C8A',
-        emerald: '#14B8A6',
-        champagne: '#F5C45E',
+        primary: '#161616',
+        ink: '#161616',
+        carbon: '#2B3431',
+        metal: '#66736F',
+        couture: '#E84D78',
+        emerald: '#0F9F91',
+        champagne: '#C58A1F',
+        porcelain: '#F8FAF8',
+        mist: '#F2F6F4',
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],

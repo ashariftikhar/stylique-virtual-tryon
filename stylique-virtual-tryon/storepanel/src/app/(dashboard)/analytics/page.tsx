@@ -211,23 +211,23 @@ export default function AnalyticsDashboard() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Badge variant="teal">Volume Trend</Badge>
-                  <h2 className="mt-3 text-xl font-black text-white">Try-on activity</h2>
+                  <h2 className="mt-3 text-xl font-black text-[#161616]">Try-on activity</h2>
                 </div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-600">Last {chartData.length} active days</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7b8783]">Last {chartData.length} active days</p>
               </div>
-              <div className="mt-8 flex h-64 items-end gap-3 border-b border-white/10 pb-4">
+              <div className="mt-8 flex h-64 items-end gap-3 border-b border-[#161616]/10 pb-4">
                 {chartData.map((bar) => (
                   <div key={bar.label} className="flex h-full min-w-0 flex-1 flex-col justify-end gap-3">
                     <div className="relative flex flex-1 items-end">
                       <div
-                        className="w-full rounded-t-lg bg-gradient-to-t from-[#14b8a6] to-[#f7f3ed]"
+                        className="w-full rounded-t-lg bg-gradient-to-t from-[#0f9f91] to-[#d9ebe6]"
                         style={{ height: `${bar.height}%` }}
                         title={`${bar.value} try-ons`}
                       />
                     </div>
                     <div className="text-center">
-                      <p className="text-xs font-bold text-white">{bar.value}</p>
-                      <p className="truncate text-[10px] text-zinc-600">{bar.label}</p>
+                      <p className="text-xs font-bold text-[#161616]">{bar.value}</p>
+                      <p className="truncate text-[10px] text-[#7b8783]">{bar.label}</p>
                     </div>
                   </div>
                 ))}
@@ -237,25 +237,25 @@ export default function AnalyticsDashboard() {
 
           <motion.div variants={fade}>
             <Card className="overflow-hidden p-0">
-              <div className="border-b border-white/10 p-5">
+              <div className="border-b border-[#161616]/10 p-5">
                 <Badge variant="primary">Event Ledger</Badge>
-                <h2 className="mt-3 text-xl font-black text-white">Recent try-on events</h2>
+                <h2 className="mt-3 text-xl font-black text-[#161616]">Recent try-on events</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[680px]">
-                  <thead className="bg-white/[0.035]">
+                  <thead className="bg-[#f5f8f6]">
                     <tr>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Date</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Product</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Type</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Status</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Date</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Product</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Type</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-[#161616]/10">
                     {analytics.slice(0, 50).map((entry) => (
-                      <tr key={entry.id} className="transition hover:bg-white/[0.035]">
-                        <td className="px-5 py-4 text-sm text-zinc-300">{formatDate(entry.created_at)}</td>
-                        <td className="px-5 py-4 text-xs font-mono text-zinc-500">{entry.product_id || 'Not linked'}</td>
+                      <tr key={entry.id} className="transition hover:bg-[#f5f8f6]">
+                        <td className="px-5 py-4 text-sm text-[#4f5d58]">{formatDate(entry.created_at)}</td>
+                        <td className="px-5 py-4 text-xs font-mono text-[#66736f]">{entry.product_id || 'Not linked'}</td>
                         <td className="px-5 py-4">
                           <Badge variant="default">{entry.tryon_type || 'Unknown'}</Badge>
                         </td>

@@ -180,17 +180,17 @@ export default function Conversions() {
           <motion.div variants={fade} className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
             <Card>
               <Badge variant="primary">Funnel</Badge>
-              <h2 className="mt-3 text-xl font-black text-white">Commerce movement</h2>
+              <h2 className="mt-3 text-xl font-black text-[#161616]">Commerce movement</h2>
               <div className="mt-8 space-y-5">
                 {funnel.map((step) => {
                   const width = Math.max(8, (step.value / funnelMax) * 100);
                   return (
                     <div key={step.label}>
                       <div className="mb-2 flex items-center justify-between text-sm">
-                        <span className="font-bold text-white">{step.label}</span>
-                        <span className="font-bold text-zinc-400">{step.value}</span>
+                        <span className="font-bold text-[#161616]">{step.label}</span>
+                        <span className="font-bold text-[#66736f]">{step.value}</span>
                       </div>
-                      <div className="h-4 overflow-hidden rounded-lg bg-white/[0.06]">
+                      <div className="h-4 overflow-hidden rounded-lg bg-[#edf4f1]">
                         <div className={`h-full rounded-lg ${step.tone}`} style={{ width: `${width}%` }} />
                       </div>
                     </div>
@@ -201,8 +201,8 @@ export default function Conversions() {
 
             <Card>
               <Badge variant="teal">Quality Read</Badge>
-              <h2 className="mt-3 text-xl font-black text-white">What this means</h2>
-              <div className="mt-6 space-y-4 text-sm leading-6 text-zinc-400">
+              <h2 className="mt-3 text-xl font-black text-[#161616]">What this means</h2>
+              <div className="mt-6 space-y-4 text-sm leading-6 text-[#66736f]">
                 <p>
                   A healthy Stylique flow keeps add-to-cart signals close to try-on volume. If add-to-cart is low, review product imagery, Tier 3 products, and widget placement.
                 </p>
@@ -215,25 +215,25 @@ export default function Conversions() {
 
           <motion.div variants={fade}>
             <Card className="overflow-hidden p-0">
-              <div className="border-b border-white/10 p-5">
+              <div className="border-b border-[#161616]/10 p-5">
                 <Badge variant="default">Conversion Ledger</Badge>
-                <h2 className="mt-3 text-xl font-black text-white">Recent conversion events</h2>
+                <h2 className="mt-3 text-xl font-black text-[#161616]">Recent conversion events</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px]">
-                  <thead className="bg-white/[0.035]">
+                  <thead className="bg-[#f5f8f6]">
                     <tr>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Date</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Product</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Add to Cart</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-zinc-600">Status</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Date</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Product</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Add to Cart</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-[0.14em] text-[#7b8783]">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-[#161616]/10">
                     {conversions.slice(0, 50).map((conversion) => (
-                      <tr key={conversion.id} className="transition hover:bg-white/[0.035]">
-                        <td className="px-5 py-4 text-sm text-zinc-300">{formatDate(conversion.created_at)}</td>
-                        <td className="px-5 py-4 text-xs font-mono text-zinc-500">
+                      <tr key={conversion.id} className="transition hover:bg-[#f5f8f6]">
+                        <td className="px-5 py-4 text-sm text-[#4f5d58]">{formatDate(conversion.created_at)}</td>
+                        <td className="px-5 py-4 text-xs font-mono text-[#66736f]">
                           {conversion.product_id ? conversion.product_id : 'Not linked'}
                         </td>
                         <td className="px-5 py-4">

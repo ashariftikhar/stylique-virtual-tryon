@@ -250,9 +250,9 @@ export default function StorePanelHome() {
               Use the Shopify Theme App Extension as the primary storefront install. It avoids protected theme-file writes and lets merchants add Stylique from the Shopify theme editor.
             </p>
             <div className="mt-3 grid gap-2 text-xs text-sky-50/80 sm:grid-cols-3">
-              <span>Block: <strong className="text-white">{shopifyExtension.blockHandle}</strong></span>
-              <span>Embed: <strong className="text-white">{shopifyExtension.embedHandle}</strong></span>
-              <span>Last seen: <strong className="text-white">{extensionSeenLabel}</strong></span>
+              <span>Block: <strong className="text-[#161616]">{shopifyExtension.blockHandle}</strong></span>
+              <span>Embed: <strong className="text-[#161616]">{shopifyExtension.embedHandle}</strong></span>
+              <span>Last seen: <strong className="text-[#161616]">{extensionSeenLabel}</strong></span>
             </div>
             {shopifyExtension.installMethod && (
               <p className="mt-2 text-xs text-sky-50/75">
@@ -262,7 +262,7 @@ export default function StorePanelHome() {
             )}
             {shopifyExtension.links?.addAppBlockApps && (
               <button
-                className="mt-2 text-xs font-semibold text-sky-100/80 underline-offset-4 hover:text-white hover:underline"
+                className="mt-2 text-xs font-semibold text-sky-100/80 underline-offset-4 hover:text-[#161616] hover:underline"
                 onClick={() => window.open(shopifyExtension.links?.addAppBlockApps, '_blank')}
               >
                 App block did not land in the main section? Try the Apps section fallback.
@@ -314,7 +314,7 @@ export default function StorePanelHome() {
               Products and webhooks can continue syncing. To finish the storefront widget, add the Stylique section manually or retry after Shopify theme-write access is fixed.
             </p>
             <div className="mt-4 grid gap-2 text-sm text-amber-50/85 md:grid-cols-2">
-              <div className="rounded-lg bg-black/20 p-3">
+              <div className="rounded-lg bg-[#f2f6f4] p-3">
                 <strong className="block text-amber-50">Manual setup steps</strong>
                 <ol className="mt-2 list-decimal space-y-1 pl-4">
                   <li>Create <code>sections/stylique-virtual-try-on.liquid</code>.</li>
@@ -324,7 +324,7 @@ export default function StorePanelHome() {
                   <li>Add the Stylique section to the product template and save.</li>
                 </ol>
               </div>
-              <div className="rounded-lg bg-black/20 p-3">
+              <div className="rounded-lg bg-[#f2f6f4] p-3">
                 <strong className="block text-amber-50">Copy install code</strong>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => copyThemeAsset('section')}>
@@ -346,7 +346,7 @@ export default function StorePanelHome() {
             {themeCopyStatus && <p className="mt-3 text-sm font-semibold text-amber-50">{themeCopyStatus}</p>}
             <details className="mt-3">
               <summary className="cursor-pointer text-xs font-bold text-amber-100/80">View setup detail</summary>
-              <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-amber-50/75">
+              <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-[#f2f6f4] p-3 text-xs leading-5 text-amber-50/75">
                 {themeDetails}
               </pre>
             </details>
@@ -401,8 +401,8 @@ export default function StorePanelHome() {
                 <Badge variant={insights.readiness >= 70 ? 'success' : insights.readiness >= 35 ? 'warning' : 'danger'}>
                   Readiness Score
                 </Badge>
-                <h2 className="mt-4 text-2xl font-black text-white">Storefront try-on health</h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
+                <h2 className="mt-4 text-2xl font-black text-[#161616]">Storefront try-on health</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-[#66736f]">
                   Tier 1 and Tier 2 products with selected try-on imagery create the best customer experience.
                 </p>
               </div>
@@ -412,10 +412,10 @@ export default function StorePanelHome() {
                   background: `conic-gradient(#14b8a6 ${insights.readiness * 3.6}deg, rgba(255,255,255,0.08) 0deg)`,
                 }}
               >
-                <div className="grid h-28 w-28 place-items-center rounded-full bg-[#090909]">
+                <div className="grid h-28 w-28 place-items-center rounded-full bg-white">
                   <div className="text-center">
-                    <p className="text-3xl font-black text-white">{insights.readiness}%</p>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">Ready</p>
+                    <p className="text-3xl font-black text-[#161616]">{insights.readiness}%</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7b8783]">Ready</p>
                   </div>
                 </div>
               </div>
@@ -434,12 +434,12 @@ export default function StorePanelHome() {
                     <div className="mb-2 flex items-center justify-between gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <span className={`h-2.5 w-2.5 rounded-full ${tier.color}`} />
-                        <span className="font-bold text-white">{tier.label}</span>
-                        <span className="text-zinc-600">{tier.text}</span>
+                        <span className="font-bold text-[#161616]">{tier.label}</span>
+                        <span className="text-[#7b8783]">{tier.text}</span>
                       </div>
-                      <span className="font-bold text-zinc-300">{tier.value}</span>
+                      <span className="font-bold text-[#4f5d58]">{tier.value}</span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div className="h-2 overflow-hidden rounded-full bg-[#edf4f1]">
                       <div className={`h-full rounded-full ${tier.color}`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
@@ -454,7 +454,7 @@ export default function StorePanelHome() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <Badge variant="primary">Action Needed</Badge>
-                <h2 className="mt-4 text-2xl font-black text-white">Priority products</h2>
+                <h2 className="mt-4 text-2xl font-black text-[#161616]">Priority products</h2>
               </div>
               <Button variant="secondary" size="sm" onClick={() => router.push('/manage')}>
                 Review all
@@ -479,14 +479,14 @@ export default function StorePanelHome() {
                   <button
                     key={item.id}
                     onClick={() => router.push('/manage')}
-                    className="flex w-full items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-white/20 hover:bg-white/[0.06]"
+                    className="flex w-full items-center gap-3 rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-3 text-left transition hover:border-[#161616]/18 hover:bg-[#edf4f1]"
                   >
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-200">
                       <AlertTriangle className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-white">{item.product_name}</p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="truncate text-sm font-bold text-[#161616]">{item.product_name}</p>
+                      <p className="text-xs text-[#66736f]">
                         {!item.tier ? 'Unscored' : item.tier === 3 ? 'Tier 3 product' : 'Missing try-on image'}
                       </p>
                     </div>
@@ -506,12 +506,12 @@ export default function StorePanelHome() {
           {storeConfig ? (
             <Card>
               <div className="flex items-center gap-3">
-                <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+                <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-2 text-[#161616]">
                   <Store className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-white">Store profile</h2>
-                  <p className="text-sm text-zinc-500">Operational account details</p>
+                  <h2 className="text-lg font-black text-[#161616]">Store profile</h2>
+                  <p className="text-sm text-[#66736f]">Operational account details</p>
                 </div>
               </div>
               <div className="mt-5 grid gap-3 text-sm">
@@ -521,9 +521,9 @@ export default function StorePanelHome() {
                   ['Phone', storeConfig.phone || 'Not provided'],
                   ['Subscription', storeConfig.subscription_plan || storeConfig.subscription_name || 'Active'],
                 ].map(([label, value]) => (
-                  <div key={label} className="flex items-center justify-between gap-4 border-b border-white/10 pb-3 last:border-0 last:pb-0">
-                    <span className="text-zinc-500">{label}</span>
-                    <span className="truncate text-right font-semibold text-white">{value}</span>
+                  <div key={label} className="flex items-center justify-between gap-4 border-b border-[#161616]/10 pb-3 last:border-0 last:pb-0">
+                    <span className="text-[#66736f]">{label}</span>
+                    <span className="truncate text-right font-semibold text-[#161616]">{value}</span>
                   </div>
                 ))}
               </div>
@@ -536,12 +536,12 @@ export default function StorePanelHome() {
         <motion.div variants={fade}>
           <Card>
             <div className="flex items-center gap-3">
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+              <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-2 text-[#161616]">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white">Quick actions</h2>
-                <p className="text-sm text-zinc-500">Move the store forward in one click</p>
+                <h2 className="text-lg font-black text-[#161616]">Quick actions</h2>
+                <p className="text-sm text-[#66736f]">Move the store forward in one click</p>
               </div>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -554,11 +554,11 @@ export default function StorePanelHome() {
                 <button
                   key={action.href}
                   onClick={() => router.push(action.href)}
-                  className="rounded-lg border border-white/10 bg-white/[0.035] p-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]"
+                  className="rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-4 text-left transition hover:border-[#161616]/18 hover:bg-[#edf4f1]"
                 >
-                  <action.icon className="h-5 w-5 text-[#ff8ab0]" />
-                  <h3 className="mt-3 text-sm font-bold text-white">{action.title}</h3>
-                  <p className="mt-1 text-xs text-zinc-500">{action.desc}</p>
+                  <action.icon className="h-5 w-5 text-[#e84d78]" />
+                  <h3 className="mt-3 text-sm font-bold text-[#161616]">{action.title}</h3>
+                  <p className="mt-1 text-xs text-[#66736f]">{action.desc}</p>
                 </button>
               ))}
             </div>

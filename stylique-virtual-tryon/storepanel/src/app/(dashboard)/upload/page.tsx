@@ -110,19 +110,19 @@ export default function UploadItem() {
       <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <motion.div variants={fade} className="space-y-6">
           <Card>
-            <div className="flex items-center gap-3 border-b border-white/10 pb-5">
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+            <div className="flex items-center gap-3 border-b border-[#161616]/10 pb-5">
+              <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-2 text-[#161616]">
                 <PackagePlus className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white">Product details</h2>
-                <p className="text-sm text-zinc-500">Keep names clear and images direct.</p>
+                <h2 className="text-lg font-black text-[#161616]">Product details</h2>
+                <p className="text-sm text-[#66736f]">Keep names clear and images direct.</p>
               </div>
             </div>
 
             <div className="mt-5 grid gap-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="productName">
+                <label className="mb-2 block text-sm font-semibold text-[#4f5d58]" htmlFor="productName">
                   Product Name
                 </label>
                 <Input
@@ -136,7 +136,7 @@ export default function UploadItem() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="description">
+                <label className="mb-2 block text-sm font-semibold text-[#4f5d58]" htmlFor="description">
                   Description
                 </label>
                 <Textarea
@@ -151,7 +151,7 @@ export default function UploadItem() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="price">
+                  <label className="mb-2 block text-sm font-semibold text-[#4f5d58]" htmlFor="price">
                     Price
                   </label>
                   <Input
@@ -166,7 +166,7 @@ export default function UploadItem() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="imageUrl">
+                  <label className="mb-2 block text-sm font-semibold text-[#4f5d58]" htmlFor="imageUrl">
                     Image URL
                   </label>
                   <Input
@@ -182,13 +182,13 @@ export default function UploadItem() {
           </Card>
 
           <Card>
-            <div className="flex items-center gap-3 border-b border-white/10 pb-5">
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
+            <div className="flex items-center gap-3 border-b border-[#161616]/10 pb-5">
+              <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-2 text-[#161616]">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white">Available sizes</h2>
-                <p className="text-sm text-zinc-500">Choose every size that should appear in recommendations.</p>
+                <h2 className="text-lg font-black text-[#161616]">Available sizes</h2>
+                <p className="text-sm text-[#66736f]">Choose every size that should appear in recommendations.</p>
               </div>
             </div>
 
@@ -201,8 +201,8 @@ export default function UploadItem() {
                   className={classNameMerge(
                     'h-11 rounded-lg border text-sm font-bold transition',
                     sizes.includes(size)
-                      ? 'border-white bg-white text-black'
-                      : 'border-white/10 bg-white/[0.035] text-zinc-500 hover:border-white/25 hover:text-white',
+                      ? 'border-white bg-[#161616] text-white'
+                      : 'border-[#161616]/10 bg-[#f5f8f6] text-[#66736f] hover:border-[#161616]/20 hover:text-[#161616]',
                   )}
                 >
                   {size}
@@ -221,12 +221,12 @@ export default function UploadItem() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <Badge variant="teal">Preview</Badge>
-                <h2 className="mt-3 text-lg font-black text-white">Intake card</h2>
+                <h2 className="mt-3 text-lg font-black text-[#161616]">Intake card</h2>
               </div>
               <Badge variant={productName ? 'success' : 'muted'}>{productName ? 'Ready' : 'Draft'}</Badge>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-lg border border-white/10 bg-black/35">
+            <div className="mt-5 overflow-hidden rounded-lg border border-[#161616]/10 bg-[#f2f6f4]">
               {imageUrl ? (
                 <div
                   className="h-72 bg-cover bg-center"
@@ -234,7 +234,7 @@ export default function UploadItem() {
                   aria-label="Product image preview"
                 />
               ) : (
-                <div className="grid h-72 place-items-center text-zinc-600">
+                <div className="grid h-72 place-items-center text-[#7b8783]">
                   <div className="text-center">
                     <ImageIcon className="mx-auto h-10 w-10" />
                     <p className="mt-3 text-sm">Image preview</p>
@@ -245,16 +245,16 @@ export default function UploadItem() {
 
             <div className="mt-5 space-y-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-600">Product</p>
-                <p className="mt-1 truncate text-lg font-black text-white">{productName || 'Untitled product'}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7b8783]">Product</p>
+                <p className="mt-1 truncate text-lg font-black text-[#161616]">{productName || 'Untitled product'}</p>
               </div>
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
-                <span className="text-zinc-500">Price</span>
-                <span className="font-bold text-white">${priceValue.toFixed(2)}</span>
+              <div className="flex items-center justify-between border-t border-[#161616]/10 pt-3 text-sm">
+                <span className="text-[#66736f]">Price</span>
+                <span className="font-bold text-[#161616]">${priceValue.toFixed(2)}</span>
               </div>
-              <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
-                <span className="text-zinc-500">Sizes</span>
-                <span className="font-bold text-white">{sizes.length ? sizes.join(', ') : 'None selected'}</span>
+              <div className="flex items-center justify-between border-t border-[#161616]/10 pt-3 text-sm">
+                <span className="text-[#66736f]">Sizes</span>
+                <span className="font-bold text-[#161616]">{sizes.length ? sizes.join(', ') : 'None selected'}</span>
               </div>
             </div>
 
@@ -275,9 +275,9 @@ export default function UploadItem() {
               )}
             </Button>
 
-            <div className="mt-4 flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-3">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
-              <p className="text-xs leading-5 text-zinc-500">
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#66736f]" />
+              <p className="text-xs leading-5 text-[#66736f]">
                 After upload, run image processing or set a manual tier from Inventory.
               </p>
             </div>

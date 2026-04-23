@@ -69,7 +69,7 @@ export default function StoreLogin() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070707] px-4 py-8 text-white">
+    <div className="relative min-h-screen overflow-hidden bg-[#f8faf8] px-4 py-8 text-[#161616]">
       <div className="premium-grid pointer-events-none absolute inset-0" />
       <div className="pointer-events-none absolute left-0 top-0 h-72 w-72 bg-[#ff5c8a]/10 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 bg-[#14b8a6]/10 blur-3xl" />
@@ -88,12 +88,12 @@ export default function StoreLogin() {
           <h1 className="mt-5 max-w-2xl text-5xl font-black leading-[1.02] tracking-tight">
             Your premium control room for virtual try-on commerce.
           </h1>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-zinc-400">
+          <p className="mt-5 max-w-xl text-sm leading-7 text-[#66736f]">
             Monitor product readiness, protect image quality, and track the moments that move shoppers from try-on to checkout.
           </p>
           <div className="mt-8 grid gap-3">
             {atelierPoints.map((point) => (
-              <div key={point} className="flex items-center gap-3 text-sm font-semibold text-zinc-300">
+              <div key={point} className="flex items-center gap-3 text-sm font-semibold text-[#4f5d58]">
                 <span className="h-2 w-2 rounded-full bg-[#ff5c8a]" />
                 {point}
               </div>
@@ -105,15 +105,15 @@ export default function StoreLogin() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.08 }}
-          className="rounded-lg border border-white/10 bg-zinc-950/82 p-6 shadow-[0_32px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8"
+          className="rounded-lg border border-[#161616]/10 bg-white/92 p-6 shadow-[0_24px_60px_rgba(22,22,22,0.12)] backdrop-blur-xl sm:p-8"
         >
           <div className="mb-8 text-center">
             <StyliqueLogo className="justify-center" label="Store Access" />
-            <div className="mt-7 inline-flex h-12 w-12 items-center justify-center rounded-lg border border-white/10 bg-white text-black">
+            <div className="mt-7 inline-flex h-12 w-12 items-center justify-center rounded-lg border border-[#161616]/10 bg-[#161616] text-white">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <h2 className="mt-4 text-2xl font-black text-white">Sign in to Stylique</h2>
-            <p className="mt-2 text-sm text-zinc-500">Access inventory, analytics, and storefront readiness.</p>
+            <h2 className="mt-4 text-2xl font-black text-[#161616]">Sign in to Stylique</h2>
+            <p className="mt-2 text-sm text-[#66736f]">Access inventory, analytics, and storefront readiness.</p>
           </div>
 
           {registeredStore && (
@@ -130,7 +130,7 @@ export default function StoreLogin() {
 
           <form onSubmit={handleLogin} className="mt-6 space-y-5">
             <div>
-              <label htmlFor="store_id" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+              <label htmlFor="store_id" className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#4f5d58]">
                 <Building2 className="h-4 w-4" />
                 Store ID
               </label>
@@ -146,7 +146,7 @@ export default function StoreLogin() {
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-300">
+              <label htmlFor="password" className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#4f5d58]">
                 <ShieldCheck className="h-4 w-4" />
                 Password
               </label>
@@ -164,7 +164,7 @@ export default function StoreLogin() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-[#66736f] transition hover:bg-[#edf4f1] hover:text-[#161616]"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -177,9 +177,9 @@ export default function StoreLogin() {
             </Button>
           </form>
 
-          <p className="mt-6 border-t border-white/10 pt-6 text-center text-xs text-zinc-500">
+          <p className="mt-6 border-t border-[#161616]/10 pt-6 text-center text-xs text-[#66736f]">
             Need a store account?{' '}
-            <Link href="/register" className="font-bold text-white underline-offset-4 hover:underline">
+            <Link href="/register" className="font-bold text-[#161616] underline-offset-4 hover:underline">
               Create one
             </Link>
           </p>

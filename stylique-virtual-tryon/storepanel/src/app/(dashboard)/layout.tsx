@@ -119,11 +119,11 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
 
   if (loading) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#070707]">
+      <div className="grid min-h-screen place-items-center bg-[#f8faf8]">
         <div className="space-y-4 text-center">
           <StyliqueLogo className="justify-center" />
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-white" />
-          <p className="text-sm text-zinc-500">Preparing your store atelier...</p>
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#161616]/10 border-t-[#161616]" />
+          <p className="text-sm text-[#66736f]">Preparing your store atelier...</p>
         </div>
       </div>
     );
@@ -132,12 +132,12 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
   if (!store) return null;
 
   return (
-    <div className="min-h-screen bg-[#070707] text-white">
+    <div className="min-h-screen bg-[#f8faf8] text-[#161616]">
       <div className="premium-grid pointer-events-none fixed inset-0" />
 
       {sidebarOpen && (
         <button
-          className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-[#161616]/25 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-label="Close navigation"
         />
@@ -145,14 +145,14 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
 
       <aside
         className={classNameMerge(
-          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/10 bg-[#090909]/95 shadow-2xl backdrop-blur-xl transition-transform duration-200 lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-[#161616]/10 bg-white/95 shadow-[0_24px_60px_rgba(22,22,22,0.12)] backdrop-blur-xl transition-transform duration-200 lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex h-20 items-center justify-between border-b border-white/10 px-5">
+        <div className="flex h-20 items-center justify-between border-b border-[#161616]/10 px-5">
           <StyliqueLogo />
           <button
-            className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white lg:hidden"
+            className="rounded-lg p-2 text-[#66736f] transition hover:bg-[#edf4f1] hover:text-[#161616] lg:hidden"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close navigation"
           >
@@ -160,14 +160,14 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
           </button>
         </div>
 
-        <div className="border-b border-white/10 px-4 py-4">
-          <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+        <div className="border-b border-[#161616]/10 px-4 py-4">
+          <div className="flex items-center gap-3 rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-sm font-black text-black">
               {storeInitial}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">{storeName}</p>
-              <p className="truncate text-xs text-zinc-500">{store.store_id}</p>
+              <p className="truncate text-sm font-bold text-[#161616]">{storeName}</p>
+              <p className="truncate text-xs text-[#66736f]">{store.store_id}</p>
             </div>
           </div>
         </div>
@@ -182,8 +182,8 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
                 className={classNameMerge(
                   'group flex items-center gap-3 rounded-lg border px-3 py-3 transition',
                   active
-                    ? 'border-white/15 bg-white text-black shadow-[0_18px_44px_rgba(255,255,255,0.08)]'
-                    : 'border-transparent text-zinc-500 hover:border-white/10 hover:bg-white/[0.055] hover:text-white',
+                    ? 'border-[#161616]/12 bg-[#161616] text-white shadow-[0_14px_30px_rgba(22,22,22,0.12)]'
+                    : 'border-transparent text-[#66736f] hover:border-[#161616]/10 hover:bg-[#edf4f1] hover:text-[#161616]',
                 )}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -192,7 +192,7 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
                   <span
                     className={classNameMerge(
                       'block truncate text-[11px]',
-                      active ? 'text-black/55' : 'text-zinc-600 group-hover:text-zinc-400',
+                      active ? 'text-black/55' : 'text-[#7b8783] group-hover:text-[#66736f]',
                     )}
                   >
                     {desc}
@@ -203,7 +203,7 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-[#161616]/10 p-4">
           <div className="mb-3 rounded-lg border border-teal-400/20 bg-teal-500/10 p-3">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-teal-200">
               <Sparkles className="h-3.5 w-3.5" />
@@ -221,19 +221,19 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
       </aside>
 
       <div className="relative flex min-h-screen flex-col lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-white/10 bg-[#070707]/82 px-4 backdrop-blur-xl lg:px-8">
+        <header className="sticky top-0 z-20 flex h-20 items-center gap-4 border-b border-[#161616]/10 bg-[#f8faf8]/82 px-4 backdrop-blur-xl lg:px-8">
           <button
-            className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white lg:hidden"
+            className="rounded-lg p-2 text-[#66736f] transition hover:bg-[#edf4f1] hover:text-[#161616] lg:hidden"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open navigation"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-600">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7b8783]">
               Stylique Store Panel
             </p>
-            <h1 className="truncate text-lg font-black text-white">{page.label}</h1>
+            <h1 className="truncate text-lg font-black text-[#161616]">{page.label}</h1>
           </div>
           <div className="hidden items-center gap-2 sm:flex">
             <Badge variant="teal">Live store</Badge>
@@ -255,15 +255,15 @@ export default function StorePanelLayout({ children }: { children: React.ReactNo
             >
               <div className="grid gap-2 text-xs sm:grid-cols-2">
                 <span>
-                  Store ID: <strong className="text-white">{oauthBanner.storeId}</strong>
+                  Store ID: <strong className="text-[#161616]">{oauthBanner.storeId}</strong>
                 </span>
                 <span>
-                  Password: <strong className="text-white">{oauthBanner.password}</strong>
+                  Password: <strong className="text-[#161616]">{oauthBanner.password}</strong>
                 </span>
               </div>
               <button
                 onClick={() => setOauthBanner(null)}
-                className="mt-2 text-xs font-semibold text-emerald-100/70 underline-offset-4 hover:text-white hover:underline"
+                className="mt-2 text-xs font-semibold text-emerald-100/70 underline-offset-4 hover:text-[#161616] hover:underline"
               >
                 Dismiss credentials banner
               </button>

@@ -132,13 +132,13 @@ export default function SettingsPage() {
 
       <motion.div variants={fade}>
         <Card className="overflow-hidden">
-          <div className="flex flex-col gap-5 border-b border-white/10 pb-5 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-5 border-b border-[#161616]/10 pb-5 md:flex-row md:items-start md:justify-between">
             <div>
               <Badge variant={wooConnected ? 'success' : 'warning'}>
                 {wooConnected ? 'WooCommerce Connected' : 'WooCommerce Setup Needed'}
               </Badge>
-              <h2 className="mt-4 text-2xl font-black text-white">WooCommerce plugin status</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+              <h2 className="mt-4 text-2xl font-black text-[#161616]">WooCommerce plugin status</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#66736f]">
                 The WordPress plugin connects the store, generates a secure sync secret, and pushes product updates to Stylique.
               </p>
             </div>
@@ -154,36 +154,36 @@ export default function SettingsPage() {
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-white/10 bg-black/25 p-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-white">
+            <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-[#161616]">
                 <PlugZap className="h-4 w-4 text-teal-300" />
                 Connection
               </div>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-zinc-500">Site URL</dt>
-                  <dd className="text-right font-semibold text-zinc-200">{woocommerce?.siteUrl || 'Not connected'}</dd>
+                  <dt className="text-[#66736f]">Site URL</dt>
+                  <dd className="text-right font-semibold text-[#33413c]">{woocommerce?.siteUrl || 'Not connected'}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-zinc-500">Connected at</dt>
-                  <dd className="text-right font-semibold text-zinc-200">{safeDateTime(woocommerce?.connectedAt)}</dd>
+                  <dt className="text-[#66736f]">Connected at</dt>
+                  <dd className="text-right font-semibold text-[#33413c]">{safeDateTime(woocommerce?.connectedAt)}</dd>
                 </div>
               </dl>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-black/25 p-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-white">
+            <div className="rounded-lg border border-[#161616]/10 bg-[#f2f6f4] p-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-[#161616]">
                 <Settings2 className="h-4 w-4 text-amber-300" />
                 Sync Activity
               </div>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-zinc-500">Last sync</dt>
-                  <dd className="text-right font-semibold text-zinc-200">{safeDateTime(woocommerce?.lastSyncAt)}</dd>
+                  <dt className="text-[#66736f]">Last sync</dt>
+                  <dd className="text-right font-semibold text-[#33413c]">{safeDateTime(woocommerce?.lastSyncAt)}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-zinc-500">Status</dt>
-                  <dd className="max-w-sm text-right font-semibold text-zinc-200">
+                  <dt className="text-[#66736f]">Status</dt>
+                  <dd className="max-w-sm text-right font-semibold text-[#33413c]">
                     {woocommerce?.lastSyncStatus || 'No sync has been recorded yet'}
                   </dd>
                 </div>

@@ -396,7 +396,7 @@ export default function ManageInventory() {
       <Card className="space-y-5">
         <div className="grid gap-3 xl:grid-cols-[1fr_auto]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-zinc-600" />
+            <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-[#7b8783]" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -424,7 +424,7 @@ export default function ManageInventory() {
           <select
             value={tierFilter ?? 'all'}
             onChange={(e) => setTierFilter(e.target.value === 'all' ? null : Number(e.target.value))}
-            className="h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
           >
             <option value="all">All tiers</option>
             <option value="1">Tier 1</option>
@@ -434,7 +434,7 @@ export default function ManageInventory() {
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-            className="h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
           >
             <option value="all">All sources</option>
             <option value="shopify">Shopify</option>
@@ -444,7 +444,7 @@ export default function ManageInventory() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
           >
             <option value="all">All sync states</option>
             <option value="success">Synced</option>
@@ -455,7 +455,7 @@ export default function ManageInventory() {
           <select
             value={readinessFilter}
             onChange={(e) => setReadinessFilter(e.target.value as ReadinessFilter)}
-            className="h-10 rounded-lg border border-white/10 bg-black/35 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="h-10 rounded-lg border border-[#161616]/10 bg-[#f2f6f4] px-3 text-sm text-[#161616] focus:outline-none focus:ring-2 focus:ring-white/10"
           >
             <option value="all">All readiness</option>
             <option value="ready">Try-on ready</option>
@@ -479,8 +479,8 @@ export default function ManageInventory() {
               className={classNameMerge(
                 'rounded-lg border p-3 text-left transition',
                 tierFilter === item.filter
-                  ? 'border-white bg-white text-black'
-                  : 'border-white/10 bg-white/[0.035] hover:border-white/20',
+                  ? 'border-white bg-[#161616] text-white'
+                  : 'border-[#161616]/10 bg-[#f5f8f6] hover:border-[#161616]/18',
               )}
             >
               <Badge variant={item.variant}>{item.label}</Badge>
@@ -550,7 +550,7 @@ export default function ManageInventory() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 grid place-items-center bg-[#161616]/28 p-4 backdrop-blur-sm"
             onClick={() => setOverrideState(null)}
           >
             <motion.div
@@ -558,16 +558,16 @@ export default function ManageInventory() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-lg border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+              className="w-full max-w-md rounded-lg border border-[#161616]/10 bg-white p-6 shadow-[0_24px_60px_rgba(22,22,22,0.12)]"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Badge variant="primary">Manual Override</Badge>
-                  <h3 className="mt-3 text-xl font-black text-white">Set tier and image</h3>
+                  <h3 className="mt-3 text-xl font-black text-[#161616]">Set tier and image</h3>
                 </div>
                 <button
                   onClick={() => setOverrideState(null)}
-                  className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white"
+                  className="rounded-lg p-2 text-[#66736f] transition hover:bg-[#edf4f1] hover:text-[#161616]"
                   aria-label="Close override modal"
                 >
                   <X className="h-5 w-5" />
@@ -576,7 +576,7 @@ export default function ManageInventory() {
 
               <div className="mt-6 space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-zinc-300">Tier Assignment</label>
+                  <label className="mb-2 block text-sm font-semibold text-[#4f5d58]">Tier Assignment</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[1, 2, 3].map((tier) => (
                       <button
@@ -585,8 +585,8 @@ export default function ManageInventory() {
                         className={classNameMerge(
                           'h-10 rounded-lg border text-sm font-bold transition',
                           overrideState.tier === tier
-                            ? 'border-white bg-white text-black'
-                            : 'border-white/10 bg-white/[0.035] text-zinc-400 hover:text-white',
+                            ? 'border-white bg-[#161616] text-white'
+                            : 'border-[#161616]/10 bg-[#f5f8f6] text-[#66736f] hover:text-[#161616]',
                         )}
                       >
                         Tier {tier}
@@ -596,7 +596,7 @@ export default function ManageInventory() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-zinc-300" htmlFor="tryonImageUrl">
+                  <label className="mb-2 block text-sm font-semibold text-[#4f5d58]" htmlFor="tryonImageUrl">
                     Primary Try-on Image URL
                   </label>
                   <Input
@@ -614,7 +614,7 @@ export default function ManageInventory() {
 
                 {overrideState.tryon_image_url && (
                   <div
-                    className="h-40 rounded-lg border border-white/10 bg-cover bg-center"
+                    className="h-40 rounded-lg border border-[#161616]/10 bg-cover bg-center"
                     style={{ backgroundImage: `url(${overrideState.tryon_image_url})` }}
                     aria-label="Try-on image preview"
                   />
@@ -641,7 +641,7 @@ export default function ManageInventory() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 grid place-items-center bg-[#161616]/28 p-4 backdrop-blur-sm"
             onClick={() => setPendingDelete(null)}
           >
             <motion.div
@@ -649,11 +649,11 @@ export default function ManageInventory() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-lg border border-red-400/20 bg-zinc-950 p-6 shadow-2xl"
+              className="w-full max-w-md rounded-lg border border-red-400/20 bg-white p-6 shadow-[0_24px_60px_rgba(22,22,22,0.12)]"
             >
               <Badge variant="danger">Delete Product</Badge>
-              <h3 className="mt-4 text-xl font-black text-white">Remove this inventory item?</h3>
-              <p className="mt-2 text-sm leading-6 text-zinc-500">
+              <h3 className="mt-4 text-xl font-black text-[#161616]">Remove this inventory item?</h3>
+              <p className="mt-2 text-sm leading-6 text-[#66736f]">
                 {pendingDelete.product_name} will be removed from the panel. This action cannot be undone from here.
               </p>
               <div className="mt-6 flex gap-3">
@@ -691,32 +691,32 @@ function ProductRow({
   return (
     <motion.div
       layout
-      className="rounded-lg border border-white/10 bg-zinc-950/70 p-4 transition hover:border-white/20 hover:bg-zinc-900/70"
+      className="rounded-lg border border-[#161616]/10 bg-white/95 p-4 transition hover:border-[#161616]/18 hover:bg-[#f2f6f4]"
     >
       <div className="flex items-center gap-4">
         <input
           type="checkbox"
           checked={selected}
           onChange={onSelect}
-          className="h-4 w-4 rounded border-white/20 bg-black accent-white"
+          className="h-4 w-4 rounded border-[#161616]/18 bg-[#f8faf8] accent-[#161616]"
           aria-label={`Select ${item.product_name}`}
         />
         <button
           onClick={onOpen}
-          className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-zinc-900"
+          className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-[#161616]/10 bg-[#eef4f1]"
           aria-label={`Open ${item.product_name}`}
         >
           {image ? (
             <span className="block h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${image})` }} />
           ) : (
-            <span className="grid h-full w-full place-items-center text-zinc-600">
+            <span className="grid h-full w-full place-items-center text-[#7b8783]">
               <ImageIcon className="h-5 w-5" />
             </span>
           )}
         </button>
         <button onClick={onOpen} className="min-w-0 flex-1 text-left">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-black text-white">{item.product_name}</h3>
+            <h3 className="truncate text-sm font-black text-[#161616]">{item.product_name}</h3>
             <Badge variant={tier.variant}>{tier.label}</Badge>
             <Badge variant={sync.variant}>
               <SyncIcon className="h-3 w-3" />
@@ -724,7 +724,7 @@ function ProductRow({
             </Badge>
             {isReady(item) && <Badge variant="success">Ready</Badge>}
           </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-xs text-zinc-500">
+          <div className="mt-2 flex flex-wrap gap-3 text-xs text-[#66736f]">
             {item.price != null && <span>{formatUSD(Number(item.price))}</span>}
             <span className="capitalize">{sourceOf(item)}</span>
             {item.sizes?.length > 0 && <span>{item.sizes.join(', ')}</span>}
@@ -753,13 +753,13 @@ function ProductCard(props: ProductViewProps) {
   return (
     <motion.div
       layout
-      className="overflow-hidden rounded-lg border border-white/10 bg-zinc-950/70 transition hover:border-white/20"
+      className="overflow-hidden rounded-lg border border-[#161616]/10 bg-white/95 transition hover:border-[#161616]/18"
     >
-      <button onClick={onOpen} className="relative block h-56 w-full bg-zinc-900 text-left">
+      <button onClick={onOpen} className="relative block h-56 w-full bg-[#eef4f1] text-left">
         {image ? (
           <span className="block h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${image})` }} />
         ) : (
-          <span className="grid h-full w-full place-items-center text-zinc-600">
+          <span className="grid h-full w-full place-items-center text-[#7b8783]">
             <ImageIcon className="h-9 w-9" />
           </span>
         )}
@@ -774,13 +774,13 @@ function ProductCard(props: ProductViewProps) {
             type="checkbox"
             checked={selected}
             onChange={onSelect}
-            className="mt-1 h-4 w-4 rounded border-white/20 bg-black accent-white"
+            className="mt-1 h-4 w-4 rounded border-[#161616]/18 bg-[#f8faf8] accent-[#161616]"
             aria-label={`Select ${item.product_name}`}
           />
           <div className="min-w-0 flex-1">
             <button onClick={onOpen} className="block w-full text-left">
-              <h3 className="truncate text-sm font-black text-white">{item.product_name}</h3>
-              <p className="mt-1 text-xs text-zinc-500">{tier.detail}</p>
+              <h3 className="truncate text-sm font-black text-[#161616]">{item.product_name}</h3>
+              <p className="mt-1 text-xs text-[#66736f]">{tier.detail}</p>
             </button>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant={sync.variant}>
@@ -879,7 +879,7 @@ function ProductDrawer({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-40 bg-[#161616]/22 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.aside
@@ -888,16 +888,16 @@ function ProductDrawer({
         exit={{ x: 420 }}
         transition={{ type: 'spring', damping: 30, stiffness: 260 }}
         onClick={(e) => e.stopPropagation()}
-        className="ml-auto flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-zinc-950 shadow-2xl"
+        className="ml-auto flex h-full w-full max-w-xl flex-col border-l border-[#161616]/10 bg-white shadow-[0_24px_60px_rgba(22,22,22,0.12)]"
       >
-        <div className="flex items-center justify-between border-b border-white/10 p-5">
+        <div className="flex items-center justify-between border-b border-[#161616]/10 p-5">
           <div>
             <Badge variant={tier.variant}>{tier.label}</Badge>
-            <h2 className="mt-3 text-xl font-black text-white">{item.product_name}</h2>
+            <h2 className="mt-3 text-xl font-black text-[#161616]">{item.product_name}</h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-zinc-500 transition hover:bg-white/[0.06] hover:text-white"
+            className="rounded-lg p-2 text-[#66736f] transition hover:bg-[#edf4f1] hover:text-[#161616]"
             aria-label="Close product details"
           >
             <X className="h-5 w-5" />
@@ -905,11 +905,11 @@ function ProductDrawer({
         </div>
 
         <div className="flex-1 overflow-auto p-5">
-          <div className="overflow-hidden rounded-lg border border-white/10 bg-black/35">
+          <div className="overflow-hidden rounded-lg border border-[#161616]/10 bg-[#f2f6f4]">
             {image ? (
               <div className="h-80 bg-cover bg-center" style={{ backgroundImage: `url(${image})` }} />
             ) : (
-              <div className="grid h-80 place-items-center text-zinc-600">
+              <div className="grid h-80 place-items-center text-[#7b8783]">
                 <ImageIcon className="h-10 w-10" />
               </div>
             )}
@@ -922,16 +922,16 @@ function ProductDrawer({
               ['Quality Score', `${item.quality_score ?? 0}%`],
               ['Updated', item.updated_at ? new Date(item.updated_at).toLocaleDateString() : 'Not available'],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-600">{label}</p>
-                <p className="mt-2 text-sm font-bold capitalize text-white">{value}</p>
+              <div key={label} className="rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7b8783]">{label}</p>
+                <p className="mt-2 text-sm font-bold capitalize text-[#161616]">{value}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.035] p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-600">Sizing</p>
-            <p className="mt-2 text-sm text-zinc-300">{item.sizes?.length ? item.sizes.join(', ') : 'No sizes listed'}</p>
+          <div className="mt-5 rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7b8783]">Sizing</p>
+            <p className="mt-2 text-sm text-[#4f5d58]">{item.sizes?.length ? item.sizes.join(', ') : 'No sizes listed'}</p>
           </div>
 
           {item.product_link && (
@@ -939,7 +939,7 @@ function ProductDrawer({
               href={item.product_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-white underline-offset-4 hover:underline"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#161616] underline-offset-4 hover:underline"
             >
               View product on store
               <ExternalLink className="h-4 w-4" />
@@ -947,7 +947,7 @@ function ProductDrawer({
           )}
         </div>
 
-        <div className="border-t border-white/10 p-5">
+        <div className="border-t border-[#161616]/10 p-5">
           <ProductActions
             item={item}
             reprocessing={reprocessing}
