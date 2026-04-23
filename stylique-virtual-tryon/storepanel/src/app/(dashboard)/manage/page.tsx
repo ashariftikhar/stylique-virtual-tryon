@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -614,10 +615,18 @@ export default function ManageInventory() {
 
                 {overrideState.tryon_image_url && (
                   <div
-                    className="h-40 rounded-lg border border-[#161616]/10 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${overrideState.tryon_image_url})` }}
+                    className="grid h-40 place-items-center rounded-lg border border-[#161616]/10 bg-[#f5f8f6] p-3"
                     aria-label="Try-on image preview"
-                  />
+                  >
+                    <Image
+                      src={overrideState.tryon_image_url}
+                      alt="Try-on image preview"
+                      width={320}
+                      height={160}
+                      unoptimized
+                      className="h-full w-full rounded-md object-contain"
+                    />
+                  </div>
                 )}
 
                 <div className="flex gap-3 pt-2">

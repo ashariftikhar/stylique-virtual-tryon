@@ -214,11 +214,11 @@ export default function StorePanelHome() {
         </motion.div>
       )}
 
-      {shopifyExtension && (
+      {shopifyExtension && !extensionSeen && (
         <motion.div variants={fade}>
           <AlertBanner
-            tone={extensionSeen ? 'success' : 'info'}
-            title={extensionSeen ? 'Theme App Extension detected' : 'Recommended: Theme App Extension'}
+            tone="info"
+            title="Recommended: Theme App Extension"
             action={
               shopifyExtension.links ? (
                 <>
@@ -249,17 +249,14 @@ export default function StorePanelHome() {
             <p>
               Use the Shopify Theme App Extension as the primary storefront install. It avoids protected theme-file writes and lets merchants add Stylique from the Shopify theme editor.
             </p>
+            <p className="mt-2 text-sm text-sky-900/80">
+              Start with <strong>Add App Block</strong> and save the product template. Only use <strong>Enable Embed</strong> if support asks for the optional helper mode.
+            </p>
             <div className="mt-3 grid gap-2 text-xs text-sky-50/80 sm:grid-cols-3">
               <span>Block: <strong className="text-[#161616]">{shopifyExtension.blockHandle}</strong></span>
               <span>Embed: <strong className="text-[#161616]">{shopifyExtension.embedHandle}</strong></span>
               <span>Last seen: <strong className="text-[#161616]">{extensionSeenLabel}</strong></span>
             </div>
-            {shopifyExtension.installMethod && (
-              <p className="mt-2 text-xs text-sky-50/75">
-                Install method: <strong>{shopifyExtension.installMethod}</strong>
-                {shopifyExtension.setupStatus ? ` | ${shopifyExtension.setupStatus}` : ''}
-              </p>
-            )}
             {shopifyExtension.links?.addAppBlockApps && (
               <button
                 className="mt-2 text-xs font-semibold text-sky-700 underline-offset-4 hover:text-[#161616] hover:underline"
@@ -272,7 +269,7 @@ export default function StorePanelHome() {
         </motion.div>
       )}
 
-      {themeInjection && !themeInjection.done && (themeInjection.status || themeInjection.message) && (
+      {themeInjection && !extensionSeen && !themeInjection.done && (themeInjection.status || themeInjection.message) && (
         <motion.div variants={fade}>
           <AlertBanner
             tone="warning"
@@ -350,14 +347,6 @@ export default function StorePanelHome() {
                 {themeDetails}
               </pre>
             </details>
-          </AlertBanner>
-        </motion.div>
-      )}
-
-      {themeInjection && themeInjection.done && (
-        <motion.div variants={fade}>
-          <AlertBanner tone="success" title="Widget installed">
-            Stylique is installed in your Shopify theme and ready for shoppers.
           </AlertBanner>
         </motion.div>
       )}
