@@ -1,138 +1,247 @@
-{{ 'stylique-widget.css' | asset_url | stylesheet_tag }}
+{%- assign block_id = block.id | replace: 'block-', '' | slice: 0, 16 -%}
+{%- assign backend = block.settings.backend_url | default: 'https://stylique-api.onrender.com' -%}
+{%- assign resolved_store_id = block.settings.store_id | default: shop.permanent_domain -%}
+{%- assign resolved_logo_url = block.settings.logo_url -%}
+{%- if block.settings.logo_image != blank -%}
+  {%- assign resolved_logo_url = block.settings.logo_image | image_url: width: 120 -%}
+{%- endif -%}
+{%- if resolved_logo_url == blank -%}
+  {%- assign resolved_logo_url = 'https://cdn.shopify.com/s/files/1/0633/5057/1167/files/shopify_Logo.png?v=1766183139' -%}
+{%- endif -%}
 
 <div
-  class="stylique-extension-root"
-  data-stylique-block
-  data-stylique-instance="{{ block.id }}"
->
-  <script type="application/json" data-stylique-config>
-    {
-      "installMethod": "theme_app_block",
-      "extensionVersion": "0.1.0",
-      "shopDomain": {{ shop.permanent_domain | json }},
-      "currentUrl": {{ canonical_url | json }},
-      "backendUrl": {{ block.settings.backend_url | default: 'https://stylique-api.onrender.com' | json }},
-      "storeId": {% if block.settings.store_id != blank %}{{ block.settings.store_id | json }}{% else %}{{ shop.permanent_domain | json }}{% endif %},
-      "buttonLabel": {{ block.settings.button_label | default: 'Virtual Try-On' | json }},
-      "placementStyle": {{ block.settings.placement_style | default: 'inline' | json }},
-      "enableNativeCartTracking": {{ block.settings.enable_native_cart_tracking | json }},
-      "enableFallbackButton": false,
-      "debugMode": false,
-      "theme": {
-        "primaryColor": {{ block.settings.primary_color | default: '#642FD7' | json }},
-        "secondaryColor": {{ block.settings.secondary_color | default: '#F4536F' | json }},
-        "textColor": {{ block.settings.text_color | default: '#111827' | json }},
-        "borderRadius": {{ block.settings.border_radius | default: 14 | json }},
-        "logoUrl": {% if block.settings.logo_image != blank %}{{ block.settings.logo_image | image_url: width: 96 | json }}{% elsif block.settings.logo_url != blank %}{{ block.settings.logo_url | json }}{% else %}{{ 'stylique-logo.png' | asset_url | json }}{% endif %}
-      },
-      "product": {% if product %}
-        {
-          "id": {{ product.id | json }},
-          "handle": {{ product.handle | json }},
-          "title": {{ product.title | json }},
-          "url": {{ product.url | json }},
-          "featuredImage": {% if product.featured_image %}{{ product.featured_image | image_url: width: 900 | json }}{% else %}null{% endif %},
-          "variants": {{ product.variants | json }},
-          "images": [
-            {% for image in product.images %}
-              {
-                "url": {{ image | image_url: width: 1200 | json }},
-                "alt": {{ image.alt | json }}
-              }{% unless forloop.last %},{% endunless %}
-            {% endfor %}
-          ]
-        }
-      {% else %}
-        null
-      {% endif %}
-    }
-  </script>
-</div>
+  id="stylique-root-{{ block_id }}"
+  class="stylique-widget-loader"
+  data-stylique-original-loader
+  data-stylique-block-id="{{ block_id }}"
+></div>
 
-<script src="{{ 'stylique-widget.js' | asset_url }}" defer></script>
+<script>
+  (function() {
+    var blockId = {{ block_id | json }};
+    var root = document.getElementById('stylique-root-' + blockId);
+    if (!root) return;
+
+    window.__StyliqueOriginalWidgetState = window.__StyliqueOriginalWidgetState || {
+      mounting: false,
+      mounted: false,
+      ownerBlockId: null
+    };
+
+    if (window.__StyliqueOriginalWidgetState.mounting || window.__StyliqueOriginalWidgetState.mounted) {
+      root.innerHTML = '<div style="padding:12px 14px;border:1px solid #f59e0b;border-radius:10px;background:#fff7ed;color:#9a3412;font-size:14px;line-height:1.5;">Stylique is already mounted on this product page. Remove duplicate app blocks and keep only one.</div>';
+      return;
+    }
+
+    var themeConfig = {
+      backendUrl: {{ backend | json }},
+      storeId: {{ resolved_store_id | json }},
+      sectionTitle: {{ block.settings.section_title | default: 'Virtual Try-On Experience' | json }},
+      sectionDescription: {{ block.settings.section_description | default: 'See how this item looks on you with our advanced AI-powered virtual try-on technology' | json }},
+      logoUrl: {{ resolved_logo_url | json }},
+      primaryColor: {{ block.settings.primary_color | default: '#667eea' | json }},
+      secondaryColor: {{ block.settings.secondary_color | default: '#764ba2' | json }},
+      textColor: {{ block.settings.text_color | default: '#333333' | json }},
+      borderRadius: {{ block.settings.border_radius | default: 8 | json }}
+    };
+
+    var productBootstrap = {
+      id: {{ product.id | json }},
+      title: {{ product.title | json }},
+      price: {{ product.price | json }},
+      priceFormatted: {{ product.price | money | json }},
+      url: {{ product.url | json }},
+      featuredImage: {% if product.featured_image %}{{ product.featured_image | image_url: width: 900 | json }}{% else %}""{% endif %},
+      selectedVariantId: {% if product.selected_or_first_available_variant %}{{ product.selected_or_first_available_variant.id | json }}{% else %}null{% endif %},
+      variants: [
+        {% for variant in product.variants %}
+          {
+            "id": {{ variant.id | json }},
+            "title": {{ variant.title | json }},
+            "option1": {{ variant.option1 | json }},
+            "option2": {{ variant.option2 | json }},
+            "option3": {{ variant.option3 | json }},
+            "available": {{ variant.available | json }}
+          }{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+      ],
+      images: [
+        {% for image in product.images %}
+          {{ image | image_url: width: 1200 | json }}{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+      ]
+    };
+
+    function executeScriptsInOrder(container) {
+      var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
+      return scripts.reduce(function(promise, originalScript) {
+        return promise.then(function() {
+          return new Promise(function(resolve, reject) {
+            var parent = originalScript.parentNode;
+            if (!parent) {
+              resolve();
+              return;
+            }
+
+            var replacement = document.createElement('script');
+            Array.prototype.slice.call(originalScript.attributes).forEach(function(attr) {
+              replacement.setAttribute(attr.name, attr.value);
+            });
+
+            if (originalScript.src) {
+              replacement.onload = function() { resolve(); };
+              replacement.onerror = function() { reject(new Error('Failed to load ' + originalScript.src)); };
+            } else {
+              replacement.text = originalScript.textContent;
+            }
+
+            parent.insertBefore(replacement, originalScript);
+            parent.removeChild(originalScript);
+
+            if (!originalScript.src) {
+              resolve();
+            }
+          });
+        });
+      }, Promise.resolve());
+    }
+
+    function showError(message) {
+      root.innerHTML = '<div style="padding:14px 16px;border:1px solid #fecaca;border-radius:10px;background:#fef2f2;color:#991b1b;font-size:14px;line-height:1.5;">' + message + '</div>';
+      window.__StyliqueOriginalWidgetState.mounting = false;
+      window.__StyliqueOriginalWidgetMounting = false;
+      if (window.__StyliqueOriginalWidgetState.ownerBlockId === blockId) {
+        window.__StyliqueOriginalWidgetState.ownerBlockId = null;
+      }
+      root.removeAttribute('data-stylique-original-widget-root');
+    }
+
+    if (!productBootstrap.id) {
+      showError('Stylique could not determine the current product. Open this block on a product template and save the theme again.');
+      return;
+    }
+
+    window.__StyliqueOriginalWidgetState.mounting = true;
+    window.__StyliqueOriginalWidgetState.ownerBlockId = blockId;
+    window.__StyliqueOriginalWidgetMounting = true;
+    root.setAttribute('data-stylique-original-widget-root', 'pending');
+
+    var url = themeConfig.backendUrl.replace(/\/$/, '') + '/api/shopify/widget'
+      + '?shop=' + encodeURIComponent({{ shop.permanent_domain | json }})
+      + '&productId=' + encodeURIComponent(String(productBootstrap.id))
+      + '&blockId=' + encodeURIComponent(blockId)
+      + '&installMethod=theme_app_block'
+      + '&themeConfig=' + encodeURIComponent(JSON.stringify(themeConfig))
+      + '&productBootstrap=' + encodeURIComponent(JSON.stringify(productBootstrap));
+
+    fetch(url)
+      .then(function(response) {
+        if (!response.ok) throw new Error('Widget loader returned HTTP ' + response.status);
+        return response.text();
+      })
+      .then(function(html) {
+        var template = document.createElement('template');
+        template.innerHTML = html;
+        root.innerHTML = '';
+        root.appendChild(template.content.cloneNode(true));
+        return executeScriptsInOrder(root);
+      })
+      .then(function() {
+        window.__StyliqueOriginalWidgetState.mounting = false;
+        window.__StyliqueOriginalWidgetState.mounted = true;
+        window.__StyliqueOriginalWidgetMounting = false;
+        root.setAttribute('data-stylique-original-widget-root', 'mounted');
+        window.dispatchEvent(new CustomEvent('stylique:original-widget-loaded', {
+          detail: { root: root, blockId: blockId }
+        }));
+      })
+      .catch(function(error) {
+        console.error('Stylique loader failed:', error);
+        showError('Unable to load Stylique Virtual Try-On. Please refresh the page or verify the backend URL in the app block settings.');
+      });
+  })();
+</script>
 
 {% schema %}
 {
-  "name": "Stylique Virtual Try-On",
+  "name": "Stylique Try-On",
   "target": "section",
   "enabled_on": {
     "templates": ["product"]
   },
   "settings": [
     {
+      "type": "header",
+      "content": "Basic Settings"
+    },
+    {
       "type": "text",
       "id": "backend_url",
       "label": "Stylique API base URL",
       "default": "https://stylique-api.onrender.com",
-      "info": "Public backend URL without a trailing slash."
+      "info": "HTTPS URL of your backend (no trailing slash)."
     },
     {
       "type": "text",
       "id": "store_id",
       "label": "Stylique store ID",
-      "info": "Leave blank to use this shop's permanent .myshopify.com domain."
+      "default": "",
+      "info": "Leave blank to use this shop's permanent domain."
     },
     {
       "type": "text",
-      "id": "button_label",
-      "label": "Button label",
-      "default": "Virtual Try-On"
+      "id": "section_title",
+      "label": "Section Title",
+      "default": "Virtual Try-On Experience"
     },
     {
-      "type": "select",
-      "id": "placement_style",
-      "label": "Placement style",
-      "default": "inline",
-      "options": [
-        { "value": "inline", "label": "Inline" },
-        { "value": "wide", "label": "Wide" },
-        { "value": "minimal", "label": "Minimal" }
-      ]
+      "type": "textarea",
+      "id": "section_description",
+      "label": "Section Description",
+      "default": "See how this item looks on you with our advanced AI-powered virtual try-on technology"
     },
     {
       "type": "image_picker",
       "id": "logo_image",
-      "label": "Stylique logo"
+      "label": "Plugin Logo"
     },
     {
       "type": "text",
       "id": "logo_url",
-      "label": "Logo URL fallback",
-      "info": "Optional. Leave blank to use the bundled Stylique logo."
+      "label": "Logo URL (fallback)",
+      "default": "https://cdn.shopify.com/s/files/1/0633/5057/1167/files/shopify_Logo.png?v=1766183139"
+    },
+    {
+      "type": "header",
+      "content": "Appearance"
     },
     {
       "type": "color",
       "id": "primary_color",
-      "label": "Primary color",
-      "default": "#642FD7"
+      "label": "Primary Color",
+      "default": "#667eea"
     },
     {
       "type": "color",
       "id": "secondary_color",
-      "label": "Secondary color",
-      "default": "#F4536F"
+      "label": "Secondary Color",
+      "default": "#764ba2"
     },
     {
       "type": "color",
       "id": "text_color",
-      "label": "Text color",
-      "default": "#111827"
+      "label": "Text Color",
+      "default": "#333333"
     },
     {
       "type": "range",
       "id": "border_radius",
-      "label": "Border radius",
+      "label": "Border Radius",
       "min": 0,
-      "max": 28,
+      "max": 20,
       "step": 1,
       "unit": "px",
-      "default": 14
-    },
-    {
-      "type": "checkbox",
-      "id": "enable_native_cart_tracking",
-      "label": "Track native add-to-cart clicks",
-      "default": true
+      "default": 8
     }
   ]
 }

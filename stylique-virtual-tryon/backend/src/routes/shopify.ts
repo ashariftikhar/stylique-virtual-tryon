@@ -3,6 +3,9 @@ import type { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getSupabase } from '../services/supabase.ts';
 import { getJwtSecret, requireAuth, type AuthenticatedRequest } from '../middleware/auth.ts';
 import {
@@ -31,9 +34,327 @@ const DEFAULT_SCOPES =
 
 const VALID_EXTENSION_INSTALL_METHODS = new Set(['theme_app_block', 'theme_app_embed', 'manual_section']);
 const MAX_HEARTBEAT_FIELD_LENGTH = 500;
+const ORIGINAL_WIDGET_DEFAULT_BACKEND = 'https://stylique-api.onrender.com';
+const ORIGINAL_WIDGET_DEFAULT_LOGO = 'https://cdn.shopify.com/s/files/1/0633/5057/1167/files/shopify_Logo.png?v=1766183139';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SHOPIFY_WIDGET_SOURCE_PATH = path.resolve(__dirname, '../../../shopify/Shopify_new_tryon_upload_first.liquid');
+const SHOPIFY_WIDGET_CSS_PATH = path.resolve(__dirname, '../../../shopify/assets/stylique.css');
+
+let cachedOriginalWidgetTemplate: string | null = null;
+let cachedOriginalWidgetCss: string | null = null;
+
+interface ThemeConfigPayload {
+  backendUrl: string;
+  storeId: string;
+  sectionTitle: string;
+  sectionDescription: string;
+  logoUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  textColor: string;
+  borderRadius: number;
+}
+
+interface ProductBootstrapPayload {
+  id: number | string | null;
+  title: string;
+  price: number | string | null;
+  priceFormatted: string;
+  url: string;
+  featuredImage: string;
+  variants: any[];
+  images: string[];
+  selectedVariantId: number | string | null;
+}
 
 function sanitizeSupabaseEqValue(value: string): string {
   return value.replace(/[(),]/g, '').slice(0, MAX_HEARTBEAT_FIELD_LENGTH);
+}
+
+function readCachedWidgetSource(filePath: string, kind: 'template' | 'css'): string {
+  if (process.env.NODE_ENV === 'development') {
+    return readFileSync(filePath, 'utf8');
+  }
+
+  if (kind === 'template') {
+    if (!cachedOriginalWidgetTemplate) {
+      cachedOriginalWidgetTemplate = readFileSync(filePath, 'utf8');
+    }
+    return cachedOriginalWidgetTemplate;
+  }
+
+  if (!cachedOriginalWidgetCss) {
+    cachedOriginalWidgetCss = readFileSync(filePath, 'utf8');
+  }
+  return cachedOriginalWidgetCss;
+}
+
+function parseEncodedJson<T>(value: unknown): T | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    try {
+      return JSON.parse(decodeURIComponent(value)) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeScriptString(value: unknown): string {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\$\{/g, '\\${')
+    .replace(/<\/script/gi, '<\\/script');
+}
+
+function normalizeWidgetThemeConfig(
+  shopDomain: string,
+  rawThemeConfig: Partial<ThemeConfigPayload> | null,
+  backendOverride?: string | null,
+): ThemeConfigPayload {
+  const borderRadiusCandidate = Number(rawThemeConfig?.borderRadius);
+  return {
+    backendUrl: String(backendOverride || rawThemeConfig?.backendUrl || ORIGINAL_WIDGET_DEFAULT_BACKEND).replace(/\/$/, ''),
+    storeId: String(rawThemeConfig?.storeId || shopDomain).trim() || shopDomain,
+    sectionTitle: String(rawThemeConfig?.sectionTitle || 'Virtual Try-On Experience'),
+    sectionDescription: String(
+      rawThemeConfig?.sectionDescription
+        || 'See how this item looks on you with our advanced AI-powered virtual try-on technology',
+    ),
+    logoUrl: String(rawThemeConfig?.logoUrl || ORIGINAL_WIDGET_DEFAULT_LOGO),
+    primaryColor: String(rawThemeConfig?.primaryColor || '#667eea'),
+    secondaryColor: String(rawThemeConfig?.secondaryColor || '#764ba2'),
+    textColor: String(rawThemeConfig?.textColor || '#333333'),
+    borderRadius: Number.isFinite(borderRadiusCandidate) ? Math.max(0, Math.min(20, borderRadiusCandidate)) : 8,
+  };
+}
+
+function normalizeImageUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (typeof entry === 'string') return entry.trim();
+      if (entry && typeof entry === 'object') {
+        const candidate = (entry as any).url || (entry as any).src;
+        return typeof candidate === 'string' ? candidate.trim() : '';
+      }
+      return '';
+    })
+    .filter(Boolean)
+    .slice(0, 32);
+}
+
+function normalizeWidgetProductBootstrap(
+  productId: string,
+  rawBootstrap: Partial<ProductBootstrapPayload> | null,
+): ProductBootstrapPayload {
+  const parsedId = rawBootstrap?.id ?? productId;
+  const images = normalizeImageUrls(rawBootstrap?.images || []);
+  const featuredImage = String(rawBootstrap?.featuredImage || images[0] || '');
+  return {
+    id: parsedId,
+    title: String(rawBootstrap?.title || 'Product'),
+    price: rawBootstrap?.price ?? null,
+    priceFormatted: String(rawBootstrap?.priceFormatted || ''),
+    url: String(rawBootstrap?.url || ''),
+    featuredImage,
+    variants: Array.isArray(rawBootstrap?.variants) ? rawBootstrap?.variants : [],
+    images,
+    selectedVariantId: rawBootstrap?.selectedVariantId ?? null,
+  };
+}
+
+function jsLiteral(value: unknown): string {
+  return JSON.stringify(value ?? null);
+}
+
+function replaceAllExact(source: string, replacements: Array<[string, string]>): string {
+  let output = source;
+  for (const [search, replacement] of replacements) {
+    output = output.split(search).join(replacement);
+  }
+  return output;
+}
+
+function buildProductInfoImageMarkup(product: ProductBootstrapPayload): string {
+  if (!product.featuredImage) return '';
+  return `<img src="${escapeHtml(product.featuredImage)}" alt="${escapeHtml(product.title)}">`;
+}
+
+function buildTier3ImageMarkup(product: ProductBootstrapPayload): string {
+  if (product.featuredImage) {
+    return `
+              <img
+                id="stylique-tier3-product-image"
+                src="${escapeHtml(product.featuredImage)}"
+                alt="${escapeHtml(product.title)}">`;
+  }
+
+  return `
+              <div class="stylique-tier3-image-placeholder">
+                <span>${escapeHtml((product.title || 'Product').slice(0, 1))}</span>
+              </div>`;
+}
+
+function renderOriginalShopifyWidgetHtml(params: {
+  shopDomain: string;
+  productId: string;
+  blockId: string;
+  installMethod: string;
+  themeConfig: ThemeConfigPayload;
+  product: ProductBootstrapPayload;
+}): string {
+  const template = readCachedWidgetSource(SHOPIFY_WIDGET_SOURCE_PATH, 'template');
+  const css = readCachedWidgetSource(SHOPIFY_WIDGET_CSS_PATH, 'css');
+  const theme = params.themeConfig;
+  const product = params.product;
+  const shopDomain = params.shopDomain;
+  const selectedVariantId = product.selectedVariantId ?? (product.variants[0]?.id ?? null);
+  const shopifyProductImagesJson = jsLiteral(product.images);
+  const variantsJson = jsLiteral(product.variants);
+  const bootstrapScript = `
+<style data-stylique-original-css>
+${css}
+</style>
+<script data-stylique-bootstrap>
+  window.StyliqueConfig = {
+    shop: ${jsLiteral(shopDomain)},
+    productId: ${jsLiteral(product.id ?? params.productId)},
+    backendUrl: ${jsLiteral(theme.backendUrl)},
+    storeId: ${jsLiteral(theme.storeId)},
+    currentUrl: window.location.href,
+    installMethod: ${jsLiteral(params.installMethod || 'theme_app_block')},
+    blockId: ${jsLiteral(params.blockId || '')}
+  };
+  window.__styliqueThemeConfig = ${jsLiteral(theme)};
+  window.__styliqueProductBootstrap = ${jsLiteral(product)};
+  window.styliqueSection = Object.assign({}, window.styliqueSection || {}, {
+    storeId: ${jsLiteral(theme.storeId)},
+    currentUrl: window.location.href,
+    domain: ${jsLiteral(shopDomain)}
+  });
+  setTimeout(function () {
+    if (window.__styliqueThemeExtensionHeartbeatSent) return;
+    window.__styliqueThemeExtensionHeartbeatSent = true;
+    fetch(${jsLiteral(`${theme.backendUrl}/api/shopify/widget/heartbeat`)}, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storeId: ${jsLiteral(theme.storeId)},
+        shopDomain: ${jsLiteral(shopDomain)},
+        productId: ${jsLiteral(product.id ?? params.productId)},
+        installMethod: ${jsLiteral(params.installMethod || 'theme_app_block')},
+        extensionVersion: ${jsLiteral(process.env.SHOPIFY_EXTENSION_VERSION || '0.1.0')},
+        currentUrl: window.location.href
+      })
+    }).catch(function () {});
+  }, 0);
+</script>`;
+
+  let html = template;
+
+  html = html.replace(/\{\% schema \%\}[\s\S]*?\{\% endschema \%\}/g, '');
+  html = html.replace(/\{\{ 'stylique\.css' \| asset_url \| stylesheet_tag \}\}/g, '');
+  html = html.replace(
+    /\{\% assign _stylique_backend =[\s\S]*?\{\% endif \%\}\s*\{\% assign _stylique_store_id =[\s\S]*?\{\% endif \%\}/,
+    '',
+  );
+
+  html = html.replace(
+    /\{\% if product\.featured_media \%\}\s*<img src="\{\{ product\.featured_media \| img_url: '300x300' \}\}" alt="\{\{ product\.title \}\}">\s*\{\% endif \%\}/,
+    buildProductInfoImageMarkup(product),
+  );
+  html = html.replace(
+    /\{\% if product\.featured_media \%\}[\s\S]*?\{\% else \%\}[\s\S]*?\{\% endif \%\}/,
+    buildTier3ImageMarkup(product),
+  );
+
+  html = html.replace(
+    /window\.styliqueSection\.shopifyProductImages = \[\];\s*\{\% if product and product\.images \%\}\s*window\.styliqueSection\.shopifyProductImages = \{\{ product\.images \| map: 'src' \| json \}\};\s*console\.log\('\[Stylique\] Shopify product images captured:', window\.styliqueSection\.shopifyProductImages\.length, 'images'\);\s*\{\% endif \%\}/,
+    `window.styliqueSection.shopifyProductImages = window.__styliqueProductBootstrap.images || [];
+    console.log('[Stylique] Shopify product images captured:', window.styliqueSection.shopifyProductImages.length, 'images');`,
+  );
+
+  html = html.replace(
+    `document.addEventListener('DOMContentLoaded', function () {`,
+    `function __styliqueDomReadyInit() {`,
+  );
+  html = html.replace(
+    `  });
+
+  // ===== ONBOARDING FUNCTIONS =====`,
+    `  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', __styliqueDomReadyInit, { once: true });
+  } else {
+    __styliqueDomReadyInit();
+  }
+
+  // ===== ONBOARDING FUNCTIONS =====`,
+  );
+
+  html = replaceAllExact(html, [
+    [`{% if section.settings.logo_image %}{{ section.settings.logo_image | img_url: '40x40' }}{% else %}{{ section.settings.logo_url }}{% endif %}`, escapeHtml(theme.logoUrl)],
+    [`{% if section.settings.logo_image %}{{ section.settings.logo_image | img_url: '60x60' }}{% else %}{{ section.settings.logo_url }}{% endif %}`, escapeHtml(theme.logoUrl)],
+    [`{% if section.settings.logo_image %}{{ section.settings.logo_image | img_url: '50x50' }}{% else %}{{ section.settings.logo_url }}{% endif %}`, escapeHtml(theme.logoUrl)],
+    [`{{ section.settings.primary_color }}`, escapeHtml(theme.primaryColor)],
+    [`{{ section.settings.secondary_color }}`, escapeHtml(theme.secondaryColor)],
+    [`{{ section.settings.text_color }}`, escapeHtml(theme.textColor)],
+    [`{{ section.settings.border_radius | plus: 8 }}`, String(theme.borderRadius + 8)],
+    [`{{ section.settings.border_radius }}`, String(theme.borderRadius)],
+    [`var STYLIQUE_API_BASE = {{ _stylique_backend | json }};`, `var STYLIQUE_API_BASE = window.StyliqueConfig.backendUrl;`],
+    [`console.log('[Stylique] Store ID:', {{ _stylique_store_id | json }});`, `console.log('[Stylique] Store ID:', window.StyliqueConfig.storeId);`],
+    [`storeId: {{ _stylique_store_id | json }},`, `storeId: window.StyliqueConfig.storeId,`],
+    [`domain: window.location.hostname,`, `domain: window.StyliqueConfig.shop || window.location.hostname,`],
+    [`shopifyProductId: {% if product %}{{ product.id }}{% else %}null{% endif %}`, `shopifyProductId: window.__styliqueProductBootstrap.id || null`],
+    [`const title = product.title || product.product_name || {{ product.title | json }};`, `const title = product.title || product.product_name || window.__styliqueProductBootstrap.title || 'Product';`],
+    [`let variantId = {{ product.selected_or_first_available_variant.id }};`, `let variantId = window.__styliqueProductBootstrap.selectedVariantId || null;`],
+    [`const variants = {{ product.variants | json }};`, `const variants = window.__styliqueProductBootstrap.variants || [];`],
+    [`trackConversion({{ product.id }});`, `trackConversion(window.__styliqueProductBootstrap.id);`],
+    [`const productTitle = product.title || {{ product.title | json }} || 'Product';`, `const productTitle = product.title || window.__styliqueProductBootstrap.title || 'Product';`],
+    [`|| {{ product.featured_image | image_url: width: 200 | json }};`, `|| ${jsLiteral(product.featuredImage)};`],
+    [`const productUrl = product.url || {{ product.url | json }};`, `const productUrl = product.url || window.__styliqueProductBootstrap.url || '';`],
+    [`const productTitle = product.title || '{{ product.title | escape }}';`, `const productTitle = product.title || window.__styliqueProductBootstrap.title || 'Product';`],
+    [`const productImage = product.featured_image || '{{ product.featured_image | image_url: width: 200 }}';`, `const productImage = product.featured_image || window.__styliqueProductBootstrap.featuredImage || '';`],
+    [`const productUrl = product.url || '{{ product.url }}';`, `const productUrl = product.url || window.__styliqueProductBootstrap.url || '';`],
+    [`const currentPageProductId = "{{ product.id }}";`, `const currentPageProductId = String(window.__styliqueProductBootstrap.id || '');`],
+    [`{{ product.images | map: 'src' | json }}`, shopifyProductImagesJson],
+    [`{{ product.variants | json }}`, variantsJson],
+    [`{{ product.selected_or_first_available_variant.id }}`, String(selectedVariantId ?? 'null')],
+    [`{{ product.price | money }}`, escapeHtml(product.priceFormatted)],
+    [`{{ product.title | default: 'Product' | slice: 0, 1 }}`, escapeHtml((product.title || 'Product').slice(0, 1))],
+    [`{{ product.title | escape }}`, escapeHtml(product.title)],
+    [`{{ product.title | json }}`, jsLiteral(product.title)],
+    [`{{ product.title }}`, escapeHtml(product.title)],
+    [`{{ product.featured_media | img_url: '300x300' }}`, escapeHtml(product.featuredImage)],
+    [`{{ product.featured_media | img_url: '700x700' }}`, escapeHtml(product.featuredImage)],
+    [`{{ product.featured_image | image_url: width: 200 | json }}`, jsLiteral(product.featuredImage)],
+    [`{{ product.featured_image | image_url: width: 200 }}`, escapeHtml(product.featuredImage)],
+    [`{{ product.url | json }}`, jsLiteral(product.url)],
+    [`{{ product.url }}`, escapeHtml(product.url)],
+    [`{{ product.id }}`, String(product.id ?? params.productId)],
+    [`{{ shop.permanent_domain }}`, escapeHtml(shopDomain)],
+  ]);
+
+  html = html.replace(/\{\%[\s\S]*?\%\}/g, '');
+  html = html.replace(/\{\{[\s\S]*?\}\}/g, '');
+  html = html.replace(`</script>`, `</script>`);
+
+  return `${bootstrapScript}\n${html}`;
 }
 
 function themeInjectionStatusJson(payload: ThemeInjectionStatusPayload): string {
@@ -257,6 +578,52 @@ router.post('/shopify/widget/heartbeat', async (req: Request, res: Response) => 
   } catch (e: any) {
     console.error('[Shopify Widget Heartbeat] Failed:', e.message);
     return res.status(500).json({ success: false, error: 'heartbeat failed' });
+  }
+});
+
+// GET /api/shopify/widget — serve the original Shopify widget for the theme app block loader
+router.get('/shopify/widget', async (req: Request, res: Response) => {
+  try {
+    const shopDomain = typeof req.query.shop === 'string' ? normalizeShopParam(req.query.shop) : null;
+    const productId = typeof req.query.productId === 'string' ? req.query.productId.trim() : '';
+    const installMethodRaw = typeof req.query.installMethod === 'string' ? req.query.installMethod.trim() : '';
+    const blockId = typeof req.query.blockId === 'string' ? req.query.blockId.trim().slice(0, 120) : '';
+    const installMethod = VALID_EXTENSION_INSTALL_METHODS.has(installMethodRaw)
+      ? installMethodRaw
+      : 'theme_app_block';
+
+    if (!shopDomain) {
+      return res.status(400).json({ success: false, error: 'invalid shop' });
+    }
+
+    if (!productId) {
+      return res.status(400).json({ success: false, error: 'missing productId' });
+    }
+
+    const themeConfig = normalizeWidgetThemeConfig(
+      shopDomain,
+      parseEncodedJson<Partial<ThemeConfigPayload>>(req.query.themeConfig),
+      typeof req.query.backendUrl === 'string' ? req.query.backendUrl : null,
+    );
+    const product = normalizeWidgetProductBootstrap(
+      productId,
+      parseEncodedJson<Partial<ProductBootstrapPayload>>(req.query.productBootstrap),
+    );
+
+    const html = renderOriginalShopifyWidgetHtml({
+      shopDomain,
+      productId,
+      blockId,
+      installMethod,
+      themeConfig,
+      product,
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(html);
+  } catch (error: any) {
+    console.error('[Shopify Widget] Failed to render original widget:', error.message);
+    return res.status(500).json({ success: false, error: 'widget_render_failed' });
   }
 });
 

@@ -178,6 +178,19 @@
       return;
     }
 
+    if (
+      root.hasAttribute('data-stylique-embed') &&
+      (
+        window.__StyliqueOriginalWidgetMounting ||
+        (window.__StyliqueOriginalWidgetState && (window.__StyliqueOriginalWidgetState.mounting || window.__StyliqueOriginalWidgetState.mounted)) ||
+        document.querySelector('[data-stylique-original-widget-root]')
+      )
+    ) {
+      installNativeTracking(config);
+      heartbeat(config);
+      return;
+    }
+
     if (root.hasAttribute('data-stylique-embed') && document.querySelector('[data-stylique-block] .stylique-extension-widget')) {
       installNativeTracking(config);
       heartbeat(config);
