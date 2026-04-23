@@ -1,6 +1,9 @@
 {%- assign block_id = block.id | replace: 'block-', '' | slice: 0, 16 -%}
 {%- assign backend = block.settings.backend_url | default: 'https://stylique-api.onrender.com' -%}
-{%- assign resolved_store_id = block.settings.store_id | default: shop.permanent_domain -%}
+{%- assign resolved_store_id = block.settings.store_id -%}
+{%- if resolved_store_id == blank or resolved_store_id == 'auto' -%}
+  {%- assign resolved_store_id = shop.permanent_domain -%}
+{%- endif -%}
 {%- assign resolved_logo_url = block.settings.logo_url -%}
 {%- if block.settings.logo_image != blank -%}
   {%- assign resolved_logo_url = block.settings.logo_image | image_url: width: 120 -%}
@@ -185,8 +188,8 @@
       "type": "text",
       "id": "store_id",
       "label": "Stylique store ID",
-      "default": "",
-      "info": "Leave blank to use this shop's permanent domain."
+      "default": "auto",
+      "info": "Leave as auto to use this shop's permanent domain."
     },
     {
       "type": "text",
