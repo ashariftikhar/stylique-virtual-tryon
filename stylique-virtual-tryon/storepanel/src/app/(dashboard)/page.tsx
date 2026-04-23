@@ -7,9 +7,11 @@ import {
   AlertTriangle,
   BarChart3,
   CheckCircle2,
+  Clipboard,
   ExternalLink,
   Layers,
   Package,
+  PlugZap,
   RefreshCw,
   Sparkles,
   Star,
@@ -19,7 +21,7 @@ import {
 } from 'lucide-react';
 import { AlertBanner, Badge, Button, Card, EmptyState, MetricCard, PageHeader, Skeleton } from '@/components/ui';
 import { apiClient } from '@/lib/api';
-import { InventoryItem, StoreConfig } from '@/types/api';
+import { InventoryItem, StoreConfig, StoreConfigResponse, ThemeInjectionStatus } from '@/types/api';
 
 const fade = {
   hidden: { opacity: 0, y: 16 },
@@ -35,9 +37,12 @@ export default function StorePanelHome() {
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [tryonCount, setTryonCount] = useState(0);
+  const [shopifyExtension, setShopifyExtension] = useState<StoreConfigResponse['shopifyExtension'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [themeInjection, setThemeInjection] = useState<{ done: boolean; status: string | null; shopDomain: string | null } | null>(null);
+  const [themeInjection, setThemeInjection] = useState<ThemeInjectionStatus | null>(null);
+  const [themeRetrying, setThemeRetrying] = useState(false);
+  const [themeCopyStatus, setThemeCopyStatus] = useState('');
   const router = useRouter();
 
   const loadData = useCallback(async () => {
@@ -60,6 +65,7 @@ export default function StorePanelHome() {
         const data: any = configRes.value;
         setStoreConfig(data.config);
         if (data.themeInjection) setThemeInjection(data.themeInjection);
+        if (data.shopifyExtension) setShopifyExtension(data.shopifyExtension);
       }
 
       if (inventoryRes.status === 'fulfilled') {
@@ -85,6 +91,32 @@ export default function StorePanelHome() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const retryThemeInjection = useCallback(async () => {
+    try {
+      setThemeRetrying(true);
+      setThemeCopyStatus('');
+      const result = await apiClient.retryShopifyThemeInjection();
+      if (result.status) setThemeInjection(result.status);
+      setThemeCopyStatus(result.success ? 'Automatic setup completed.' : result.message || 'Retry finished with setup still needed.');
+      await loadData();
+    } catch (err: any) {
+      setThemeCopyStatus(err?.message || 'Retry failed. Please use the manual setup steps below.');
+    } finally {
+      setThemeRetrying(false);
+    }
+  }, [loadData]);
+
+  const copyThemeAsset = useCallback(async (asset: 'section' | 'css') => {
+    try {
+      const assets = await apiClient.getShopifyThemeInstallAssets();
+      const value = asset === 'section' ? assets.sectionLiquid : assets.css;
+      await navigator.clipboard.writeText(value);
+      setThemeCopyStatus(asset === 'section' ? 'Copied Liquid section code.' : 'Copied CSS asset code.');
+    } catch (err: any) {
+      setThemeCopyStatus(err?.message || 'Could not copy asset code. Please retry.');
+    }
+  }, []);
 
   const insights = useMemo(() => {
     const tierCounts = { 1: 0, 2: 0, 3: 0, none: 0 };
@@ -130,6 +162,22 @@ export default function StorePanelHome() {
   }
 
   const storeName = storeConfig?.store_name?.split(' ')[0] || 'Store';
+  const themeReason =
+    themeInjection?.message ||
+    (themeInjection?.code === 'blocked_by_shopify_theme_write'
+      ? 'Shopify blocked automatic theme-file writes, but your store connection and product sync are working.'
+      : 'Automatic setup did not complete, but your store connection and product sync are working.');
+  const themeDetails = themeInjection?.details || themeInjection?.status || '';
+  const themeCustomizerUrl =
+    themeInjection?.links?.customizer ||
+    (themeInjection?.shopDomain ? `https://${themeInjection.shopDomain}/admin/themes/current/editor?context=apps` : '');
+  const themeCodeUrl =
+    themeInjection?.links?.codeEditor ||
+    (themeInjection?.shopDomain ? `https://${themeInjection.shopDomain}/admin/themes` : '');
+  const extensionSeen = Boolean(shopifyExtension?.lastSeenAt);
+  const extensionSeenLabel = shopifyExtension?.lastSeenAt
+    ? new Date(shopifyExtension.lastSeenAt).toLocaleString()
+    : 'Not detected yet';
 
   return (
     <motion.div
@@ -166,39 +214,140 @@ export default function StorePanelHome() {
         </motion.div>
       )}
 
-      {themeInjection && !themeInjection.done && themeInjection.status && (
+      {shopifyExtension && (
+        <motion.div variants={fade}>
+          <AlertBanner
+            tone={extensionSeen ? 'success' : 'info'}
+            title={extensionSeen ? 'Theme App Extension detected' : 'Recommended: Theme App Extension'}
+            action={
+              shopifyExtension.links ? (
+                <>
+                  {shopifyExtension.links.addAppBlockMain && (
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => window.open(shopifyExtension.links?.addAppBlockMain, '_blank')}
+                    >
+                      <PlugZap className="h-4 w-4" />
+                      Add App Block
+                    </Button>
+                  )}
+                  {shopifyExtension.links.activateEmbed && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => window.open(shopifyExtension.links?.activateEmbed, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Enable Embed
+                    </Button>
+                  )}
+                </>
+              ) : undefined
+            }
+          >
+            <p>
+              Use the Shopify Theme App Extension as the primary storefront install. It avoids protected theme-file writes and lets merchants add Stylique from the Shopify theme editor.
+            </p>
+            <div className="mt-3 grid gap-2 text-xs text-sky-50/80 sm:grid-cols-3">
+              <span>Block: <strong className="text-white">{shopifyExtension.blockHandle}</strong></span>
+              <span>Embed: <strong className="text-white">{shopifyExtension.embedHandle}</strong></span>
+              <span>Last seen: <strong className="text-white">{extensionSeenLabel}</strong></span>
+            </div>
+            {shopifyExtension.installMethod && (
+              <p className="mt-2 text-xs text-sky-50/75">
+                Install method: <strong>{shopifyExtension.installMethod}</strong>
+                {shopifyExtension.setupStatus ? ` | ${shopifyExtension.setupStatus}` : ''}
+              </p>
+            )}
+            {shopifyExtension.links?.addAppBlockApps && (
+              <button
+                className="mt-2 text-xs font-semibold text-sky-100/80 underline-offset-4 hover:text-white hover:underline"
+                onClick={() => window.open(shopifyExtension.links?.addAppBlockApps, '_blank')}
+              >
+                App block did not land in the main section? Try the Apps section fallback.
+              </button>
+            )}
+          </AlertBanner>
+        </motion.div>
+      )}
+
+      {themeInjection && !themeInjection.done && (themeInjection.status || themeInjection.message) && (
         <motion.div variants={fade}>
           <AlertBanner
             tone="warning"
-            title="Widget setup needs attention"
+            title="Store connected. Widget setup needs attention."
             action={
               themeInjection.shopDomain ? (
                 <>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => window.open(`https://${themeInjection.shopDomain}/admin/themes`, '_blank')}
+                    onClick={() => window.open(themeCodeUrl, '_blank')}
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Open Themes
+                    Code Editor
                   </Button>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => window.open(`https://${themeInjection.shopDomain}/admin/themes/current/editor?context=apps`, '_blank')}
+                    onClick={() => window.open(themeCustomizerUrl, '_blank')}
                   >
                     <ExternalLink className="h-4 w-4" />
                     Theme Customizer
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    isLoading={themeRetrying}
+                    onClick={retryThemeInjection}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry Setup
                   </Button>
                 </>
               ) : undefined
             }
           >
-            Automatic theme injection did not complete. Add the Stylique Virtual Try-On section in the Shopify theme editor.
+            <p>{themeReason}</p>
+            <p className="mt-2 text-sm text-amber-50/80">
+              Products and webhooks can continue syncing. To finish the storefront widget, add the Stylique section manually or retry after Shopify theme-write access is fixed.
+            </p>
+            <div className="mt-4 grid gap-2 text-sm text-amber-50/85 md:grid-cols-2">
+              <div className="rounded-lg bg-black/20 p-3">
+                <strong className="block text-amber-50">Manual setup steps</strong>
+                <ol className="mt-2 list-decimal space-y-1 pl-4">
+                  <li>Create <code>sections/stylique-virtual-try-on.liquid</code>.</li>
+                  <li>Paste the Stylique Liquid section code.</li>
+                  <li>Create <code>assets/stylique.css</code>.</li>
+                  <li>Paste the Stylique CSS asset code.</li>
+                  <li>Add the Stylique section to the product template and save.</li>
+                </ol>
+              </div>
+              <div className="rounded-lg bg-black/20 p-3">
+                <strong className="block text-amber-50">Copy install code</strong>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => copyThemeAsset('section')}>
+                    <Clipboard className="h-4 w-4" />
+                    Copy Liquid
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => copyThemeAsset('css')}>
+                    <Clipboard className="h-4 w-4" />
+                    Copy CSS
+                  </Button>
+                </div>
+                {themeInjection.themeName && (
+                  <p className="mt-3 text-xs text-amber-50/70">
+                    Theme: {themeInjection.themeName}{themeInjection.themeId ? ` (${themeInjection.themeId})` : ''}
+                  </p>
+                )}
+              </div>
+            </div>
+            {themeCopyStatus && <p className="mt-3 text-sm font-semibold text-amber-50">{themeCopyStatus}</p>}
             <details className="mt-3">
               <summary className="cursor-pointer text-xs font-bold text-amber-100/80">View setup detail</summary>
               <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-black/35 p-3 text-xs leading-5 text-amber-50/75">
-                {themeInjection.status}
+                {themeDetails}
               </pre>
             </details>
           </AlertBanner>

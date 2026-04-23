@@ -63,6 +63,11 @@ CREATE TABLE public.stores (
   -- Shopify theme injection tracking (migration 004)
   shopify_theme_injection_done boolean NOT NULL DEFAULT false,
   shopify_theme_injection_status text NULL,
+  -- Shopify Theme App Extension tracking (migration 009)
+  shopify_extension_last_seen_at timestamp with time zone NULL,
+  shopify_extension_install_method text NULL,
+  shopify_extension_version text NULL,
+  shopify_extension_setup_status text NULL,
   -- WooCommerce plugin connection tracking (migration 008)
   woocommerce_site_url text NULL,
   woocommerce_sync_secret_hash text NULL,

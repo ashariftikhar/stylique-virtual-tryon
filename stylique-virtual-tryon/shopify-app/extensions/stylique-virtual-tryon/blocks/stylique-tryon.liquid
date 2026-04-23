@@ -1,0 +1,139 @@
+{{ 'stylique-widget.css' | asset_url | stylesheet_tag }}
+
+<div
+  class="stylique-extension-root"
+  data-stylique-block
+  data-stylique-instance="{{ block.id }}"
+>
+  <script type="application/json" data-stylique-config>
+    {
+      "installMethod": "theme_app_block",
+      "extensionVersion": "0.1.0",
+      "shopDomain": {{ shop.permanent_domain | json }},
+      "currentUrl": {{ canonical_url | json }},
+      "backendUrl": {{ block.settings.backend_url | default: 'https://stylique-api.onrender.com' | json }},
+      "storeId": {% if block.settings.store_id != blank %}{{ block.settings.store_id | json }}{% else %}{{ shop.permanent_domain | json }}{% endif %},
+      "buttonLabel": {{ block.settings.button_label | default: 'Virtual Try-On' | json }},
+      "placementStyle": {{ block.settings.placement_style | default: 'inline' | json }},
+      "enableNativeCartTracking": {{ block.settings.enable_native_cart_tracking | json }},
+      "enableFallbackButton": false,
+      "debugMode": false,
+      "theme": {
+        "primaryColor": {{ block.settings.primary_color | default: '#642FD7' | json }},
+        "secondaryColor": {{ block.settings.secondary_color | default: '#F4536F' | json }},
+        "textColor": {{ block.settings.text_color | default: '#111827' | json }},
+        "borderRadius": {{ block.settings.border_radius | default: 14 | json }},
+        "logoUrl": {% if block.settings.logo_image != blank %}{{ block.settings.logo_image | image_url: width: 96 | json }}{% elsif block.settings.logo_url != blank %}{{ block.settings.logo_url | json }}{% else %}{{ 'stylique-logo.png' | asset_url | json }}{% endif %}
+      },
+      "product": {% if product %}
+        {
+          "id": {{ product.id | json }},
+          "handle": {{ product.handle | json }},
+          "title": {{ product.title | json }},
+          "url": {{ product.url | json }},
+          "featuredImage": {% if product.featured_image %}{{ product.featured_image | image_url: width: 900 | json }}{% else %}null{% endif %},
+          "variants": {{ product.variants | json }},
+          "images": [
+            {% for image in product.images %}
+              {
+                "url": {{ image | image_url: width: 1200 | json }},
+                "alt": {{ image.alt | json }}
+              }{% unless forloop.last %},{% endunless %}
+            {% endfor %}
+          ]
+        }
+      {% else %}
+        null
+      {% endif %}
+    }
+  </script>
+</div>
+
+<script src="{{ 'stylique-widget.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Stylique Virtual Try-On",
+  "target": "section",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "backend_url",
+      "label": "Stylique API base URL",
+      "default": "https://stylique-api.onrender.com",
+      "info": "Public backend URL without a trailing slash."
+    },
+    {
+      "type": "text",
+      "id": "store_id",
+      "label": "Stylique store ID",
+      "info": "Leave blank to use this shop's permanent .myshopify.com domain."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Virtual Try-On"
+    },
+    {
+      "type": "select",
+      "id": "placement_style",
+      "label": "Placement style",
+      "default": "inline",
+      "options": [
+        { "value": "inline", "label": "Inline" },
+        { "value": "wide", "label": "Wide" },
+        { "value": "minimal", "label": "Minimal" }
+      ]
+    },
+    {
+      "type": "image_picker",
+      "id": "logo_image",
+      "label": "Stylique logo"
+    },
+    {
+      "type": "text",
+      "id": "logo_url",
+      "label": "Logo URL fallback",
+      "info": "Optional. Leave blank to use the bundled Stylique logo."
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary color",
+      "default": "#642FD7"
+    },
+    {
+      "type": "color",
+      "id": "secondary_color",
+      "label": "Secondary color",
+      "default": "#F4536F"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#111827"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 28,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_native_cart_tracking",
+      "label": "Track native add-to-cart clicks",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

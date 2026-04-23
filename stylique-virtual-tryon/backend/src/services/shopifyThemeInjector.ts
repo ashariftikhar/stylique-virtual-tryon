@@ -25,6 +25,34 @@ const PRODUCT_TEMPLATE_LIQUID = 'templates/product.liquid';
 
 const TAG = '[ThemeInjector]';
 
+export type ThemeInjectionCode =
+  | 'success'
+  | 'blocked_by_shopify_theme_write'
+  | 'missing_theme_scope'
+  | 'theme_not_found'
+  | 'asset_upload_failed'
+  | 'template_write_failed'
+  | 'source_asset_missing'
+  | 'unknown_error';
+
+export interface ThemeInjectionStatusPayload {
+  code: ThemeInjectionCode;
+  done: boolean;
+  message: string;
+  details?: string | undefined;
+  themeId?: number | undefined;
+  themeName?: string | undefined;
+  shopDomain?: string | undefined;
+  links?: {
+    themes?: string | undefined;
+    customizer?: string | undefined;
+    codeEditor?: string | undefined;
+  } | undefined;
+  failedAssets?: string[] | undefined;
+  uploadedAssets?: string[] | undefined;
+  timestamp: string;
+}
+
 const __filename_esm = fileURLToPath(import.meta.url);
 const __dirname_esm = path.dirname(__filename_esm);
 
@@ -140,7 +168,7 @@ function delay(ms: number) {
 let _liquidContentCache: string | null = null;
 let _cssContentCache: string | null = null;
 
-function readLiquidSectionContent(): string {
+export function readLiquidSectionContent(): string {
   if (_liquidContentCache) return _liquidContentCache;
 
   const candidates = [
@@ -165,10 +193,12 @@ function readLiquidSectionContent(): string {
   }
 
   console.error(`${TAG} Liquid file not found. Tried: ${candidates.join(', ')}`);
-  throw new Error(`Cannot find Shopify_new_tryon_upload_first.liquid in any expected location`);
+  const err = new Error(`Cannot find Shopify_new_tryon_upload_first.liquid in any expected location`);
+  (err as any).themeInjectionCode = 'source_asset_missing';
+  throw err;
 }
 
-function readCssAssetContent(): string {
+export function readCssAssetContent(): string {
   if (_cssContentCache) return _cssContentCache;
 
   const candidates = [
@@ -193,20 +223,87 @@ function readCssAssetContent(): string {
   }
 
   console.error(`${TAG} CSS asset not found. Tried: ${candidates.join(', ')}`);
-  throw new Error(`Cannot find shopify/assets/stylique.css in any expected location`);
+  const err = new Error(`Cannot find shopify/assets/stylique.css in any expected location`);
+  (err as any).themeInjectionCode = 'source_asset_missing';
+  throw err;
+}
+
+export function getShopifyThemeInstallAssets() {
+  return {
+    sectionKey: SECTION_KEY,
+    cssAssetKey: CSS_ASSET_KEY,
+    sectionLiquid: readLiquidSectionContent(),
+    css: readCssAssetContent(),
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Persistence helpers
 // ---------------------------------------------------------------------------
 
-async function markInjectionResult(storeUuid: string, done: boolean, status: string) {
+function themeAdminLinks(shop: string, themeId: number) {
+  return {
+    themes: `https://${shop}/admin/themes`,
+    customizer: `https://${shop}/admin/themes/${themeId}/editor`,
+    codeEditor: `https://${shop}/admin/themes/${themeId}`,
+  };
+}
+
+function serializeStatus(payload: ThemeInjectionStatusPayload | string): string {
+  if (typeof payload === 'string') return payload.slice(0, 2000);
+  const compact: ThemeInjectionStatusPayload = {
+    ...payload,
+    details: payload.details ? payload.details.slice(0, 1000) : undefined,
+  };
+  return JSON.stringify(compact);
+}
+
+export function parseStoredThemeInjectionStatus(
+  rawStatus: string | null | undefined,
+  done: boolean,
+): ThemeInjectionStatusPayload | null {
+  if (!rawStatus) return null;
+  try {
+    const parsed = JSON.parse(rawStatus) as Partial<ThemeInjectionStatusPayload>;
+    if (parsed && typeof parsed === 'object' && parsed.code && parsed.message) {
+      return {
+        code: parsed.code as ThemeInjectionCode,
+        done: parsed.done ?? done,
+        message: parsed.message,
+        details: parsed.details,
+        themeId: parsed.themeId,
+        themeName: parsed.themeName,
+        shopDomain: parsed.shopDomain,
+        links: parsed.links,
+        failedAssets: parsed.failedAssets,
+        uploadedAssets: parsed.uploadedAssets,
+        timestamp: parsed.timestamp || new Date().toISOString(),
+      };
+    }
+  } catch {
+    // Older rows contain a plain text status. Preserve it as details.
+  }
+
+  return {
+    code: done ? 'success' : 'unknown_error',
+    done,
+    message: done ? 'Widget installed.' : 'Widget setup needs attention.',
+    details: rawStatus,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function markInjectionResult(
+  storeUuid: string,
+  done: boolean,
+  status: ThemeInjectionStatusPayload | string,
+) {
   const supabase = getSupabase();
   await supabase
     .from('stores')
     .update({
       shopify_theme_injection_done: done,
-      shopify_theme_injection_status: status.slice(0, 2000),
+      shopify_theme_injection_status: serializeStatus(status),
     })
     .eq('id', storeUuid);
 }
@@ -234,9 +331,11 @@ interface ShopifyTheme {
 async function getMainTheme(shop: string, token: string): Promise<ShopifyTheme> {
   const { res, json } = await shopifyGet(shop, token, '/themes.json');
   if (res.status === 403) {
-    throw new Error(
+    const err = new Error(
       'Missing read_themes scope. Re-install the app with SHOPIFY_SCOPES including read_themes,write_themes'
     );
+    (err as any).themeInjectionCode = 'missing_theme_scope';
+    throw err;
   }
   if (!res.ok) {
     throw new Error(`Failed to list themes: HTTP ${res.status} – ${JSON.stringify(json).slice(0, 300)}`);
@@ -244,7 +343,9 @@ async function getMainTheme(shop: string, token: string): Promise<ShopifyTheme> 
   const themes: ShopifyTheme[] = (json as any).themes || [];
   const main = themes.find((t) => t.role === 'main');
   if (!main) {
-    throw new Error('No theme with role=main found');
+    const err = new Error('No theme with role=main found');
+    (err as any).themeInjectionCode = 'theme_not_found';
+    throw err;
   }
   return main;
 }
@@ -318,19 +419,26 @@ async function uploadSectionViaGraphql(
     return false;
   }
 
-  const userErrors = json?.data?.themeFilesUpsert?.userErrors;
+  const topLevelErrors = (json as any)?.errors;
+  if (Array.isArray(topLevelErrors) && topLevelErrors.length > 0) {
+    console.warn(`${TAG} GraphQL top-level errors for ${key}:`, JSON.stringify(topLevelErrors).slice(0, 1000));
+    return false;
+  }
+
+  const userErrors = (json as any)?.data?.themeFilesUpsert?.userErrors;
   if (userErrors && userErrors.length > 0) {
     console.warn(`${TAG} GraphQL userErrors:`, JSON.stringify(userErrors));
     return false;
   }
 
-  const upserted = json?.data?.themeFilesUpsert?.upsertedThemeFiles;
+  const upserted = (json as any)?.data?.themeFilesUpsert?.upsertedThemeFiles;
   if (upserted && upserted.length > 0) {
     console.log(`${TAG} GraphQL themeFilesUpsert succeeded — files: ${JSON.stringify(upserted)}`);
     return true;
   }
 
   console.warn(`${TAG} GraphQL themeFilesUpsert: no upsertedThemeFiles in response`);
+  console.warn(`${TAG} GraphQL response shape for ${key}: ${JSON.stringify(json).slice(0, 1000)}`);
   return false;
 }
 
@@ -448,14 +556,27 @@ async function putThemeAsset(
     return false;
   }
 
-  const userErrors = gqlJson?.data?.themeFilesUpsert?.userErrors;
+  const topLevelErrors = (gqlJson as any)?.errors;
+  if (Array.isArray(topLevelErrors) && topLevelErrors.length > 0) {
+    console.warn(`${TAG} GraphQL top-level errors for ${key}:`, JSON.stringify(topLevelErrors).slice(0, 1000));
+    return false;
+  }
+
+  const userErrors = (gqlJson as any)?.data?.themeFilesUpsert?.userErrors;
   if (userErrors && userErrors.length > 0) {
     console.warn(`${TAG} GraphQL userErrors for ${key}:`, JSON.stringify(userErrors));
     return false;
   }
 
-  console.log(`${TAG} GraphQL upsert succeeded for ${key}`);
-  return true;
+  const upserted = (gqlJson as any)?.data?.themeFilesUpsert?.upsertedThemeFiles;
+  if (Array.isArray(upserted) && upserted.length > 0) {
+    console.log(`${TAG} GraphQL upsert succeeded for ${key}`);
+    return true;
+  }
+
+  console.warn(`${TAG} GraphQL PUT for ${key}: no upsertedThemeFiles in response`);
+  console.warn(`${TAG} GraphQL response shape for ${key}: ${JSON.stringify(gqlJson).slice(0, 1000)}`);
+  return false;
 }
 
 async function wireIntoJsonTemplate(
@@ -595,6 +716,40 @@ function buildManualInstallInstructions(shop: string, themeId: number, themeName
   ].join('\n');
 }
 
+function buildThemeStatus(
+  code: ThemeInjectionCode,
+  done: boolean,
+  message: string,
+  shopDomain: string,
+  theme?: Pick<ShopifyTheme, 'id' | 'name'>,
+  extra: Partial<ThemeInjectionStatusPayload> = {},
+): ThemeInjectionStatusPayload {
+  return {
+    code,
+    done,
+    message,
+    shopDomain,
+    themeId: theme?.id,
+    themeName: theme?.name,
+    links: theme ? themeAdminLinks(shopDomain, theme.id) : undefined,
+    timestamp: new Date().toISOString(),
+    ...extra,
+  };
+}
+
+function classifyInjectionError(err: any): ThemeInjectionCode {
+  if (err?.themeInjectionCode) return err.themeInjectionCode as ThemeInjectionCode;
+  const message = String(err?.message || '').toLowerCase();
+  if (message.includes('read_themes') || message.includes('write_themes') || message.includes('scope')) {
+    return 'missing_theme_scope';
+  }
+  if (message.includes('no theme') || message.includes('role=main')) return 'theme_not_found';
+  if (message.includes('cannot find shopify') || message.includes('cannot find theme') || message.includes('liquid')) {
+    return 'source_asset_missing';
+  }
+  return 'unknown_error';
+}
+
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
@@ -603,13 +758,18 @@ export async function injectStyliqueSectionIntoTheme(
   shopDomain: string,
   accessToken: string,
   storeUuid: string,
-): Promise<void> {
+): Promise<ThemeInjectionStatusPayload | null> {
   console.log(`${TAG} Starting theme injection for ${shopDomain} (store=${storeUuid})`);
   console.log(`${TAG} Using Shopify API version: ${SHOPIFY_API_VERSION}`);
 
   if (await isAlreadyInjected(storeUuid)) {
     console.log(`${TAG} Already injected for store ${storeUuid} — skipping`);
-    return;
+    return buildThemeStatus(
+      'success',
+      true,
+      'Widget is already marked as installed for this store.',
+      shopDomain,
+    );
   }
 
   try {
@@ -632,13 +792,24 @@ export async function injectStyliqueSectionIntoTheme(
       console.warn(`${TAG} This usually means the app needs a Shopify "write_themes" exemption.`);
       console.warn(`${TAG} Request it at: https://docs.google.com/forms/d/e/1FAIpQLSfZTB1vxFC5d1-GPdqYunWRGUoDcOheHQzfK2RoEFEHrknt5g/viewform`);
 
-      const instructions = [
-        buildManualInstallInstructions(shopDomain, theme.id, theme.name),
-        ``,
-        `Automatic upload failed for: ${uploadResult.failed.join(', ')}`,
-      ].join('\n');
-      await markInjectionResult(storeUuid, false, instructions);
-      return;
+      const status = buildThemeStatus(
+        'blocked_by_shopify_theme_write',
+        false,
+        'Store connected, but Shopify blocked automatic theme-file writes. Manual widget setup is available.',
+        shopDomain,
+        theme,
+        {
+          details: [
+            buildManualInstallInstructions(shopDomain, theme.id, theme.name),
+            ``,
+            `Automatic upload failed for: ${uploadResult.failed.join(', ')}`,
+          ].join('\n'),
+          failedAssets: uploadResult.failed,
+          uploadedAssets: uploadResult.uploaded,
+        },
+      );
+      await markInjectionResult(storeUuid, false, status);
+      return status;
     }
 
     console.log(`${TAG} Theme assets uploaded: ${uploadResult.uploaded.join(', ')}`);
@@ -649,11 +820,16 @@ export async function injectStyliqueSectionIntoTheme(
 
     const jsonDone = await wireIntoJsonTemplate(shopDomain, accessToken, theme.id);
     if (jsonDone) {
-      const msg = `Section and CSS asset injected into theme "${theme.name}" (product.json). ` +
-        `Theme ID: ${theme.id}. Timestamp: ${new Date().toISOString()}`;
-      await markInjectionResult(storeUuid, true, msg);
+      const status = buildThemeStatus(
+        'success',
+        true,
+        `Section and CSS asset injected into theme "${theme.name}" using product.json.`,
+        shopDomain,
+        theme,
+      );
+      await markInjectionResult(storeUuid, true, status);
       console.log(`${TAG} SUCCESS (JSON template)`);
-      return;
+      return status;
     }
 
     console.log(`${TAG} [Step 4b] JSON template not available, trying Liquid template…`);
@@ -661,25 +837,53 @@ export async function injectStyliqueSectionIntoTheme(
 
     const liquidDone = await wireIntoLiquidTemplate(shopDomain, accessToken, theme.id);
     if (liquidDone) {
-      const msg = `Section and CSS asset injected into theme "${theme.name}" (product.liquid). ` +
-        `Theme ID: ${theme.id}. Timestamp: ${new Date().toISOString()}`;
-      await markInjectionResult(storeUuid, true, msg);
+      const status = buildThemeStatus(
+        'success',
+        true,
+        `Section and CSS asset injected into theme "${theme.name}" using product.liquid.`,
+        shopDomain,
+        theme,
+      );
+      await markInjectionResult(storeUuid, true, status);
       console.log(`${TAG} SUCCESS (Liquid template)`);
-      return;
+      return status;
     }
 
     // Asset writes blocked — section was uploaded but template wiring failed
-    const instructions = buildManualInstallInstructions(shopDomain, theme.id, theme.name);
-    await markInjectionResult(storeUuid, false, instructions);
+    const status = buildThemeStatus(
+      'template_write_failed',
+      false,
+      'Store connected, but Stylique could not add the widget to the product template automatically.',
+      shopDomain,
+      theme,
+      { details: buildManualInstallInstructions(shopDomain, theme.id, theme.name) },
+    );
+    await markInjectionResult(storeUuid, false, status);
     console.warn(`${TAG} Section uploaded but template wiring failed — manual install needed`);
 
+    return status;
   } catch (err: any) {
     console.error(`${TAG} Injection error: ${err.message}`);
     console.error(`${TAG} Stack:`, err.stack);
 
-    const fallback = `Injection failed: ${err.message}. ` +
-      `The merchant can install the widget manually via the theme editor. ` +
-      `Timestamp: ${new Date().toISOString()}`;
-    await markInjectionResult(storeUuid, false, fallback).catch(() => {});
+    const code = classifyInjectionError(err);
+    const status = buildThemeStatus(
+      code,
+      false,
+      code === 'missing_theme_scope'
+        ? 'Store connected, but the Shopify app is missing theme permissions.'
+        : code === 'source_asset_missing'
+          ? 'Store connected, but the backend could not find the Shopify widget source files.'
+          : code === 'theme_not_found'
+            ? 'Store connected, but no published Shopify theme was found.'
+            : 'Store connected, but automatic widget setup could not complete.',
+      shopDomain,
+      undefined,
+      {
+        details: `Injection failed: ${err.message}. The merchant can install the widget manually via the theme editor.`,
+      },
+    );
+    await markInjectionResult(storeUuid, false, status).catch(() => {});
+    return status;
   }
 }

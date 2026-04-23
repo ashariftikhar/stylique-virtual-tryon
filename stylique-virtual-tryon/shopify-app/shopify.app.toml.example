@@ -1,0 +1,21 @@
+# Copy this file to shopify.app.toml and connect it to the same Shopify Partner
+# app/client ID used by the backend OAuth configuration.
+
+name = "Stylique Virtual Try-On"
+client_id = "REPLACE_WITH_SHOPIFY_API_KEY"
+application_url = "https://stylique-virtual-tryon.vercel.app"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = false
+
+[auth]
+redirect_urls = [
+  "https://stylique-api.onrender.com/api/shopify/callback"
+]
+
+[webhooks]
+api_version = "2025-01"
+
+[access_scopes]
+scopes = "read_products,write_products,read_themes,write_themes"

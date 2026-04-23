@@ -175,6 +175,30 @@ Receives Shopify product webhooks. Requires HMAC verification.
 
 ---
 
+### `POST /api/shopify/widget/heartbeat`
+
+Public storefront signal sent by the Shopify Theme App Extension when the widget loads.
+
+**Request Body:**
+```json
+{
+  "storeId": "example.myshopify.com",
+  "shopDomain": "example.myshopify.com",
+  "productId": "1234567890",
+  "productHandle": "test-shirt",
+  "installMethod": "theme_app_block",
+  "extensionVersion": "0.1.0",
+  "currentUrl": "https://example.myshopify.com/products/test-shirt"
+}
+```
+
+Allowed `installMethod` values are `theme_app_block`, `theme_app_embed`, and `manual_section`.
+
+**Response:**
+```json
+{ "success": true }
+```
+
 ## 4. Product Sync
 
 ### `POST /api/sync/shopify`

@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { getSupabase } from '../services/supabase.ts';
-import { getJwtSecret } from '../middleware/auth.ts';
+import { getJwtSecret, requireAuth, type AuthenticatedRequest } from '../middleware/auth.ts';
 import {
   deleteShopifyProductFromInventory,
   exchangeShopifyOAuthCode,
@@ -14,7 +14,12 @@ import {
   syncShopifyProductToInventory,
   type ShopifyRestProduct,
 } from '../services/shopifySync.ts';
-import { injectStyliqueSectionIntoTheme } from '../services/shopifyThemeInjector.ts';
+import {
+  getShopifyThemeInstallAssets,
+  injectStyliqueSectionIntoTheme,
+  parseStoredThemeInjectionStatus,
+  type ThemeInjectionStatusPayload,
+} from '../services/shopifyThemeInjector.ts';
 
 const router: Router = express.Router();
 
@@ -23,6 +28,28 @@ const setupTokens = new Map<string, { storeId: string; password: string; expires
 
 const DEFAULT_SCOPES =
   process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_themes,write_themes';
+
+const VALID_EXTENSION_INSTALL_METHODS = new Set(['theme_app_block', 'theme_app_embed', 'manual_section']);
+const MAX_HEARTBEAT_FIELD_LENGTH = 500;
+
+function sanitizeSupabaseEqValue(value: string): string {
+  return value.replace(/[(),]/g, '').slice(0, MAX_HEARTBEAT_FIELD_LENGTH);
+}
+
+function themeInjectionStatusJson(payload: ThemeInjectionStatusPayload): string {
+  return JSON.stringify(payload).slice(0, 2000);
+}
+
+function missingScopeStatus(shopDomain: string, missingScopes: string[]): ThemeInjectionStatusPayload {
+  return {
+    code: 'missing_theme_scope',
+    done: false,
+    message: 'Store connected, but the Shopify app is missing theme permissions for automatic widget setup.',
+    details: `Missing Shopify OAuth scopes: ${missingScopes.join(', ')}. Reinstall the app after SHOPIFY_SCOPES and the Shopify app configuration include read_themes and write_themes.`,
+    shopDomain,
+    timestamp: new Date().toISOString(),
+  };
+}
 
 function normalizeShopParam(shop: string): string | null {
   const host = shop
@@ -168,6 +195,71 @@ router.get('/shopify/setup-credentials', (req: Request, res: Response) => {
   });
 });
 
+// POST /api/shopify/widget/heartbeat — public storefront signal that the widget loaded
+router.post('/shopify/widget/heartbeat', async (req: Request, res: Response) => {
+  try {
+    const {
+      storeId,
+      shopDomain,
+      productId,
+      productHandle,
+      installMethod,
+      extensionVersion,
+      currentUrl,
+    } = req.body || {};
+
+    const safeStoreId = typeof storeId === 'string' ? storeId.trim().slice(0, MAX_HEARTBEAT_FIELD_LENGTH) : '';
+    const safeShopDomain = typeof shopDomain === 'string' ? normalizeShopParam(shopDomain) : null;
+    const safeInstallMethod = typeof installMethod === 'string' ? installMethod.trim() : '';
+    const safeVersion = typeof extensionVersion === 'string'
+      ? extensionVersion.trim().slice(0, 80)
+      : '';
+
+    if (!safeStoreId && !safeShopDomain) {
+      return res.status(400).json({ success: false, error: 'storeId or shopDomain required' });
+    }
+
+    if (!VALID_EXTENSION_INSTALL_METHODS.has(safeInstallMethod)) {
+      return res.status(400).json({ success: false, error: 'invalid installMethod' });
+    }
+
+    const supabase = getSupabase();
+    const lookupValue = sanitizeSupabaseEqValue(safeStoreId || safeShopDomain || '');
+    const { data: rows, error } = await supabase
+      .from('stores')
+      .select('id, store_id, shopify_shop_domain')
+      .or(`store_id.eq.${lookupValue},shopify_shop_domain.eq.${lookupValue}`)
+      .limit(1);
+    const store = rows?.[0];
+    if (error || !store) {
+      return res.status(404).json({ success: false, error: 'store not found' });
+    }
+
+    const statusParts = [
+      `Widget heartbeat received via ${safeInstallMethod}`,
+      safeVersion ? `version=${safeVersion}` : null,
+      productId ? `productId=${String(productId).slice(0, 120)}` : null,
+      productHandle ? `handle=${String(productHandle).slice(0, 120)}` : null,
+      currentUrl ? `url=${String(currentUrl).slice(0, 180)}` : null,
+    ].filter(Boolean);
+
+    await supabase
+      .from('stores')
+      .update({
+        shopify_extension_last_seen_at: new Date().toISOString(),
+        shopify_extension_install_method: safeInstallMethod,
+        shopify_extension_version: safeVersion || null,
+        shopify_extension_setup_status: statusParts.join(' | '),
+      })
+      .eq('id', store.id);
+
+    return res.json({ success: true });
+  } catch (e: any) {
+    console.error('[Shopify Widget Heartbeat] Failed:', e.message);
+    return res.status(500).json({ success: false, error: 'heartbeat failed' });
+  }
+});
+
 // GET /api/shopify/callback — exchange code, save token, pull products, register webhooks
 router.get('/shopify/callback', async (req: Request, res: Response) => {
   const code = req.query.code as string | undefined;
@@ -195,6 +287,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
   }
 
   let access_token: string;
+  let missingOAuthScopes: string[] = [];
   try {
     const exchanged = await exchangeShopifyOAuthCode(normalizedShop, code);
     access_token = exchanged.access_token;
@@ -208,6 +301,7 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     if (effectiveScopes.has('write_themes')) effectiveScopes.add('read_themes');
     const requiredScopes = ['read_products', 'write_products', 'read_themes', 'write_themes'];
     const missing = requiredScopes.filter(s => !effectiveScopes.has(s));
+    missingOAuthScopes = missing;
     if (missing.length > 0) {
       console.warn('[Shopify OAuth] WARNING: Missing scopes:', missing.join(', '));
       console.warn('[Shopify OAuth] Granted only:', exchanged.scope);
@@ -317,14 +411,122 @@ router.get('/shopify/callback', async (req: Request, res: Response) => {
     console.error('[Shopify OAuth] Webhook registration error:', e.message);
   }
 
-  try {
-    await injectStyliqueSectionIntoTheme(normalizedShop, access_token, storeUuid!);
-  } catch (e: any) {
-    console.error('[Shopify OAuth] Theme injection error (non-fatal):', e.message);
+  const missingThemeScopes = missingOAuthScopes.filter(scope => scope.includes('theme'));
+  if (missingThemeScopes.length > 0) {
+    const status = missingScopeStatus(normalizedShop, missingThemeScopes);
+    await supabase
+      .from('stores')
+      .update({
+        shopify_theme_injection_done: false,
+        shopify_theme_injection_status: themeInjectionStatusJson(status),
+      })
+      .eq('id', storeUuid!);
+    console.warn('[Shopify OAuth] Theme injection skipped because theme scopes are missing:', missingThemeScopes.join(', '));
+  } else {
+    try {
+      await injectStyliqueSectionIntoTheme(normalizedShop, access_token, storeUuid!);
+    } catch (e: any) {
+      console.error('[Shopify OAuth] Theme injection error (non-fatal):', e.message);
+    }
   }
 
   const setupToken = generatedPassword ? createSetupToken(normalizedShop, generatedPassword) : undefined;
   res.redirect(302, successRedirectUrl(storeUuid!, normalizedShop, setupToken));
+});
+
+// POST /api/shopify/theme-injection/retry — dashboard-authenticated retry after scopes/exemption are fixed
+router.post('/shopify/theme-injection/retry', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const authStoreId = req.storeAuth?.storeId;
+    if (!authStoreId) {
+      return res.status(401).json({ success: false, code: 'unauthorized', message: 'Authentication required' });
+    }
+
+    const supabase = getSupabase();
+    const { data: store, error } = await supabase
+      .from('stores')
+      .select('id, shopify_shop_domain, shopify_access_token, shopify_theme_injection_done, shopify_theme_injection_status')
+      .eq('id', authStoreId)
+      .maybeSingle();
+
+    if (error || !store) {
+      return res.status(404).json({ success: false, code: 'store_not_found', message: 'Store not found' });
+    }
+
+    if (!store.shopify_shop_domain || !store.shopify_access_token) {
+      return res.status(400).json({
+        success: false,
+        code: 'shopify_not_connected',
+        message: 'This store is not connected to Shopify yet.',
+      });
+    }
+
+    if (store.shopify_theme_injection_done === true) {
+      const parsed = parseStoredThemeInjectionStatus(store.shopify_theme_injection_status, true);
+      return res.status(200).json({
+        success: true,
+        code: parsed?.code || 'success',
+        message: parsed?.message || 'Widget is already installed.',
+        status: parsed,
+      });
+    }
+
+    const status = await injectStyliqueSectionIntoTheme(
+      store.shopify_shop_domain,
+      store.shopify_access_token,
+      store.id,
+    );
+
+    const { data: refreshed } = await supabase
+      .from('stores')
+      .select('shopify_theme_injection_done, shopify_theme_injection_status')
+      .eq('id', store.id)
+      .maybeSingle();
+
+    const parsed = parseStoredThemeInjectionStatus(
+      refreshed?.shopify_theme_injection_status ?? null,
+      refreshed?.shopify_theme_injection_done ?? status?.done ?? false,
+    ) || status;
+
+    return res.status(200).json({
+      success: parsed?.done === true,
+      code: parsed?.code || 'unknown_error',
+      message: parsed?.message || 'Theme injection retry finished.',
+      status: parsed,
+    });
+  } catch (e: any) {
+    console.error('[Shopify Theme Retry] Failed:', e.message);
+    return res.status(500).json({
+      success: false,
+      code: 'unknown_error',
+      message: 'Theme injection retry failed.',
+    });
+  }
+});
+
+// GET /api/shopify/theme-injection/assets — dashboard helper for manual install copy/paste
+router.get('/shopify/theme-injection/assets', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.storeAuth?.storeId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const assets = getShopifyThemeInstallAssets();
+    return res.status(200).json({
+      success: true,
+      sectionKey: assets.sectionKey,
+      cssAssetKey: assets.cssAssetKey,
+      sectionLiquid: assets.sectionLiquid,
+      css: assets.css,
+    });
+  } catch (e: any) {
+    console.error('[Shopify Theme Assets] Failed:', e.message);
+    return res.status(500).json({
+      success: false,
+      code: 'source_asset_missing',
+      error: 'Unable to load Shopify widget source assets.',
+    });
+  }
 });
 
 function verifyShopifyWebhookHmac(rawBody: Buffer, hmacHeader: string | undefined): boolean {

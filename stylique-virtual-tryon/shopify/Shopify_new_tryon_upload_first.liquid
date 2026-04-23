@@ -585,14 +585,22 @@
 
     <!-- Bottom Action Bar -->
     <div class="stylique-result-bottom-bar">
-      <button class="stylique-pill-btn stylique-pill-primary" onclick="window.addToCart()">
+      <button class="stylique-pill-btn stylique-pill-primary stylique-result-add-to-cart" id="stylique-result-add-to-cart" onclick="window.addToCart(window.styliqueLastRecommendedSize)">
         Add to Cart
       </button>
-      <button class="stylique-pill-btn stylique-pill-secondary" onclick="window.downloadResultImage()" id="stylique-result-download">
-        Download
+      <button class="stylique-pill-btn stylique-pill-secondary stylique-result-icon-btn" onclick="window.downloadResultImage()" id="stylique-result-download" aria-label="Download try-on result" title="Download">
+        <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+          <path d="M12 3v11m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+          <path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-linecap="round" stroke-width="2"/>
+        </svg>
+        <span class="stylique-pill-label">Download</span>
       </button>
-      <button class="stylique-pill-btn stylique-pill-secondary" onclick="window.resetTryOnFromResult()">
-        Try Again
+      <button class="stylique-pill-btn stylique-pill-secondary stylique-result-icon-btn" onclick="window.resetTryOnFromResult()" id="stylique-result-try-again" aria-label="Try again" title="Try Again">
+        <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+          <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+          <path d="M20 4v5h-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+        </svg>
+        <span class="stylique-pill-label">Try Again</span>
       </button>
     </div>
     </div>
@@ -4870,6 +4878,7 @@
       if (data.success && data.recommendation) {
         const rec = data.recommendation;
         const bestFit = rec.bestFit || rec.recommendedSize || 'N/A';
+        window.styliqueLastRecommendedSize = bestFit !== 'N/A' ? bestFit : null;
         const confidence = rec.confidence || 0;
         const fitFeel = rec.fitFeel || {};
         const userM = rec.userMeasurements || {};
@@ -4889,10 +4898,12 @@
 
         renderItemCard(itemsList, productTitle, productImage, productUrl, bestFit, confidence, fitNotes);
       } else {
+        window.styliqueLastRecommendedSize = null;
         renderItemCard(itemsList, productTitle, productImage, productUrl, null, null, null);
       }
     } catch (error) {
       console.error('❌ Result view size rec error:', error);
+      window.styliqueLastRecommendedSize = null;
       renderItemCard(itemsList, productTitle, productImage, productUrl, null, null, null);
     }
   }

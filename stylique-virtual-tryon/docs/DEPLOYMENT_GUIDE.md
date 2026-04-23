@@ -83,6 +83,10 @@ AWS_REGION=us-east-1
 SHOPIFY_API_KEY=your-shopify-app-client-id
 SHOPIFY_API_SECRET=your-shopify-app-client-secret
 SHOPIFY_SCOPES=read_products,write_products,read_themes,write_themes
+SHOPIFY_EXTENSION_APP_API_KEY=your-shopify-app-api-key
+SHOPIFY_EXTENSION_BLOCK_HANDLE=stylique-tryon
+SHOPIFY_EXTENSION_EMBED_HANDLE=stylique-embed
+SHOPIFY_EXTENSION_VERSION=0.1.0
 SHOPIFY_REDIRECT_URI=https://your-backend.com/api/shopify/callback
 ```
 

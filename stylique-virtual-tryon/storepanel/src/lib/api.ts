@@ -1,4 +1,4 @@
-import type { StoreConfigResponse } from '@/types/api';
+import type { StoreConfigResponse, ThemeInjectionStatus } from '@/types/api';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -73,6 +73,25 @@ export class ApiClient {
 
   async getStoreConfig(storeId: string): Promise<StoreConfigResponse> {
     return this.request(`/api/store/${encodeURIComponent(storeId)}/config`);
+  }
+
+  async retryShopifyThemeInjection(): Promise<{
+    success: boolean;
+    code: string;
+    message: string;
+    status?: ThemeInjectionStatus | null;
+  }> {
+    return this.request('/api/shopify/theme-injection/retry', 'POST', {});
+  }
+
+  async getShopifyThemeInstallAssets(): Promise<{
+    success: boolean;
+    sectionKey: string;
+    cssAssetKey: string;
+    sectionLiquid: string;
+    css: string;
+  }> {
+    return this.request('/api/shopify/theme-injection/assets');
   }
 
   async getInventory(storeId: string, limit: number = 50, offset: number = 0) {

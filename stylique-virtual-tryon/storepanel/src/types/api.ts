@@ -25,6 +25,19 @@ export interface ThemeInjectionStatus {
   done: boolean;
   status?: string | null;
   shopDomain?: string | null;
+  code?: string | null;
+  message?: string | null;
+  details?: string | null;
+  themeId?: number | null;
+  themeName?: string | null;
+  links?: {
+    themes?: string;
+    customizer?: string;
+    codeEditor?: string;
+  } | null;
+  failedAssets?: string[];
+  uploadedAssets?: string[];
+  timestamp?: string;
 }
 
 export interface StoreConfigResponse {
@@ -32,6 +45,21 @@ export interface StoreConfigResponse {
   config: StoreConfig;
   subscriptionActive?: boolean;
   themeInjection?: ThemeInjectionStatus;
+  shopifyExtension?: {
+    recommended: boolean;
+    appApiKey?: string | null;
+    blockHandle: string;
+    embedHandle: string;
+    version: string;
+    lastSeenAt?: string | null;
+    installMethod?: string | null;
+    setupStatus?: string | null;
+    links?: {
+      addAppBlockMain?: string;
+      addAppBlockApps?: string;
+      activateEmbed?: string;
+    } | null;
+  };
   woocommerceIntegration?: WooCommerceIntegration;
 }
 

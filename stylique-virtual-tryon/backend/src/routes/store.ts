@@ -2,8 +2,15 @@ import express from 'express';
 import type { Router, Request, Response } from 'express';
 import { getSupabase } from '../services/supabase.ts';
 import type { AuthenticatedRequest } from '../middleware/auth.ts';
+import { parseStoredThemeInjectionStatus } from '../services/shopifyThemeInjector.ts';
 
 const router: Router = express.Router();
+
+const SHOPIFY_EXTENSION_BLOCK_HANDLE = process.env.SHOPIFY_EXTENSION_BLOCK_HANDLE || 'stylique-tryon';
+const SHOPIFY_EXTENSION_EMBED_HANDLE = process.env.SHOPIFY_EXTENSION_EMBED_HANDLE || 'stylique-embed';
+const SHOPIFY_EXTENSION_VERSION = process.env.SHOPIFY_EXTENSION_VERSION || '0.1.0';
+const SHOPIFY_EXTENSION_APP_API_KEY =
+  process.env.SHOPIFY_EXTENSION_APP_API_KEY || process.env.SHOPIFY_API_KEY || null;
 
 interface StoreConfig {
   id: string;
@@ -42,7 +49,7 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select(
-        'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used, shopify_theme_injection_done, shopify_theme_injection_status, shopify_shop_domain, woocommerce_site_url, woocommerce_connected_at, woocommerce_last_sync_at, woocommerce_last_sync_status'
+        'id, store_name, store_id, email, phone, subscription_name, subscription_start_at, subscription_end_at, tryons_quota, tryons_used, shopify_theme_injection_done, shopify_theme_injection_status, shopify_shop_domain, shopify_extension_last_seen_at, shopify_extension_install_method, shopify_extension_version, shopify_extension_setup_status, woocommerce_site_url, woocommerce_connected_at, woocommerce_last_sync_at, woocommerce_last_sync_status'
       )
       .eq('id', authStore.storeId)
       .maybeSingle();
@@ -56,6 +63,10 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
 
     // Calculate remaining quota
     const tryonsRemaining = Math.max(0, store.tryons_quota - store.tryons_used);
+    const parsedThemeInjection = parseStoredThemeInjectionStatus(
+      store.shopify_theme_injection_status ?? null,
+      store.shopify_theme_injection_done ?? false,
+    );
 
     // Build response config
     const config: StoreConfig = {
@@ -82,9 +93,27 @@ router.get('/store/:id/config', async (req: Request, res: Response) => {
       config,
       subscriptionActive,
       themeInjection: {
-        done: store.shopify_theme_injection_done ?? false,
+        ...(parsedThemeInjection ?? {}),
+        done: store.shopify_theme_injection_done ?? parsedThemeInjection?.done ?? false,
         status: store.shopify_theme_injection_status ?? null,
-        shopDomain: store.shopify_shop_domain ?? null,
+        shopDomain: store.shopify_shop_domain ?? parsedThemeInjection?.shopDomain ?? null,
+      },
+      shopifyExtension: {
+        recommended: true,
+        appApiKey: SHOPIFY_EXTENSION_APP_API_KEY,
+        blockHandle: SHOPIFY_EXTENSION_BLOCK_HANDLE,
+        embedHandle: SHOPIFY_EXTENSION_EMBED_HANDLE,
+        version: SHOPIFY_EXTENSION_VERSION,
+        lastSeenAt: store.shopify_extension_last_seen_at ?? null,
+        installMethod: store.shopify_extension_install_method ?? null,
+        setupStatus: store.shopify_extension_setup_status ?? null,
+        links: store.shopify_shop_domain && SHOPIFY_EXTENSION_APP_API_KEY
+          ? {
+              addAppBlockMain: `https://${store.shopify_shop_domain}/admin/themes/current/editor?template=product&addAppBlockId=${SHOPIFY_EXTENSION_APP_API_KEY}/${SHOPIFY_EXTENSION_BLOCK_HANDLE}&target=mainSection`,
+              addAppBlockApps: `https://${store.shopify_shop_domain}/admin/themes/current/editor?template=product&addAppBlockId=${SHOPIFY_EXTENSION_APP_API_KEY}/${SHOPIFY_EXTENSION_BLOCK_HANDLE}&target=newAppsSection`,
+              activateEmbed: `https://${store.shopify_shop_domain}/admin/themes/current/editor?context=apps&template=product&activateAppId=${SHOPIFY_EXTENSION_APP_API_KEY}/${SHOPIFY_EXTENSION_EMBED_HANDLE}`,
+            }
+          : null,
       },
       woocommerceIntegration: {
         connected: Boolean(store.woocommerce_site_url || store.woocommerce_connected_at),

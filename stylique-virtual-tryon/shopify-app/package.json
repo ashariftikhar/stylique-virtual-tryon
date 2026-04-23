@@ -1,0 +1,14 @@
+{
+  "name": "stylique-shopify-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "shopify": "shopify",
+    "dev": "shopify app dev",
+    "deploy": "shopify app deploy",
+    "info": "shopify app info"
+  },
+  "devDependencies": {
+    "@shopify/cli": "^3.84.0"
+  }
+}

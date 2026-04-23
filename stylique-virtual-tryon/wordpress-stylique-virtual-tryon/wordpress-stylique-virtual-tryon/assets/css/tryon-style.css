@@ -5823,3 +5823,238 @@ body.stylique-modal-open {
     font-size: 9.5px;
   }
 }
+
+/* Final mobile polish layer: result actions, Tier 3, and fit details */
+.stylique-result-icon-btn svg {
+  display: block;
+}
+
+.stylique-result-icon-btn::before {
+  content: none !important;
+}
+
+.stylique-result-add-to-cart {
+  min-width: min(220px, 100%);
+}
+
+.stylique-result-image-container img,
+#stylique-result-main-image {
+  object-fit: contain;
+}
+
+.stylique-suggestion-card img,
+.stylique-result-item-thumb,
+.stylique-tier3-look-thumb img {
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .stylique-result-view {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+    overflow: visible !important;
+  }
+
+  .stylique-result-left {
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 12px !important;
+  }
+
+  .stylique-result-image-container {
+    height: clamp(220px, 46dvh, 430px) !important;
+    max-height: none !important;
+  }
+
+  .stylique-result-right {
+    padding: 12px 14px 0 !important;
+    gap: 12px !important;
+    overflow: visible !important;
+  }
+
+  .stylique-result-fit-popover {
+    position: fixed !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    top: 50% !important;
+    bottom: auto !important;
+    width: auto !important;
+    max-width: 420px !important;
+    max-height: min(68dvh, 460px) !important;
+    margin: 0 auto !important;
+    overflow: auto !important;
+    transform: translateY(-50%) scale(0.98) !important;
+    z-index: 999999 !important;
+  }
+
+  .stylique-result-fit-details.is-open .stylique-result-fit-popover {
+    transform: translateY(-50%) scale(1) !important;
+  }
+
+  .stylique-result-fit-table {
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+
+  .stylique-result-fit-table th,
+  .stylique-result-fit-table td {
+    padding: 9px 7px !important;
+    font-size: 11px !important;
+    word-break: break-word;
+  }
+
+  .stylique-result-bottom-bar {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 8 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    padding: 12px 0 max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    margin-top: 0 !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.98) 28%, #fff 100%) !important;
+    border-radius: 0 !important;
+  }
+
+  .stylique-result-bottom-bar .stylique-result-add-to-cart {
+    order: 3 !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+    font-size: 13px !important;
+  }
+
+  .stylique-result-bottom-bar .stylique-result-icon-btn {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid rgba(17, 24, 39, 0.16) !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  .stylique-result-bottom-bar #stylique-result-try-again {
+    order: 1 !important;
+  }
+
+  .stylique-result-bottom-bar #stylique-result-download {
+    order: 2 !important;
+  }
+
+  .stylique-result-icon-btn .stylique-pill-label {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+  }
+
+  .stylique-tier3-size-advisor {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .stylique-tier3-visual,
+  .stylique-tier3-panel {
+    min-width: 0 !important;
+  }
+
+  .stylique-tier3-image-frame,
+  .stylique-tier3-image-placeholder {
+    height: clamp(210px, 38dvh, 330px) !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+  }
+
+  .stylique-tier3-product-image {
+    object-fit: contain !important;
+  }
+
+  .stylique-tier3-panel {
+    padding: 0 !important;
+    gap: 10px !important;
+    overflow: visible !important;
+  }
+
+  .stylique-tier3-rec-grid {
+    grid-template-columns: minmax(112px, 0.45fr) minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .stylique-tier3-table-card {
+    overflow-x: auto !important;
+  }
+
+  .stylique-tier3-fit-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  .stylique-tier3-fit-table th,
+  .stylique-tier3-fit-table td {
+    padding: 8px 6px !important;
+    font-size: 10.5px !important;
+  }
+
+  .stylique-tier3-actions {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .stylique-tier3-look-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .stylique-tier3-look-card {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .stylique-result-image-container {
+    height: clamp(210px, 41dvh, 330px) !important;
+  }
+
+  .stylique-result-bottom-bar {
+    gap: 8px !important;
+  }
+
+  .stylique-tier3-rec-grid,
+  .stylique-tier3-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stylique-tier3-look-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .stylique-result-bottom-bar {
+    flex-wrap: wrap !important;
+  }
+
+  .stylique-result-bottom-bar .stylique-result-add-to-cart {
+    flex: 1 0 100% !important;
+    order: 3 !important;
+  }
+}

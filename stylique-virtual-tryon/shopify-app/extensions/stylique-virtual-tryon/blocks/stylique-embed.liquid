@@ -1,0 +1,118 @@
+{% if block.settings.enable_product_fallback_button or block.settings.enable_native_cart_tracking %}
+  {{ 'stylique-widget.css' | asset_url | stylesheet_tag }}
+
+  <div
+    class="stylique-extension-embed"
+    data-stylique-embed
+    data-stylique-instance="{{ block.id }}"
+    hidden
+  >
+    <script type="application/json" data-stylique-config>
+      {
+        "installMethod": "theme_app_embed",
+        "extensionVersion": "0.1.0",
+        "shopDomain": {{ shop.permanent_domain | json }},
+        "currentUrl": {{ canonical_url | json }},
+        "backendUrl": {{ block.settings.backend_url | default: 'https://stylique-api.onrender.com' | json }},
+        "storeId": {% if block.settings.store_id != blank %}{{ block.settings.store_id | json }}{% else %}{{ shop.permanent_domain | json }}{% endif %},
+        "buttonLabel": {{ block.settings.button_label | default: 'Virtual Try-On' | json }},
+        "placementStyle": "floating",
+        "enableNativeCartTracking": {{ block.settings.enable_native_cart_tracking | json }},
+        "enableFallbackButton": {{ block.settings.enable_product_fallback_button | json }},
+        "debugMode": {{ block.settings.debug_mode | json }},
+        "theme": {
+          "primaryColor": {{ block.settings.primary_color | default: '#642FD7' | json }},
+          "secondaryColor": {{ block.settings.secondary_color | default: '#F4536F' | json }},
+          "textColor": "#111827",
+          "borderRadius": 16,
+          "logoUrl": {% if block.settings.logo_url != blank %}{{ block.settings.logo_url | json }}{% else %}{{ 'stylique-logo.png' | asset_url | json }}{% endif %}
+        },
+        "product": {% if product %}
+          {
+            "id": {{ product.id | json }},
+            "handle": {{ product.handle | json }},
+            "title": {{ product.title | json }},
+            "url": {{ product.url | json }},
+            "featuredImage": {% if product.featured_image %}{{ product.featured_image | image_url: width: 900 | json }}{% else %}null{% endif %},
+            "variants": {{ product.variants | json }},
+            "images": [
+              {% for image in product.images %}
+                {
+                  "url": {{ image | image_url: width: 1200 | json }},
+                  "alt": {{ image.alt | json }}
+                }{% unless forloop.last %},{% endunless %}
+              {% endfor %}
+            ]
+          }
+        {% else %}
+          null
+        {% endif %}
+      }
+    </script>
+  </div>
+
+  <script src="{{ 'stylique-widget.js' | asset_url }}" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Stylique Storefront Helper",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "backend_url",
+      "label": "Stylique API base URL",
+      "default": "https://stylique-api.onrender.com"
+    },
+    {
+      "type": "text",
+      "id": "store_id",
+      "label": "Stylique store ID",
+      "info": "Leave blank to use this shop's permanent .myshopify.com domain."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Fallback button label",
+      "default": "Virtual Try-On"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_product_fallback_button",
+      "label": "Show fallback button on product pages when app block is missing",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_native_cart_tracking",
+      "label": "Track native add-to-cart clicks",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "debug_mode",
+      "label": "Enable debug logging",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary color",
+      "default": "#642FD7"
+    },
+    {
+      "type": "color",
+      "id": "secondary_color",
+      "label": "Secondary color",
+      "default": "#F4536F"
+    },
+    {
+      "type": "text",
+      "id": "logo_url",
+      "label": "Logo URL fallback",
+      "info": "Optional. Leave blank to use the bundled Stylique logo."
+    }
+  ]
+}
+{% endschema %}

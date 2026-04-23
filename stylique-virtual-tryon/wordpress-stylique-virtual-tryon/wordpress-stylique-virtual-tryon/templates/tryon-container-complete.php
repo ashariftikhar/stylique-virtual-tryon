@@ -2,13 +2,17 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $stylique_modal_only = isset( $stylique_modal_only ) ? (bool) $stylique_modal_only : false;
+$stylique_plugin_url = plugin_dir_url( dirname( dirname( __FILE__ ) ) . '/stylique-virtual-tryon.php' );
+$stylique_logo_url   = get_option( 'stylique_logo_url', '' );
+$stylique_logo_url   = $stylique_logo_url ? $stylique_logo_url : $stylique_plugin_url . 'assets/images/stylique-logo.png';
 $stylique_options    = isset( $stylique_options ) && is_array( $stylique_options ) ? $stylique_options : array(
-  'logo_url'        => '',
+  'logo_url'        => $stylique_logo_url,
   'primary_color'   => get_option( 'stylique_primary_color', '#642FD7' ),
   'secondary_color' => get_option( 'stylique_secondary_color', '#F4536F' ),
   'text_color'      => '#1f2937',
   'border_radius'   => '12',
 );
+$stylique_options['logo_url'] = ! empty( $stylique_options['logo_url'] ) ? $stylique_options['logo_url'] : $stylique_logo_url;
 ?>
 <?php if ( ! $stylique_modal_only ) : ?>
 <div class="stylique-trigger-wrap">
@@ -599,14 +603,22 @@ $stylique_options    = isset( $stylique_options ) && is_array( $stylique_options
 
     <!-- Bottom Action Bar -->
     <div class="stylique-result-bottom-bar">
-      <button class="stylique-pill-btn stylique-pill-primary" onclick="window.addToCart()">
+      <button class="stylique-pill-btn stylique-pill-primary stylique-result-add-to-cart" id="stylique-result-add-to-cart" onclick="window.addToCart(window.styliqueLastRecommendedSize)">
         Add to Cart
       </button>
-      <button class="stylique-pill-btn stylique-pill-secondary" onclick="window.downloadResultImage()" id="stylique-result-download">
-        Download
+      <button class="stylique-pill-btn stylique-pill-secondary stylique-result-icon-btn" onclick="window.downloadResultImage()" id="stylique-result-download" aria-label="Download try-on result" title="Download">
+        <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+          <path d="M12 3v11m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+          <path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-linecap="round" stroke-width="2"/>
+        </svg>
+        <span class="stylique-pill-label">Download</span>
       </button>
-      <button class="stylique-pill-btn stylique-pill-secondary" onclick="window.resetTryOnFromResult()">
-        Try Again
+      <button class="stylique-pill-btn stylique-pill-secondary stylique-result-icon-btn" onclick="window.resetTryOnFromResult()" id="stylique-result-try-again" aria-label="Try again" title="Try Again">
+        <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+          <path d="M20 12a8 8 0 1 1-2.34-5.66" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+          <path d="M20 4v5h-5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+        </svg>
+        <span class="stylique-pill-label">Try Again</span>
       </button>
     </div>
     </div>
@@ -915,7 +927,30 @@ $stylique_options    = isset( $stylique_options ) && is_array( $stylique_options
 
 <?php
 $stylique_product_image_urls = array();
+$stylique_woo_product_id = null;
+$stylique_woo_product_type = null;
+$stylique_woo_product_url = null;
+$stylique_woo_cart_url = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url( '/cart/' );
+$stylique_woo_ajax_add_to_cart_url = class_exists( 'WC_AJAX' ) ? WC_AJAX::get_endpoint( 'add_to_cart' ) : add_query_arg( 'wc-ajax', 'add_to_cart', home_url( '/' ) );
+$stylique_woo_add_to_cart_url = null;
+$stylique_woo_variations = array();
 if ( isset( $product ) && $product ) {
+  $stylique_woo_product_id = $product->get_id();
+  $stylique_woo_product_type = $product->get_type();
+  $stylique_woo_product_url = get_permalink( $stylique_woo_product_id );
+  $stylique_woo_add_to_cart_url = add_query_arg( 'add-to-cart', $stylique_woo_product_id, $stylique_woo_product_url ? $stylique_woo_product_url : home_url( '/' ) );
+
+  if ( $product->is_type( 'variable' ) && method_exists( $product, 'get_available_variations' ) ) {
+    foreach ( $product->get_available_variations() as $variation ) {
+      $stylique_woo_variations[] = array(
+        'variation_id' => isset( $variation['variation_id'] ) ? (int) $variation['variation_id'] : 0,
+        'attributes' => isset( $variation['attributes'] ) && is_array( $variation['attributes'] ) ? $variation['attributes'] : array(),
+        'is_in_stock' => ! empty( $variation['is_in_stock'] ),
+        'is_purchasable' => ! empty( $variation['is_purchasable'] ),
+      );
+    }
+  }
+
   $featured_image_id = $product->get_image_id();
   if ( $featured_image_id ) {
     $featured_image_url = wp_get_attachment_image_url( $featured_image_id, 'large' );
@@ -942,8 +977,14 @@ if ( isset( $product ) && $product ) {
       backendUrl: <?php echo wp_json_encode( get_option( 'stylique_backend_url', STYLIQUE_DEFAULT_BACKEND_URL ) ); ?>,
       primaryColor: <?php echo wp_json_encode( get_option( 'stylique_primary_color', '#642FD7' ) ); ?>,
       secondaryColor: <?php echo wp_json_encode( get_option( 'stylique_secondary_color', '#F4536F' ) ); ?>,
-      wooProductId: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : 'null'; ?>,
-      wooProductTitle: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_name() ) : 'null'; ?>
+      wooProductId: <?php echo wp_json_encode( $stylique_woo_product_id ); ?>,
+      wooProductTitle: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_name() ) : 'null'; ?>,
+      wooProductType: <?php echo wp_json_encode( $stylique_woo_product_type ); ?>,
+      wooProductUrl: <?php echo wp_json_encode( $stylique_woo_product_url ); ?>,
+      wooCartUrl: <?php echo wp_json_encode( $stylique_woo_cart_url ); ?>,
+      wooAddToCartUrl: <?php echo wp_json_encode( $stylique_woo_add_to_cart_url ); ?>,
+      wooAjaxAddToCartUrl: <?php echo wp_json_encode( $stylique_woo_ajax_add_to_cart_url ); ?>,
+      wooVariations: <?php echo wp_json_encode( $stylique_woo_variations ); ?>
     });
 
     var STYLIQUE_API_BASE = window.styliqueOptions.backendUrl || "https://www.styliquetechnologies.com";
@@ -1389,7 +1430,7 @@ if ( isset( $product ) && $product ) {
       const payload = {
         storeId: window.styliqueOptions.storeId,
         currentUrl: window.styliqueOptions.currentUrl,
-        shopifyProductId: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : 'null'; ?>
+        wooProductId: <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : 'null'; ?>
       };
       console.log('Stylique check-product payload:', payload);
 
@@ -4070,57 +4111,117 @@ if ( isset( $product ) && $product ) {
       hide3DResultsModal();
     }
 
+    function normalizeWooAttributeValue(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/&amp;/g, '&')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    function findWooVariationForSize(sizeName) {
+      var desired = normalizeWooAttributeValue(sizeName);
+      if (!desired) return null;
+
+      var variations = Array.isArray(window.styliqueOptions.wooVariations)
+        ? window.styliqueOptions.wooVariations
+        : [];
+
+      return variations.find(function(variation) {
+        if (!variation || !variation.variation_id || variation.is_in_stock === false || variation.is_purchasable === false) {
+          return false;
+        }
+
+        var attributes = variation.attributes || {};
+        return Object.keys(attributes).some(function(key) {
+          var normalizedKey = String(key || '').toLowerCase();
+          var normalizedValue = normalizeWooAttributeValue(attributes[key]);
+          var keyLooksLikeSize = normalizedKey.indexOf('size') !== -1 || normalizedKey.indexOf('pa_size') !== -1;
+          return keyLooksLikeSize && normalizedValue === desired;
+        });
+      }) || null;
+    }
+
+    function redirectToNativeWooProduct(message) {
+      if (message) alert(message);
+      window.location.href = window.styliqueOptions.wooProductUrl || window.location.href;
+    }
+
     // Add to cart
     function addToCart(sizeName) {
-      
-      let variantId = null;
-      
-      if (sizeName) {
-        const variants = [];
-        if (variants && Array.isArray(variants)) {
-          const match = variants.find(function(v) { 
-            const sName = sizeName.toLowerCase();
-            return (v.title && v.title.toLowerCase() === sName) || 
-                   (v.option1 && v.option1.toLowerCase() === sName) || 
-                   (v.option2 && v.option2.toLowerCase() === sName) || 
-                   (v.option3 && v.option3.toLowerCase() === sName);
-          });
-          if (match) {
-            variantId = match.id;
-          }
-        }
+      var productId = window.styliqueOptions.wooProductId;
+      var productType = window.styliqueOptions.wooProductType || 'simple';
+      var ajaxUrl = window.styliqueOptions.wooAjaxAddToCartUrl;
+      var cartUrl = window.styliqueOptions.wooCartUrl || '/cart/';
+      var params = new URLSearchParams();
+
+      if (!productId) {
+        redirectToNativeWooProduct('We could not identify this WooCommerce product. Please use the product page Add to Cart button.');
+        return;
       }
 
-      // Add product to cart
-      fetch('/cart/add.js', {
+      params.append('product_id', productId);
+      params.append('quantity', '1');
+
+      if (productType === 'variable') {
+        var variation = findWooVariationForSize(sizeName);
+        if (!variation) {
+          redirectToNativeWooProduct('We could not match the recommended size to an available variation. Please choose your size on the product page.');
+          return;
+        }
+
+        params.append('variation_id', variation.variation_id);
+        Object.keys(variation.attributes || {}).forEach(function(key) {
+          params.append(key, variation.attributes[key]);
+        });
+      }
+
+      if (!ajaxUrl) {
+        window.location.href = window.styliqueOptions.wooAddToCartUrl || (window.location.pathname + '?add-to-cart=' + encodeURIComponent(productId));
+        return;
+      }
+
+      fetch(ajaxUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
         },
-        body: JSON.stringify({
-          id: variantId,
-          quantity: 1
-        })
+        credentials: 'same-origin',
+        body: params.toString()
       })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Added to cart:', data);
-      
-      // Track conversion when a WooCommerce product is available on this page.
-      var styliqueConversionProductId = <?php echo isset( $product ) && $product ? wp_json_encode( $product->get_id() ) : 'null'; ?>;
-      if (styliqueConversionProductId) {
-        trackConversion(styliqueConversionProductId);
-      }
+        .then(function(response) {
+          return response.text().then(function(text) {
+            var data = {};
+            try {
+              data = text ? JSON.parse(text) : {};
+            } catch (parseError) {
+              data = {};
+            }
+            if (!response.ok) {
+              throw new Error(data.message || 'WooCommerce add-to-cart request failed.');
+            }
+            return data;
+          });
+        })
+        .then(function(data) {
+          if (data && data.error) {
+            if (data.product_url) {
+              window.location.href = data.product_url;
+              return;
+            }
+            throw new Error(data.message || 'WooCommerce could not add this product to the cart.');
+          }
 
-      hideResultsModal();
-      // Show cart notification or redirect to cart
-      window.location.href = '/cart';
-    })
-    .catch(error => {
-      console.error('Error adding to cart:', error);
-      alert('Error adding to cart. Please try again.');
-    });
-  }
+          console.log('Added WooCommerce product to cart:', data);
+          trackConversion(productId);
+          hideResultsModal();
+          window.location.href = cartUrl;
+        })
+        .catch(function(error) {
+          console.error('Error adding WooCommerce product to cart:', error);
+          redirectToNativeWooProduct('We could not add this item automatically. Please choose your options on the product page.');
+        });
+    }
 
   // Event listeners
   document.addEventListener('DOMContentLoaded', function () {
@@ -4882,6 +4983,7 @@ if ( isset( $product ) && $product ) {
       if (data.success && data.recommendation) {
         const rec = data.recommendation;
         const bestFit = rec.bestFit || rec.recommendedSize || 'N/A';
+        window.styliqueLastRecommendedSize = bestFit !== 'N/A' ? bestFit : null;
         const confidence = rec.confidence || 0;
         const fitFeel = rec.fitFeel || {};
         const userM = rec.userMeasurements || {};
@@ -4892,10 +4994,12 @@ if ( isset( $product ) && $product ) {
 
         renderItemCard(itemsList, productTitle, productImage, productUrl, bestFit, confidence, fitNotes);
       } else {
+        window.styliqueLastRecommendedSize = null;
         renderItemCard(itemsList, productTitle, productImage, productUrl, null, null, null);
       }
     } catch (error) {
       console.error('❌ Result view size rec error:', error);
+      window.styliqueLastRecommendedSize = null;
       renderItemCard(itemsList, productTitle, productImage, productUrl, null, null, null);
     }
   }
