@@ -14,7 +14,7 @@
         "shopDomain": {{ shop.permanent_domain | json }},
         "currentUrl": {{ canonical_url | json }},
         "backendUrl": {{ block.settings.backend_url | default: 'https://stylique-api.onrender.com' | json }},
-        "storeId": {% if block.settings.store_id != blank %}{{ block.settings.store_id | json }}{% else %}{{ shop.permanent_domain | json }}{% endif %},
+        "storeId": {% if block.settings.store_id != blank and block.settings.store_id != 'auto' %}{{ block.settings.store_id | json }}{% else %}{{ shop.permanent_domain | json }}{% endif %},
         "buttonLabel": {{ block.settings.button_label | default: 'Virtual Try-On' | json }},
         "placementStyle": "floating",
         "enableNativeCartTracking": {{ block.settings.enable_native_cart_tracking | json }},
@@ -69,7 +69,8 @@
       "type": "text",
       "id": "store_id",
       "label": "Stylique store ID",
-      "info": "Leave blank to use this shop's permanent .myshopify.com domain."
+      "default": "auto",
+      "info": "Leave as auto to use this shop's permanent .myshopify.com domain."
     },
     {
       "type": "text",
