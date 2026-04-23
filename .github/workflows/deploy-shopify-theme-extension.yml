@@ -27,6 +27,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Show deploy revision
+        run: |
+          echo "GitHub ref: ${GITHUB_REF}"
+          echo "GitHub ref name: ${GITHUB_REF_NAME}"
+          echo "GitHub SHA: ${GITHUB_SHA}"
+          git rev-parse HEAD
+
       - name: Validate required configuration
         run: |
           if [ -z "${SHOPIFY_CLI_PARTNERS_TOKEN}" ]; then
@@ -52,6 +59,16 @@ jobs:
       - name: Generate Shopify app config
         run: |
           sed "s/REPLACE_WITH_SHOPIFY_API_KEY/${SHOPIFY_APP_CLIENT_ID}/g" shopify.app.toml.example > shopify.app.toml
+
+      - name: Verify loader schema on runner
+        run: |
+          echo "Checking stylique-tryon.liquid on runner..."
+          sed -n '1,220p' ./extensions/stylique-virtual-tryon/blocks/stylique-tryon.liquid | tail -n 45
+
+          if grep -q '"id": "store_id"' ./extensions/stylique-virtual-tryon/blocks/stylique-tryon.liquid; then
+            echo "::error::Runner still sees a store_id schema field in stylique-tryon.liquid"
+            exit 1
+          fi
 
       - name: Verify extension JavaScript syntax
         run: node --check ./extensions/stylique-virtual-tryon/assets/stylique-widget.js
