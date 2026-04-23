@@ -1,6 +1,6 @@
 {
-  "stylique_tryon.name": "Stylique Virtual Try-On",
-  "stylique_tryon.description": "Add the Stylique virtual try-on widget to product pages.",
-  "stylique_embed.name": "Stylique Storefront Helper",
-  "stylique_embed.description": "Loads optional Stylique storefront helpers and fallback product-page button."
+  "stylique_tryon_name": "Stylique Virtual Try-On",
+  "stylique_tryon_description": "Add the Stylique virtual try-on widget to product pages.",
+  "stylique_embed_name": "Stylique Helper",
+  "stylique_embed_description": "Loads optional Stylique storefront helpers and fallback product-page button."
 }
