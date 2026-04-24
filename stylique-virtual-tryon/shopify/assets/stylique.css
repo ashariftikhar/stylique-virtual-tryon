@@ -6203,3 +6203,555 @@ body.stylique-modal-open {
     background: linear-gradient(180deg, color-mix(in srgb, white 92%, var(--stylique-primary) 8%) 0%, rgba(255, 255, 255, 0.94) 100%);
   }
 }
+
+/* Final full-widget refinement using the original Stylique visual system */
+:root {
+  --stylique-surface-card: rgba(255, 255, 255, 0.96);
+  --stylique-surface-card-soft: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 246, 255, 0.94) 100%);
+  --stylique-surface-muted: linear-gradient(180deg, rgba(248, 243, 255, 0.76) 0%, rgba(255, 248, 250, 0.82) 100%);
+  --stylique-border-soft: rgba(100, 47, 215, 0.12);
+  --stylique-border-strong: rgba(100, 47, 215, 0.18);
+  --stylique-shadow-card: 0 16px 40px rgba(100, 47, 215, 0.08);
+  --stylique-shadow-card-hover: 0 22px 48px rgba(100, 47, 215, 0.12);
+  --stylique-shadow-button: 0 10px 24px rgba(100, 47, 215, 0.24);
+}
+
+.stylique-modal-content {
+  background: rgba(255, 255, 255, 0.985);
+  border-color: rgba(100, 47, 215, 0.08);
+  border-radius: 30px;
+}
+
+.stylique-brand-lockup {
+  color: #111827;
+}
+
+.stylique-tryon-section {
+  background: transparent;
+  border: 0;
+  padding: 1.25rem;
+  gap: 1.5rem;
+}
+
+.stylique-tryon-header {
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid rgba(100, 47, 215, 0.08);
+}
+
+.stylique-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: flex-start;
+}
+
+.stylique-product-info,
+.stylique-upload-section,
+.stylique-action-section {
+  background: var(--stylique-surface-card-soft);
+  border: 1px solid var(--stylique-border-soft);
+  border-radius: 20px;
+  box-shadow: var(--stylique-shadow-card);
+}
+
+.stylique-product-info {
+  margin-bottom: 0;
+  padding: 1rem 1.05rem;
+  gap: 0.9rem;
+}
+
+.stylique-product-image img {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+}
+
+.stylique-product-details h4 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.stylique-product-price {
+  font-size: 16px;
+}
+
+.stylique-user-info {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+}
+
+.stylique-logged-in-as {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.stylique-btn-logout {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.stylique-upload-section {
+  padding: 16px;
+  margin-bottom: 0;
+}
+
+.stylique-upload-section::before {
+  display: none;
+}
+
+.stylique-upload-area {
+  min-height: 0;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1.5px dashed rgba(100, 47, 215, 0.18);
+  background: var(--stylique-surface-muted);
+  box-shadow: none;
+}
+
+.stylique-upload-area:hover {
+  border-color: rgba(100, 47, 215, 0.28);
+  background: linear-gradient(180deg, rgba(248, 242, 255, 0.92) 0%, rgba(255, 255, 255, 0.98) 100%);
+  box-shadow: 0 0 0 3px rgba(100, 47, 215, 0.06);
+  transform: none;
+}
+
+.stylique-upload-area.drag-over {
+  border-color: var(--stylique-primary);
+  background: linear-gradient(180deg, rgba(248, 242, 255, 0.96) 0%, rgba(255, 248, 250, 0.92) 100%);
+  box-shadow: 0 0 0 4px rgba(100, 47, 215, 0.08);
+}
+
+.stylique-upload-area.drag-over::after {
+  border-radius: 999px;
+  padding: 10px 18px;
+  box-shadow: var(--stylique-shadow-button);
+}
+
+.stylique-upload-content {
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.stylique-upload-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.stylique-upload-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(100, 47, 215, 0.08);
+  color: var(--stylique-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.stylique-upload-helper {
+  margin: 0;
+  color: var(--stylique-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.stylique-upload-core {
+  width: 100%;
+  padding: 0;
+}
+
+.stylique-btn-upload-round {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 13px 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: var(--stylique-shadow-button);
+}
+
+.stylique-btn-upload-round:hover {
+  box-shadow: 0 14px 28px rgba(100, 47, 215, 0.28);
+}
+
+.stylique-image-preview {
+  width: 100%;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--stylique-border-soft);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-sizing: border-box;
+}
+
+.stylique-image-preview img {
+  display: none !important;
+}
+
+.stylique-upload-selection-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.14), rgba(244, 83, 111, 0.12));
+  color: var(--stylique-primary);
+  flex-shrink: 0;
+}
+
+.stylique-upload-selection-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.stylique-upload-selection-label {
+  color: var(--stylique-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.stylique-upload-selection-name {
+  color: var(--stylique-text);
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stylique-preview-actions {
+  position: static;
+  flex-shrink: 0;
+}
+
+.stylique-upload-selection-change {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+}
+
+.stylique-upload-section.is-file-selected .stylique-upload-area {
+  padding-bottom: 14px;
+}
+
+.stylique-upload-section.is-file-selected .stylique-upload-helper {
+  color: rgba(107, 114, 128, 0.82);
+}
+
+.stylique-privacy-box {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(100, 47, 215, 0.1);
+  align-items: center;
+  gap: 10px;
+}
+
+.stylique-privacy-text-content h6 {
+  display: none;
+}
+
+.stylique-privacy-text-content p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--stylique-text-secondary);
+}
+
+.stylique-action-section {
+  margin-top: 0;
+  padding: 16px;
+}
+
+.stylique-tryon-options h6 {
+  margin-bottom: 0.85rem;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--stylique-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stylique-tryon-buttons {
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.stylique-btn-tryon {
+  min-height: 50px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stylique-requirements-note {
+  margin-top: 12px !important;
+  border-radius: 14px;
+}
+
+.stylique-processing-overlay {
+  background: rgba(248, 244, 251, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.stylique-processing-content {
+  width: min(420px, 92%);
+  padding: 2.2rem 2rem;
+  border-radius: 28px;
+  border: 1px solid rgba(100, 47, 215, 0.12);
+  box-shadow: 0 26px 80px rgba(100, 47, 215, 0.14);
+}
+
+.stylique-processing-content h4 {
+  color: var(--stylique-text);
+}
+
+.stylique-processing-status {
+  color: var(--stylique-text-secondary);
+}
+
+.stylique-result-view {
+  gap: 18px;
+  padding: 22px !important;
+}
+
+.stylique-result-left {
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(248, 242, 255, 0.56) 0%, rgba(240, 245, 255, 0.72) 100%);
+}
+
+.stylique-result-image-container {
+  background: transparent;
+}
+
+.stylique-result-right {
+  gap: 14px;
+  margin-left: -14px;
+  padding: 12px 10px 0 0;
+}
+
+.stylique-result-items-header h5 {
+  font-size: 17px;
+}
+
+.stylique-result-item-card {
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(100, 47, 215, 0.08);
+  box-shadow: 0 10px 24px rgba(100, 47, 215, 0.05);
+}
+
+.stylique-result-item-card:hover {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.stylique-suggestions-carousel {
+  gap: 10px;
+}
+
+.stylique-suggestion-card {
+  width: 112px;
+}
+
+.stylique-suggestion-img-wrap {
+  width: 112px;
+  height: 92px;
+  border-radius: 12px;
+}
+
+.stylique-suggestion-price {
+  color: var(--stylique-primary);
+}
+
+.stylique-result-bottom-bar {
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.stylique-pill-btn {
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.stylique-pill-primary {
+  box-shadow: 0 10px 24px rgba(100, 47, 215, 0.22);
+}
+
+.stylique-pill-secondary {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+@media (max-width: 768px) {
+  .stylique-modal-content {
+    border-radius: 24px 24px 0 0;
+  }
+
+  .stylique-tryon-section {
+    padding: 0;
+    gap: 12px;
+  }
+
+  .stylique-right-column {
+    gap: 12px;
+  }
+
+  .stylique-product-info,
+  .stylique-upload-section,
+  .stylique-action-section {
+    border-radius: 18px;
+  }
+
+  .stylique-upload-section,
+  .stylique-action-section {
+    padding: 14px;
+  }
+
+  .stylique-upload-area {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .stylique-upload-content {
+    gap: 10px;
+  }
+
+  .stylique-upload-helper {
+    font-size: 11px;
+  }
+
+  .stylique-image-preview {
+    margin-top: 10px;
+    padding: 11px 12px;
+    border-radius: 14px;
+  }
+
+  .stylique-upload-selection-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .stylique-upload-selection-name {
+    font-size: 12px;
+  }
+
+  .stylique-privacy-box {
+    padding: 10px 11px;
+  }
+
+  .stylique-processing-overlay {
+    background: linear-gradient(180deg, rgba(250, 246, 252, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+  }
+
+  .stylique-processing-content {
+    width: min(100%, 360px);
+    padding: 1.4rem 1.2rem !important;
+    border-radius: 22px;
+  }
+
+  .stylique-result-right {
+    margin-left: 0;
+    padding: 0;
+  }
+
+  .stylique-result-item-card {
+    border-radius: 16px;
+    padding: 10px;
+  }
+
+  .stylique-result-bottom-bar {
+    background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.98) 26%);
+  }
+
+  .stylique-tier3-size-advisor {
+    gap: 12px !important;
+  }
+
+  .stylique-tier3-image-frame,
+  .stylique-tier3-image-placeholder {
+    height: clamp(220px, 38dvh, 320px) !important;
+    border-radius: 18px !important;
+  }
+
+  .stylique-tier3-panel {
+    gap: 10px !important;
+  }
+
+  .stylique-tier3-copy h4 {
+    font-size: 19px !important;
+  }
+
+  .stylique-tier3-copy p {
+    font-size: 12px !important;
+  }
+
+  .stylique-tier3-size-card,
+  .stylique-tier3-confidence-card,
+  .stylique-tier3-table-card,
+  .stylique-tier3-message-card,
+  .stylique-tier3-complete-look {
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(100, 47, 215, 0.04);
+  }
+
+  .stylique-tier3-fit-table th,
+  .stylique-tier3-fit-table td {
+    font-size: 10px !important;
+  }
+
+  .stylique-tier3-look-image {
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stylique-product-info {
+    padding: 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .stylique-product-image img {
+    width: 58px;
+    height: 58px;
+  }
+
+  .stylique-btn-upload-round {
+    min-height: 50px;
+    font-size: 14px;
+  }
+
+  .stylique-tier3-image-frame,
+  .stylique-tier3-image-placeholder {
+    height: clamp(190px, 34dvh, 250px) !important;
+  }
+
+  .stylique-tier3-rec-grid,
+  .stylique-tier3-actions {
+    grid-template-columns: 1fr !important;
+  }
+}
