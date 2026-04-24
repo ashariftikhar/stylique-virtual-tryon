@@ -1,0 +1,286 @@
+﻿2026-04-24T07:06:09.8283006Z Current runner version: '2.334.0'
+2026-04-24T07:06:09.8319829Z ##[group]Runner Image Provisioner
+2026-04-24T07:06:09.8321223Z Hosted Compute Agent
+2026-04-24T07:06:09.8322115Z Version: 20260213.493
+2026-04-24T07:06:09.8323212Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-04-24T07:06:09.8324450Z Build Date: 2026-02-13T00:28:41Z
+2026-04-24T07:06:09.8325648Z Worker ID: {a209141f-d964-4e34-832d-a4253438a6c6}
+2026-04-24T07:06:09.8329848Z Azure Region: westus
+2026-04-24T07:06:09.8330827Z ##[endgroup]
+2026-04-24T07:06:09.8333255Z ##[group]Operating System
+2026-04-24T07:06:09.8334370Z Ubuntu
+2026-04-24T07:06:09.8335208Z 24.04.4
+2026-04-24T07:06:09.8336019Z LTS
+2026-04-24T07:06:09.8337140Z ##[endgroup]
+2026-04-24T07:06:09.8337984Z ##[group]Runner Image
+2026-04-24T07:06:09.8338854Z Image: ubuntu-24.04
+2026-04-24T07:06:09.8339782Z Version: 20260413.86.1
+2026-04-24T07:06:09.8341828Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260413.86/images/ubuntu/Ubuntu2404-Readme.md
+2026-04-24T07:06:09.8344545Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260413.86
+2026-04-24T07:06:09.8346174Z ##[endgroup]
+2026-04-24T07:06:09.8348491Z ##[group]GITHUB_TOKEN Permissions
+2026-04-24T07:06:09.8351456Z Contents: read
+2026-04-24T07:06:09.8352364Z Metadata: read
+2026-04-24T07:06:09.8353398Z ##[endgroup]
+2026-04-24T07:06:09.8356754Z Secret source: Actions
+2026-04-24T07:06:09.8357876Z Prepare workflow directory
+2026-04-24T07:06:09.9045295Z Prepare all required actions
+2026-04-24T07:06:09.9084201Z Getting action download info
+2026-04-24T07:06:10.3333397Z Download action repository 'actions/checkout@v6' (SHA:de0fac2e4500dabe0009e67214ff5f5447ce83dd)
+2026-04-24T07:06:10.4624928Z Download action repository 'actions/setup-node@v6' (SHA:48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e)
+2026-04-24T07:06:11.2373839Z Complete job name: Deploy Theme Extension
+2026-04-24T07:06:11.3096226Z ##[group]Run actions/checkout@v6
+2026-04-24T07:06:11.3097498Z with:
+2026-04-24T07:06:11.3098060Z   repository: ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:11.3098995Z   token: ***
+2026-04-24T07:06:11.3099455Z   ssh-strict: true
+2026-04-24T07:06:11.3099936Z   ssh-user: git
+2026-04-24T07:06:11.3100406Z   persist-credentials: true
+2026-04-24T07:06:11.3100927Z   clean: true
+2026-04-24T07:06:11.3101423Z   sparse-checkout-cone-mode: true
+2026-04-24T07:06:11.3101984Z   fetch-depth: 1
+2026-04-24T07:06:11.3102459Z   fetch-tags: false
+2026-04-24T07:06:11.3102948Z   show-progress: true
+2026-04-24T07:06:11.3103426Z   lfs: false
+2026-04-24T07:06:11.3103885Z   submodules: false
+2026-04-24T07:06:11.3104381Z   set-safe-directory: true
+2026-04-24T07:06:11.3105114Z env:
+2026-04-24T07:06:11.3106028Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:11.3107213Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:11.3108373Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:11.3109505Z ##[endgroup]
+2026-04-24T07:06:11.4232809Z Syncing repository: ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:11.4234918Z ##[group]Getting Git version info
+2026-04-24T07:06:11.4235860Z Working directory is '/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon'
+2026-04-24T07:06:11.4237449Z [command]/usr/bin/git version
+2026-04-24T07:06:11.6281434Z git version 2.53.0
+2026-04-24T07:06:11.6308480Z ##[endgroup]
+2026-04-24T07:06:11.6325533Z Temporarily overriding HOME='/home/runner/work/_temp/7278f13b-4cbc-4a45-9d8c-2107b6bdabf0' before making global git config changes
+2026-04-24T07:06:11.6328654Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-24T07:06:11.6332683Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon
+2026-04-24T07:06:11.6370264Z Deleting the contents of '/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon'
+2026-04-24T07:06:11.6374208Z ##[group]Initializing the repository
+2026-04-24T07:06:11.6380315Z [command]/usr/bin/git init /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon
+2026-04-24T07:06:11.6494749Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-04-24T07:06:11.6497552Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-04-24T07:06:11.6499660Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-04-24T07:06:11.6500916Z hint: call:
+2026-04-24T07:06:11.6501932Z hint:
+2026-04-24T07:06:11.6502992Z hint: 	git config --global init.defaultBranch <name>
+2026-04-24T07:06:11.6504165Z hint:
+2026-04-24T07:06:11.6505358Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-04-24T07:06:11.6507722Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-04-24T07:06:11.6509257Z hint:
+2026-04-24T07:06:11.6510115Z hint: 	git branch -m <name>
+2026-04-24T07:06:11.6511016Z hint:
+2026-04-24T07:06:11.6512153Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-04-24T07:06:11.6514747Z Initialized empty Git repository in /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git/
+2026-04-24T07:06:11.6517461Z [command]/usr/bin/git remote add origin https://github.com/ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:11.6543132Z ##[endgroup]
+2026-04-24T07:06:11.6544719Z ##[group]Disabling automatic garbage collection
+2026-04-24T07:06:11.6547493Z [command]/usr/bin/git config --local gc.auto 0
+2026-04-24T07:06:11.6578949Z ##[endgroup]
+2026-04-24T07:06:11.6580669Z ##[group]Setting up auth
+2026-04-24T07:06:11.6581814Z Removing SSH command configuration
+2026-04-24T07:06:11.6587724Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-24T07:06:11.6621214Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-24T07:06:11.6913541Z Removing HTTP extra header
+2026-04-24T07:06:11.6919504Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-04-24T07:06:11.6950308Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-04-24T07:06:11.7168531Z Removing includeIf entries pointing to credentials config files
+2026-04-24T07:06:11.7173950Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-04-24T07:06:11.7205634Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-04-24T07:06:11.7434963Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-04-24T07:06:11.7472612Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git.path /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7502724Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7532161Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7593923Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7609968Z ##[endgroup]
+2026-04-24T07:06:11.7611269Z ##[group]Fetching the repository
+2026-04-24T07:06:11.7612921Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e9fe4161e40402c3485e902499e27c9dd775ff7f:refs/remotes/origin/master
+2026-04-24T07:06:12.3606872Z From https://github.com/ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:12.3609813Z  * [new ref]         e9fe4161e40402c3485e902499e27c9dd775ff7f -> origin/master
+2026-04-24T07:06:12.3641748Z [command]/usr/bin/git branch --list --remote origin/master
+2026-04-24T07:06:12.3665897Z   origin/master
+2026-04-24T07:06:12.3674372Z [command]/usr/bin/git rev-parse refs/remotes/origin/master
+2026-04-24T07:06:12.3702562Z e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:12.3709938Z ##[endgroup]
+2026-04-24T07:06:12.3712202Z ##[group]Determining the checkout info
+2026-04-24T07:06:12.3714425Z ##[endgroup]
+2026-04-24T07:06:12.3715736Z [command]/usr/bin/git sparse-checkout disable
+2026-04-24T07:06:12.3754032Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-04-24T07:06:12.3781710Z ##[group]Checking out the ref
+2026-04-24T07:06:12.3786201Z [command]/usr/bin/git checkout --progress --force -B master refs/remotes/origin/master
+2026-04-24T07:06:12.3992880Z Reset branch 'master'
+2026-04-24T07:06:12.3994638Z branch 'master' set up to track 'origin/master'.
+2026-04-24T07:06:12.4003406Z ##[endgroup]
+2026-04-24T07:06:12.4043158Z [command]/usr/bin/git log -1 --format=%H
+2026-04-24T07:06:12.4067049Z e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:12.4308455Z ##[group]Run if [ -z "${SHOPIFY_CLI_PARTNERS_TOKEN}" ]; then
+2026-04-24T07:06:12.4310237Z [36;1mif [ -z "${SHOPIFY_CLI_PARTNERS_TOKEN}" ]; then[0m
+2026-04-24T07:06:12.4312041Z [36;1m  echo "::error::Missing GitHub secret SHOPIFY_CLI_PARTNERS_TOKEN"[0m
+2026-04-24T07:06:12.4313835Z [36;1m  exit 1[0m
+2026-04-24T07:06:12.4315177Z [36;1mfi[0m
+2026-04-24T07:06:12.4316872Z [36;1m[0m
+2026-04-24T07:06:12.4318630Z [36;1mif [ -z "${SHOPIFY_APP_CLIENT_ID}" ]; then[0m
+2026-04-24T07:06:12.4322005Z [36;1m  echo "::error::Missing SHOPIFY_APP_CLIENT_ID. Add it as a repository secret or variable."[0m
+2026-04-24T07:06:12.4325259Z [36;1m  exit 1[0m
+2026-04-24T07:06:12.4326835Z [36;1mfi[0m
+2026-04-24T07:06:12.4353112Z shell: /usr/bin/bash -e {0}
+2026-04-24T07:06:12.4354181Z env:
+2026-04-24T07:06:12.4356154Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:12.4357819Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:12.4360150Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:12.4362545Z ##[endgroup]
+2026-04-24T07:06:12.4607027Z ##[group]Run actions/setup-node@v6
+2026-04-24T07:06:12.4608183Z with:
+2026-04-24T07:06:12.4608924Z   node-version: 24
+2026-04-24T07:06:12.4609758Z   cache: npm
+2026-04-24T07:06:12.4611067Z   cache-dependency-path: stylique-virtual-tryon/shopify-app/package.json
+2026-04-24T07:06:12.4612731Z   check-latest: false
+2026-04-24T07:06:12.4613897Z   token: ***
+2026-04-24T07:06:12.4614969Z   package-manager-cache: true
+2026-04-24T07:06:12.4615974Z env:
+2026-04-24T07:06:12.4617781Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:12.4619106Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:12.4621228Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:12.4623480Z ##[endgroup]
+2026-04-24T07:06:12.6188384Z Found in cache @ /opt/hostedtoolcache/node/24.14.1/x64
+2026-04-24T07:06:12.6193233Z ##[group]Environment details
+2026-04-24T07:06:12.9268715Z node: v24.14.1
+2026-04-24T07:06:12.9270706Z npm: 11.11.0
+2026-04-24T07:06:12.9271835Z yarn: 1.22.22
+2026-04-24T07:06:12.9273611Z ##[endgroup]
+2026-04-24T07:06:12.9287631Z [command]/opt/hostedtoolcache/node/24.14.1/x64/bin/npm config get cache
+2026-04-24T07:06:13.1158916Z /home/runner/.npm
+2026-04-24T07:06:13.3692681Z Cache hit for: node-cache-Linux-x64-npm-c5d540b06e25200c01c7cbbfd1c5e752297ff56f6840b23327d0656bcb1bedd1
+2026-04-24T07:06:14.6772796Z Received 14189 of 20985709 (0.1%), 0.0 MBs/sec
+2026-04-24T07:06:14.9427383Z Received 20985709 of 20985709 (100.0%), 15.8 MBs/sec
+2026-04-24T07:06:14.9428208Z Cache Size: ~20 MB (20985709 B)
+2026-04-24T07:06:14.9475688Z [command]/usr/bin/tar -xf /home/runner/work/_temp/5829f3c4-0419-4495-a102-6f5742606eff/cache.tzst -P -C /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon --use-compress-program unzstd
+2026-04-24T07:06:15.0298090Z Cache restored successfully
+2026-04-24T07:06:15.0311623Z Cache restored from key: node-cache-Linux-x64-npm-c5d540b06e25200c01c7cbbfd1c5e752297ff56f6840b23327d0656bcb1bedd1
+2026-04-24T07:06:15.0460833Z ##[group]Run npm install --no-audit --no-fund
+2026-04-24T07:06:15.0461236Z [36;1mnpm install --no-audit --no-fund[0m
+2026-04-24T07:06:15.0491574Z shell: /usr/bin/bash -e {0}
+2026-04-24T07:06:15.0491831Z env:
+2026-04-24T07:06:15.0492384Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:15.0492724Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:15.0493270Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:15.0493860Z ##[endgroup]
+2026-04-24T07:06:18.8836749Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-04-24T07:06:19.2725028Z 
+2026-04-24T07:06:19.2725574Z added 26 packages in 4s
+2026-04-24T07:06:19.3254489Z ##[group]Run sed "s/REPLACE_WITH_SHOPIFY_API_KEY/${SHOPIFY_APP_CLIENT_ID}/g" shopify.app.toml.example > shopify.app.toml
+2026-04-24T07:06:19.3255408Z [36;1msed "s/REPLACE_WITH_SHOPIFY_API_KEY/${SHOPIFY_APP_CLIENT_ID}/g" shopify.app.toml.example > shopify.app.toml[0m
+2026-04-24T07:06:19.3277371Z shell: /usr/bin/bash -e {0}
+2026-04-24T07:06:19.3277619Z env:
+2026-04-24T07:06:19.3278256Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:19.3278605Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:19.3279125Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:19.3279660Z ##[endgroup]
+2026-04-24T07:06:19.3364803Z ##[group]Run node --check ./extensions/stylique-virtual-tryon/assets/stylique-widget.js
+2026-04-24T07:06:19.3365451Z [36;1mnode --check ./extensions/stylique-virtual-tryon/assets/stylique-widget.js[0m
+2026-04-24T07:06:19.3385894Z shell: /usr/bin/bash -e {0}
+2026-04-24T07:06:19.3386136Z env:
+2026-04-24T07:06:19.3386946Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:19.3387298Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:19.3387851Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:19.3388374Z ##[endgroup]
+2026-04-24T07:06:19.3685832Z ##[group]Run liquid_bytes=$(find ./extensions/stylique-virtual-tryon -type f -name '*.liquid' -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')
+2026-04-24T07:06:19.3687211Z [36;1mliquid_bytes=$(find ./extensions/stylique-virtual-tryon -type f -name '*.liquid' -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')[0m
+2026-04-24T07:06:19.3688103Z [36;1mtotal_bytes=$(find ./extensions/stylique-virtual-tryon -type f -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')[0m
+2026-04-24T07:06:19.3688659Z [36;1m[0m
+2026-04-24T07:06:19.3688872Z [36;1mecho "Liquid bytes: ${liquid_bytes}"[0m
+2026-04-24T07:06:19.3689191Z [36;1mecho "Total extension bytes: ${total_bytes}"[0m
+2026-04-24T07:06:19.3689470Z [36;1m[0m
+2026-04-24T07:06:19.3689667Z [36;1mif [ "${liquid_bytes}" -ge 102400 ]; then[0m
+2026-04-24T07:06:19.3690086Z [36;1m  echo "::error::Theme app extension Liquid files exceed Shopify's 100 KB limit."[0m
+2026-04-24T07:06:19.3690483Z [36;1m  exit 1[0m
+2026-04-24T07:06:19.3690691Z [36;1mfi[0m
+2026-04-24T07:06:19.3690856Z [36;1m[0m
+2026-04-24T07:06:19.3691057Z [36;1mif [ "${total_bytes}" -ge 10485760 ]; then[0m
+2026-04-24T07:06:19.3691454Z [36;1m  echo "::error::Theme app extension contents exceed Shopify's 10 MB limit."[0m
+2026-04-24T07:06:19.3691832Z [36;1m  exit 1[0m
+2026-04-24T07:06:19.3692011Z [36;1mfi[0m
+2026-04-24T07:06:19.3713575Z shell: /usr/bin/bash -e {0}
+2026-04-24T07:06:19.3713869Z env:
+2026-04-24T07:06:19.3714383Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:19.3714886Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:19.3715401Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:19.3715922Z ##[endgroup]
+2026-04-24T07:06:19.3808519Z Liquid bytes: 13244
+2026-04-24T07:06:19.3808884Z Total extension bytes: 285931
+2026-04-24T07:06:19.3834269Z ##[group]Run npx shopify app deploy --config shopify.app.toml --allow-updates --source-control-url "${COMMIT_URL}"
+2026-04-24T07:06:19.3835066Z [36;1mnpx shopify app deploy --config shopify.app.toml --allow-updates --source-control-url "${COMMIT_URL}"[0m
+2026-04-24T07:06:19.3855936Z shell: /usr/bin/bash -e {0}
+2026-04-24T07:06:19.3856176Z env:
+2026-04-24T07:06:19.3856937Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:19.3857273Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:19.3857802Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:19.3858390Z ##[endgroup]
+2026-04-24T07:06:24.3601872Z ╭─ info ───────────────────────────────────────────────────────────────────────╮
+2026-04-24T07:06:24.3602933Z │                                                                              │
+2026-04-24T07:06:24.3603971Z │  Using shopify.app.toml for default values:                                  │
+2026-04-24T07:06:24.3605274Z │                                                                              │
+2026-04-24T07:06:24.3617509Z │    • Org:             IT                                                     │
+2026-04-24T07:06:24.3618712Z │    • App:             Stylique Virtual Try-On                                │
+2026-04-24T07:06:24.3619977Z │                                                                              │
+2026-04-24T07:06:24.3621441Z │   You can pass `--reset` to your command to reset your app configuration.    │
+2026-04-24T07:06:24.3622767Z │                                                                              │
+2026-04-24T07:06:24.3624008Z ╰──────────────────────────────────────────────────────────────────────────────╯
+2026-04-24T07:06:24.3624642Z 
+2026-04-24T07:06:24.3737109Z 
+2026-04-24T07:06:24.3738513Z Releasing a new app version as part of Stylique Virtual Try-On
+2026-04-24T07:06:24.3739036Z 
+2026-04-24T07:06:24.4271646Z stylique-virtual-try-on │ Running theme check on your Theme app extension...
+2026-04-24T07:06:25.1018508Z stylique-virtual-try-on │ Bundling theme extension stylique-virtual-try-on...
+2026-04-24T07:06:25.1354721Z 
+2026-04-24T07:06:26.6105385Z ▅▅▄▄▃▃▂▂▁▁▁▁▂▂▃▃▄▄▅▅▆▆▇▇██▇▇▆▆▅▅▄▄▃▃▂▂▁▁▁▁▂▂▃▃▄▄▅▅▆▆▇▇██▇▇▆▆▅▅▄▄▃▃▂▂▁▁▁▁▂▂▃▃▄▄▅▅
+2026-04-24T07:06:26.6106139Z Releasing an app version ...
+2026-04-24T07:06:26.6293586Z ╭─ error ──────────────────────────────────────────────────────────────────────╮
+2026-04-24T07:06:26.6294574Z │                                                                              │
+2026-04-24T07:06:26.6295574Z │  Version couldn't be created.                                                │
+2026-04-24T07:06:26.6296931Z │                                                                              │
+2026-04-24T07:06:26.6298003Z │  stylique-virtual-try-on                                                     │
+2026-04-24T07:06:26.6299130Z │                                                                              │
+2026-04-24T07:06:26.6300200Z │  Validation errors                                                           │
+2026-04-24T07:06:26.6301469Z │    • bundle: [blocks/stylique-tryon.liquid] Invalid tag 'schema': settings:  │
+2026-04-24T07:06:26.6302679Z │      with id="store_id" default can't be blank                               │
+2026-04-24T07:06:26.6303717Z │                                                                              │
+2026-04-24T07:06:26.6304754Z ╰──────────────────────────────────────────────────────────────────────────────╯
+2026-04-24T07:06:26.6305192Z 
+2026-04-24T07:06:27.5512574Z ##[error]Process completed with exit code 1.
+2026-04-24T07:06:27.5622208Z Post job cleanup.
+2026-04-24T07:06:27.6439702Z [command]/usr/bin/git version
+2026-04-24T07:06:27.6475678Z git version 2.53.0
+2026-04-24T07:06:27.6518593Z Temporarily overriding HOME='/home/runner/work/_temp/c3a1136a-13f0-44a8-a544-f000cc2814ad' before making global git config changes
+2026-04-24T07:06:27.6520166Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-24T07:06:27.6525402Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon
+2026-04-24T07:06:27.6557690Z Removing SSH command configuration
+2026-04-24T07:06:27.6564578Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-24T07:06:27.6598103Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-24T07:06:27.6851244Z Removing HTTP extra header
+2026-04-24T07:06:27.6856380Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-04-24T07:06:27.6893077Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-04-24T07:06:27.7111370Z Removing includeIf entries pointing to credentials config files
+2026-04-24T07:06:27.7118935Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-04-24T07:06:27.7143133Z includeif.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git.path
+2026-04-24T07:06:27.7144719Z includeif.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git/worktrees/*.path
+2026-04-24T07:06:27.7145866Z includeif.gitdir:/github/workspace/.git.path
+2026-04-24T07:06:27.7146988Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-04-24T07:06:27.7153282Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git.path
+2026-04-24T07:06:27.7174662Z /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7185505Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git.path /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7219803Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git/worktrees/*.path
+2026-04-24T07:06:27.7241861Z /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7252989Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7283657Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-04-24T07:06:27.7305527Z /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7314650Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7345154Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-04-24T07:06:27.7365417Z /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7375261Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:27.7408735Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-04-24T07:06:27.7625798Z Removing credentials config '/home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config'
+2026-04-24T07:06:27.7765500Z Cleaning up orphan processes

@@ -4825,6 +4825,9 @@
       || {{ product.featured_image | image_url: width: 200 | json }};
     const productUrl = product.url || {{ product.url | json }};
 
+    itemsList.classList.remove('is-ready');
+    itemsList.classList.add('is-rendering');
+
     // Show loading state first
     itemsList.innerHTML = `
       <div class="stylique-result-item-card">
@@ -5218,6 +5221,11 @@
         </div>
         ${confidenceHtml ? `<div class="stylique-result-confidence-row">${confidenceHtml}</div>` : ''}
       </div>`;
+
+    window.requestAnimationFrame(() => {
+      container.classList.remove('is-rendering');
+      container.classList.add('is-ready');
+    });
   }
   
   // Build the "Complete the Look" horizontally scrolling carousel via native Shopify API

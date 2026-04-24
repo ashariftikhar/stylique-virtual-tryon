@@ -1,0 +1,40 @@
+﻿2026-04-24T07:06:19.3834259Z ##[group]Run npx shopify app deploy --config shopify.app.toml --allow-updates --source-control-url "${COMMIT_URL}"
+2026-04-24T07:06:19.3835063Z [36;1mnpx shopify app deploy --config shopify.app.toml --allow-updates --source-control-url "${COMMIT_URL}"[0m
+2026-04-24T07:06:19.3855930Z shell: /usr/bin/bash -e {0}
+2026-04-24T07:06:19.3856173Z env:
+2026-04-24T07:06:19.3856932Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:19.3857269Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:19.3857799Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:19.3858386Z ##[endgroup]
+2026-04-24T07:06:24.3601825Z ╭─ info ───────────────────────────────────────────────────────────────────────╮
+2026-04-24T07:06:24.3602927Z │                                                                              │
+2026-04-24T07:06:24.3603966Z │  Using shopify.app.toml for default values:                                  │
+2026-04-24T07:06:24.3605182Z │                                                                              │
+2026-04-24T07:06:24.3617491Z │    • Org:             IT                                                     │
+2026-04-24T07:06:24.3618706Z │    • App:             Stylique Virtual Try-On                                │
+2026-04-24T07:06:24.3619970Z │                                                                              │
+2026-04-24T07:06:24.3621434Z │   You can pass `--reset` to your command to reset your app configuration.    │
+2026-04-24T07:06:24.3622762Z │                                                                              │
+2026-04-24T07:06:24.3624003Z ╰──────────────────────────────────────────────────────────────────────────────╯
+2026-04-24T07:06:24.3624636Z 
+2026-04-24T07:06:24.3737076Z 
+2026-04-24T07:06:24.3738502Z Releasing a new app version as part of Stylique Virtual Try-On
+2026-04-24T07:06:24.3739032Z 
+2026-04-24T07:06:24.4271551Z stylique-virtual-try-on │ Running theme check on your Theme app extension...
+2026-04-24T07:06:25.1018464Z stylique-virtual-try-on │ Bundling theme extension stylique-virtual-try-on...
+2026-04-24T07:06:25.1354672Z 
+2026-04-24T07:06:26.6105343Z ▅▅▄▄▃▃▂▂▁▁▁▁▂▂▃▃▄▄▅▅▆▆▇▇██▇▇▆▆▅▅▄▄▃▃▂▂▁▁▁▁▂▂▃▃▄▄▅▅▆▆▇▇██▇▇▆▆▅▅▄▄▃▃▂▂▁▁▁▁▂▂▃▃▄▄▅▅
+2026-04-24T07:06:26.6106134Z Releasing an app version ...
+2026-04-24T07:06:26.6293540Z ╭─ error ──────────────────────────────────────────────────────────────────────╮
+2026-04-24T07:06:26.6294565Z │                                                                              │
+2026-04-24T07:06:26.6295563Z │  Version couldn't be created.                                                │
+2026-04-24T07:06:26.6296920Z │                                                                              │
+2026-04-24T07:06:26.6297992Z │  stylique-virtual-try-on                                                     │
+2026-04-24T07:06:26.6299118Z │                                                                              │
+2026-04-24T07:06:26.6300156Z │  Validation errors                                                           │
+2026-04-24T07:06:26.6301461Z │    • bundle: [blocks/stylique-tryon.liquid] Invalid tag 'schema': settings:  │
+2026-04-24T07:06:26.6302671Z │      with id="store_id" default can't be blank                               │
+2026-04-24T07:06:26.6303710Z │                                                                              │
+2026-04-24T07:06:26.6304748Z ╰──────────────────────────────────────────────────────────────────────────────╯
+2026-04-24T07:06:26.6305188Z 
+2026-04-24T07:06:27.5512547Z ##[error]Process completed with exit code 1.

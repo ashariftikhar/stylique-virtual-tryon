@@ -1,0 +1,87 @@
+﻿2026-04-24T07:06:11.3096193Z ##[group]Run actions/checkout@v6
+2026-04-24T07:06:11.3097479Z with:
+2026-04-24T07:06:11.3098054Z   repository: ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:11.3098990Z   token: ***
+2026-04-24T07:06:11.3099451Z   ssh-strict: true
+2026-04-24T07:06:11.3099932Z   ssh-user: git
+2026-04-24T07:06:11.3100402Z   persist-credentials: true
+2026-04-24T07:06:11.3100923Z   clean: true
+2026-04-24T07:06:11.3101419Z   sparse-checkout-cone-mode: true
+2026-04-24T07:06:11.3101980Z   fetch-depth: 1
+2026-04-24T07:06:11.3102455Z   fetch-tags: false
+2026-04-24T07:06:11.3102943Z   show-progress: true
+2026-04-24T07:06:11.3103422Z   lfs: false
+2026-04-24T07:06:11.3103871Z   submodules: false
+2026-04-24T07:06:11.3104376Z   set-safe-directory: true
+2026-04-24T07:06:11.3105104Z env:
+2026-04-24T07:06:11.3106023Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
+2026-04-24T07:06:11.3107198Z   SHOPIFY_APP_CLIENT_ID: ***
+2026-04-24T07:06:11.3108314Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:11.3109500Z ##[endgroup]
+2026-04-24T07:06:11.4232738Z Syncing repository: ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:11.4234898Z ##[group]Getting Git version info
+2026-04-24T07:06:11.4235852Z Working directory is '/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon'
+2026-04-24T07:06:11.4237439Z [command]/usr/bin/git version
+2026-04-24T07:06:11.6281352Z git version 2.53.0
+2026-04-24T07:06:11.6308424Z ##[endgroup]
+2026-04-24T07:06:11.6325491Z Temporarily overriding HOME='/home/runner/work/_temp/7278f13b-4cbc-4a45-9d8c-2107b6bdabf0' before making global git config changes
+2026-04-24T07:06:11.6328627Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-24T07:06:11.6332648Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon
+2026-04-24T07:06:11.6370166Z Deleting the contents of '/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon'
+2026-04-24T07:06:11.6374180Z ##[group]Initializing the repository
+2026-04-24T07:06:11.6380280Z [command]/usr/bin/git init /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon
+2026-04-24T07:06:11.6494704Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-04-24T07:06:11.6497516Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-04-24T07:06:11.6499634Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-04-24T07:06:11.6500907Z hint: call:
+2026-04-24T07:06:11.6501897Z hint:
+2026-04-24T07:06:11.6502979Z hint: 	git config --global init.defaultBranch <name>
+2026-04-24T07:06:11.6504156Z hint:
+2026-04-24T07:06:11.6505319Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-04-24T07:06:11.6507689Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-04-24T07:06:11.6509241Z hint:
+2026-04-24T07:06:11.6510055Z hint: 	git branch -m <name>
+2026-04-24T07:06:11.6511009Z hint:
+2026-04-24T07:06:11.6512143Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-04-24T07:06:11.6514720Z Initialized empty Git repository in /home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git/
+2026-04-24T07:06:11.6517448Z [command]/usr/bin/git remote add origin https://github.com/ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:11.6543103Z ##[endgroup]
+2026-04-24T07:06:11.6544703Z ##[group]Disabling automatic garbage collection
+2026-04-24T07:06:11.6547458Z [command]/usr/bin/git config --local gc.auto 0
+2026-04-24T07:06:11.6578914Z ##[endgroup]
+2026-04-24T07:06:11.6580641Z ##[group]Setting up auth
+2026-04-24T07:06:11.6581790Z Removing SSH command configuration
+2026-04-24T07:06:11.6587690Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-24T07:06:11.6620812Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-24T07:06:11.6913483Z Removing HTTP extra header
+2026-04-24T07:06:11.6919466Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-04-24T07:06:11.6950269Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-04-24T07:06:11.7168452Z Removing includeIf entries pointing to credentials config files
+2026-04-24T07:06:11.7173914Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-04-24T07:06:11.7205586Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-04-24T07:06:11.7434814Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-04-24T07:06:11.7472552Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git.path /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7502666Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/stylique-virtual-tryon/stylique-virtual-tryon/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7532116Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7593875Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-7a762726-f22e-4095-a1f9-58615c0721cc.config
+2026-04-24T07:06:11.7609940Z ##[endgroup]
+2026-04-24T07:06:11.7611212Z ##[group]Fetching the repository
+2026-04-24T07:06:11.7612908Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e9fe4161e40402c3485e902499e27c9dd775ff7f:refs/remotes/origin/master
+2026-04-24T07:06:12.3606789Z From https://github.com/ashariftikhar/stylique-virtual-tryon
+2026-04-24T07:06:12.3609791Z  * [new ref]         e9fe4161e40402c3485e902499e27c9dd775ff7f -> origin/master
+2026-04-24T07:06:12.3641715Z [command]/usr/bin/git branch --list --remote origin/master
+2026-04-24T07:06:12.3665864Z   origin/master
+2026-04-24T07:06:12.3674346Z [command]/usr/bin/git rev-parse refs/remotes/origin/master
+2026-04-24T07:06:12.3702538Z e9fe4161e40402c3485e902499e27c9dd775ff7f
+2026-04-24T07:06:12.3709910Z ##[endgroup]
+2026-04-24T07:06:12.3712182Z ##[group]Determining the checkout info
+2026-04-24T07:06:12.3714418Z ##[endgroup]
+2026-04-24T07:06:12.3715729Z [command]/usr/bin/git sparse-checkout disable
+2026-04-24T07:06:12.3753976Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-04-24T07:06:12.3781685Z ##[group]Checking out the ref
+2026-04-24T07:06:12.3786163Z [command]/usr/bin/git checkout --progress --force -B master refs/remotes/origin/master
+2026-04-24T07:06:12.3992785Z Reset branch 'master'
+2026-04-24T07:06:12.3994631Z branch 'master' set up to track 'origin/master'.
+2026-04-24T07:06:12.4003386Z ##[endgroup]
+2026-04-24T07:06:12.4043126Z [command]/usr/bin/git log -1 --format=%H
+2026-04-24T07:06:12.4067022Z e9fe4161e40402c3485e902499e27c9dd775ff7f

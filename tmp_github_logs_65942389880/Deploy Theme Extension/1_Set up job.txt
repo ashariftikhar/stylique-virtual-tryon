@@ -1,0 +1,31 @@
+﻿2026-04-24T07:06:09.8281417Z Current runner version: '2.334.0'
+2026-04-24T07:06:09.8319801Z ##[group]Runner Image Provisioner
+2026-04-24T07:06:09.8321208Z Hosted Compute Agent
+2026-04-24T07:06:09.8322103Z Version: 20260213.493
+2026-04-24T07:06:09.8323196Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-04-24T07:06:09.8324436Z Build Date: 2026-02-13T00:28:41Z
+2026-04-24T07:06:09.8325635Z Worker ID: {a209141f-d964-4e34-832d-a4253438a6c6}
+2026-04-24T07:06:09.8329821Z Azure Region: westus
+2026-04-24T07:06:09.8330810Z ##[endgroup]
+2026-04-24T07:06:09.8333230Z ##[group]Operating System
+2026-04-24T07:06:09.8334351Z Ubuntu
+2026-04-24T07:06:09.8335196Z 24.04.4
+2026-04-24T07:06:09.8336007Z LTS
+2026-04-24T07:06:09.8337124Z ##[endgroup]
+2026-04-24T07:06:09.8337974Z ##[group]Runner Image
+2026-04-24T07:06:09.8338846Z Image: ubuntu-24.04
+2026-04-24T07:06:09.8339772Z Version: 20260413.86.1
+2026-04-24T07:06:09.8341492Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260413.86/images/ubuntu/Ubuntu2404-Readme.md
+2026-04-24T07:06:09.8344520Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260413.86
+2026-04-24T07:06:09.8346161Z ##[endgroup]
+2026-04-24T07:06:09.8348467Z ##[group]GITHUB_TOKEN Permissions
+2026-04-24T07:06:09.8351431Z Contents: read
+2026-04-24T07:06:09.8352351Z Metadata: read
+2026-04-24T07:06:09.8353381Z ##[endgroup]
+2026-04-24T07:06:09.8356483Z Secret source: Actions
+2026-04-24T07:06:09.8357865Z Prepare workflow directory
+2026-04-24T07:06:09.9045250Z Prepare all required actions
+2026-04-24T07:06:09.9084159Z Getting action download info
+2026-04-24T07:06:10.3333366Z Download action repository 'actions/checkout@v6' (SHA:de0fac2e4500dabe0009e67214ff5f5447ce83dd)
+2026-04-24T07:06:10.4624900Z Download action repository 'actions/setup-node@v6' (SHA:48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e)
+2026-04-24T07:06:11.2373810Z Complete job name: Deploy Theme Extension
