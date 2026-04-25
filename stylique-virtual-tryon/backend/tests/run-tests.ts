@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { buildCompleteLookPayload } from '../src/routes/plugin.ts';
 import { computeTier, filterImages } from '../src/routes/images.ts';
 import { recommendFromGeneric, recommendFromProductMeasurements } from '../src/routes/recommendations.ts';
+import { parseSizeChart } from '../src/utils/htmlUtils.ts';
 
 function testImages() {
   const filtered = filterImages([
@@ -92,8 +93,34 @@ function testCompleteLookPayload() {
   assert.equal(emptyPayload.reasoning, 'No same-store synced recommendations are available yet.');
 }
 
+function testShopifyRichTextSizeChart() {
+  const rawChart = '{"XS": { "chest": 34, "shoulder": 15, "length": 24 }, "S": { "chest": "36 in", "shoulder": "16", "length": "25" }}';
+  const richTextValue = JSON.stringify({
+    type: 'root',
+    children: [
+      {
+        type: 'paragraph',
+        children: [
+          {
+            type: 'text',
+            value: rawChart,
+          },
+        ],
+      },
+    ],
+  });
+
+  const parsed = parseSizeChart(richTextValue);
+
+  assert.deepEqual(Object.keys(parsed).sort(), ['S', 'XS']);
+  assert.equal(parsed.XS?.chest, 34);
+  assert.equal(parsed.S?.chest, 36);
+  assert.equal(parsed.S?.shoulder, 16);
+}
+
 testImages();
 testRecommendations();
 testCompleteLookPayload();
+testShopifyRichTextSizeChart();
 
 console.log('Backend focused tests passed');

@@ -48,7 +48,11 @@ export function parseSizeChart(data: any): Record<string, Record<string, number>
   // If already an object, validate it
   if (typeof data === 'object') {
     try {
-      return validateSizeChartObject(data);
+      const direct = validateSizeChartObject(data);
+      if (Object.keys(direct).length > 0) return direct;
+
+      const richText = extractRichTextValue(data);
+      return richText ? parseSizeChart(richText) : {};
     } catch (err) {
       console.warn('[parseSizeChart] Invalid object format:', err);
       return {};
@@ -59,7 +63,13 @@ export function parseSizeChart(data: any): Record<string, Record<string, number>
   if (typeof data === 'string') {
     try {
       const parsed = JSON.parse(data);
-      return validateSizeChartObject(parsed);
+      const direct = validateSizeChartObject(parsed);
+      if (Object.keys(direct).length > 0) return direct;
+
+      const richText = extractRichTextValue(parsed);
+      if (richText) return parseSizeChart(richText);
+
+      return {};
     } catch (err) {
       const parsedTable = parseHtmlSizeChart(data);
       if (Object.keys(parsedTable).length > 0) {
@@ -72,6 +82,26 @@ export function parseSizeChart(data: any): Record<string, Record<string, number>
   }
   
   return {};
+}
+
+function extractRichTextValue(value: unknown): string {
+  const parts: string[] = [];
+
+  function visit(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    const record = node as Record<string, unknown>;
+
+    if (record.type === 'text' && typeof record.value === 'string') {
+      parts.push(record.value);
+    }
+
+    if (Array.isArray(record.children)) {
+      record.children.forEach(visit);
+    }
+  }
+
+  visit(value);
+  return parts.join('\n').trim();
 }
 
 function normalizeMeasurementKey(value: string): string {
