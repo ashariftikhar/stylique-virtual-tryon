@@ -9,12 +9,41 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const router: Router = express.Router();
 
+interface StoreContext {
+  storeUUID: string;
+  storeId: string;
+  widgetToken?: string;
+  source: 'widget-token' | 'legacy-store-id';
+}
+
+interface StoreLookupRow {
+  id: string;
+  store_id: string;
+  shopify_shop_domain?: string | null;
+  woocommerce_site_url?: string | null;
+}
+
+interface WidgetTokenPayload {
+  purpose?: string;
+  storeUUID?: string;
+  storeId?: string;
+  host?: string | null;
+}
+
 // ──────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────
 
 function resolveStoreId(storeId: string) {
   return storeId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+}
+
+function sendPluginError(res: Response, err: any): void {
+  const status = typeof err?.status === 'number' ? err.status : 500;
+  res.status(status).json({
+    success: false,
+    error: status >= 500 ? 'Internal server error' : err?.message || 'Request failed',
+  });
 }
 
 async function lookupStoreUUID(storeId: string): Promise<string | null> {
@@ -26,6 +55,136 @@ async function lookupStoreUUID(storeId: string): Promise<string | null> {
     .eq('store_id', storeId)
     .maybeSingle();
   return data?.id ?? null;
+}
+
+function normalizeHost(value: string | null | undefined): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '')
+    .replace(/:\d+$/, '');
+}
+
+function hostFromUrl(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') return '';
+  try {
+    return normalizeHost(new URL(value).hostname);
+  } catch {
+    return normalizeHost(value);
+  }
+}
+
+function extractWidgetToken(req: Request): string | null {
+  const explicit = req.get('X-Stylique-Widget-Token');
+  if (explicit) return explicit;
+
+  const auth = req.get('Authorization') || '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] ?? null;
+}
+
+async function lookupStoreRecord(storeId: string): Promise<StoreLookupRow | null> {
+  const supabase = getSupabase();
+  let query = supabase
+    .from('stores')
+    .select('id, store_id, shopify_shop_domain, woocommerce_site_url');
+
+  query = resolveStoreId(storeId) ? query.eq('id', storeId) : query.eq('store_id', storeId);
+  const { data } = await query.maybeSingle();
+  return data as StoreLookupRow | null;
+}
+
+function storeMatchesUrl(store: StoreLookupRow, currentUrl?: unknown): boolean {
+  const requestHost = hostFromUrl(currentUrl);
+  if (!requestHost) return true;
+
+  const storeHosts = [
+    store.store_id,
+    store.shopify_shop_domain,
+    store.woocommerce_site_url,
+  ]
+    .map((value) => hostFromUrl(value))
+    .filter(Boolean);
+
+  return storeHosts.some((host) => requestHost === host || requestHost.endsWith(`.${host}`));
+}
+
+function signWidgetToken(store: StoreLookupRow, currentUrl?: unknown): string {
+  return jwt.sign(
+    {
+      purpose: 'stylique_widget',
+      storeUUID: store.id,
+      storeId: store.store_id,
+      host: hostFromUrl(currentUrl) || null,
+    },
+    getJwtSecret(),
+    { expiresIn: '4h' },
+  );
+}
+
+async function resolveStoreContext(
+  req: Request,
+  requestedStoreId: unknown,
+  currentUrl?: unknown,
+): Promise<StoreContext> {
+  const token = extractWidgetToken(req);
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, getJwtSecret()) as WidgetTokenPayload;
+      if (decoded.purpose !== 'stylique_widget' || !decoded.storeUUID || !decoded.storeId) {
+        const error = new Error('Invalid widget token');
+        (error as any).status = 401;
+        throw error;
+      }
+
+      if (requestedStoreId) {
+        const requested = await lookupStoreRecord(String(requestedStoreId));
+        if (requested && requested.id !== decoded.storeUUID) {
+          const error = new Error('Widget token store mismatch');
+          (error as any).status = 403;
+          throw error;
+        }
+      }
+
+      return { storeUUID: decoded.storeUUID, storeId: decoded.storeId, source: 'widget-token' };
+    } catch (err: any) {
+      const error = new Error(err?.message || 'Invalid widget token');
+      (error as any).status = err?.status || 401;
+      throw error;
+    }
+  }
+
+  if (!requestedStoreId) {
+    const error = new Error('storeId required');
+    (error as any).status = 400;
+    throw error;
+  }
+
+  const store = await lookupStoreRecord(String(requestedStoreId));
+  if (!store) {
+    const error = new Error('Store not found');
+    (error as any).status = 404;
+    throw error;
+  }
+
+  if (!storeMatchesUrl(store, currentUrl)) {
+    const message = 'Storefront URL does not match registered store domain';
+    if (process.env.STRICT_STOREFRONT_AUTH === 'true') {
+      const error = new Error(message);
+      (error as any).status = 403;
+      throw error;
+    }
+    console.warn(`[Plugin Auth] ${message}: store=${store.store_id} currentUrl=${String(currentUrl || '')}`);
+  }
+
+  return {
+    storeUUID: store.id,
+    storeId: store.store_id,
+    widgetToken: signWidgetToken(store, currentUrl),
+    source: 'legacy-store-id',
+  };
 }
 
 const inventorySelect =
@@ -152,6 +311,22 @@ function buildFitFeel(
   }
 
   return fitFeel;
+}
+
+function buildSizeUpDownInfo(recommendedSize: string, alternatives?: string[]) {
+  const safeAlternatives = Array.isArray(alternatives)
+    ? alternatives.filter((size) => typeof size === 'string' && size.trim() !== '')
+    : [];
+
+  return {
+    sizeDown: safeAlternatives[0]
+      ? { size: safeAlternatives[0], notes: ['Closer fit option'] }
+      : null,
+    sizeUp: safeAlternatives[1]
+      ? { size: safeAlternatives[1], notes: ['More relaxed fit option'] }
+      : null,
+    recommended: recommendedSize,
+  };
 }
 
 /**
@@ -659,10 +834,8 @@ router.post('/check-product', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, available: false, error: 'storeId and currentUrl required' });
     }
 
-    const storeUUID = await lookupStoreUUID(storeId);
-    if (!storeUUID) {
-      return res.json({ success: false, available: false, error: 'Store not found' });
-    }
+    const storeContext = await resolveStoreContext(req, storeId, currentUrl);
+    const storeUUID = storeContext.storeUUID;
 
     let wooNum: number | undefined;
     if (wooId != null && wooId !== '') {
@@ -710,6 +883,7 @@ router.post('/check-product', async (req: Request, res: Response) => {
     const responsePayload = {
       success: true,
       available: true,
+      widgetToken: storeContext.widgetToken,
       product: {
         id: product.id,
         name: product.product_name,
@@ -725,7 +899,7 @@ router.post('/check-product', async (req: Request, res: Response) => {
     res.json(responsePayload);
   } catch (err: any) {
     console.error('[Plugin] check-product error:', err);
-    res.status(500).json({ available: false, error: 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -757,11 +931,8 @@ router.post('/embed-tryon-2d', upload.single('userImage'), async (req: Request, 
       return res.status(400).json({ success: false, error: 'storeId and currentUrl required' });
     }
 
-    const storeUUID = await lookupStoreUUID(storeId as string);
-    if (!storeUUID) {
-      console.log('[Plugin][2D] REJECTED: store not found for', storeId);
-      return res.status(404).json({ success: false, error: 'Store not found' });
-    }
+    const storeContext = await resolveStoreContext(req, storeId, currentUrl);
+    const storeUUID = storeContext.storeUUID;
 
     console.log('[Plugin][2D] Store resolved:', storeUUID);
 
@@ -806,13 +977,14 @@ router.post('/embed-tryon-2d', upload.single('userImage'), async (req: Request, 
       success: true,
       sessionId,
       resultImage,
+      widgetToken: storeContext.widgetToken,
       product: product
         ? { id: product.id, name: product.product_name }
         : null,
     });
   } catch (err: any) {
     console.error('[Plugin][2D] Unhandled error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -829,18 +1001,16 @@ router.post('/embed-tryon-3d', upload.single('userImage'), async (req: Request, 
 
     console.log('[Plugin][3D] Request received, storeId:', storeId, 'currentUrl:', currentUrl);
 
-    if (!storeId) {
-      return res.status(400).json({ success: false, error: 'storeId required' });
-    }
+    const storeContext = await resolveStoreContext(req, storeId, currentUrl);
 
     const operationName = `tryon-3d-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    console.log(`[Plugin][3D] operation started: ${operationName}`);
+    console.log(`[Plugin][3D] operation started: ${operationName} store=${storeContext.storeUUID}`);
 
-    res.json({ success: true, operationName });
+    res.json({ success: true, operationName, widgetToken: storeContext.widgetToken });
   } catch (err: any) {
     console.error('[Plugin][3D] error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -873,14 +1043,8 @@ router.get('/store-status', async (req: Request, res: Response) => {
     const supabase = getSupabase();
     const storeId = req.query.storeId as string;
 
-    if (!storeId) {
-      return res.status(400).json({ success: false, error: 'storeId required' });
-    }
-
-    const storeUUID = await lookupStoreUUID(storeId);
-    if (!storeUUID) {
-      return res.json({ success: false, error: 'Store not found' });
-    }
+    const storeContext = await resolveStoreContext(req, storeId, req.get('Origin') || req.get('Referer'));
+    const storeUUID = storeContext.storeUUID;
 
     const { data: store, error } = await supabase
       .from('stores')
@@ -910,6 +1074,7 @@ router.get('/store-status', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      widgetToken: storeContext.widgetToken,
       store: {
         id: store.id,
         store_id: store.store_id,
@@ -925,7 +1090,7 @@ router.get('/store-status', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('[Plugin] store-status error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -962,14 +1127,8 @@ router.post('/consume-tryon', async (req: Request, res: Response) => {
     const supabase = getSupabase();
     const { storeId, tryonType } = req.body;
 
-    if (!storeId) {
-      return res.status(400).json({ success: false, error: 'storeId required' });
-    }
-
-    const storeUUID = await lookupStoreUUID(storeId);
-    if (!storeUUID) {
-      return res.status(404).json({ success: false, error: 'Store not found' });
-    }
+    const storeContext = await resolveStoreContext(req, storeId, req.body.currentUrl || req.get('Origin') || req.get('Referer'));
+    const storeUUID = storeContext.storeUUID;
 
     // Check remaining quota
     const { data: store } = await supabase
@@ -997,10 +1156,10 @@ router.post('/consume-tryon', async (req: Request, res: Response) => {
 
     console.log(`[Plugin] consume-tryon: store=${storeId} type=${tryonType}`);
 
-    res.json({ success: true, message: 'Try-on consumed' });
+    res.json({ success: true, message: 'Try-on consumed', widgetToken: storeContext.widgetToken });
   } catch (err: any) {
     console.error('[Plugin] consume-tryon error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -1012,16 +1171,9 @@ router.post('/consume-tryon', async (req: Request, res: Response) => {
 router.post('/tryon-analytics', async (req: Request, res: Response) => {
   try {
     const supabase = getSupabase();
-    const { storeId, tryonType, userId, productId } = req.body;
-
-    if (!storeId) {
-      return res.status(400).json({ success: false, error: 'storeId required' });
-    }
-
-    const storeUUID = await lookupStoreUUID(storeId);
-    if (!storeUUID) {
-      return res.status(404).json({ success: false, error: 'Store not found' });
-    }
+    const { storeId, tryonType, userId, productId, currentUrl } = req.body;
+    const storeContext = await resolveStoreContext(req, storeId, currentUrl || req.get('Origin') || req.get('Referer'));
+    const storeUUID = storeContext.storeUUID;
 
     const safeUserId = isValidUUID(userId) ? userId : null;
     const safeProductId = isValidUUID(productId) ? productId : null;
@@ -1052,10 +1204,10 @@ router.post('/tryon-analytics', async (req: Request, res: Response) => {
 
     console.log(`[Plugin] analytics: store=${storeUUID} type=${tryonType} product=${safeProductId} user=${safeUserId}`);
 
-    res.json({ success: true, message: 'Analytics recorded' });
+    res.json({ success: true, message: 'Analytics recorded', widgetToken: storeContext.widgetToken });
   } catch (err: any) {
     console.error('[Plugin] tryon-analytics error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -1068,14 +1220,8 @@ router.post('/track-conversion', async (req: Request, res: Response) => {
     const supabase = getSupabase();
     const { user_id, store_id, product_id, status, add_to_cart } = req.body;
 
-    if (!store_id) {
-      return res.status(400).json({ success: false, error: 'store_id required' });
-    }
-
-    const storeUUID = await lookupStoreUUID(store_id);
-    if (!storeUUID) {
-      return res.status(404).json({ success: false, error: 'Store not found' });
-    }
+    const storeContext = await resolveStoreContext(req, store_id, req.body.currentUrl || req.get('Origin') || req.get('Referer'));
+    const storeUUID = storeContext.storeUUID;
 
     const safeUserId = isValidUUID(user_id) ? user_id : null;
 
@@ -1102,10 +1248,10 @@ router.post('/track-conversion', async (req: Request, res: Response) => {
 
     console.log(`[Plugin] conversion: store=${storeUUID} product=${product_id} cart=${add_to_cart}`);
 
-    res.json({ success: true, message: 'Conversion recorded' });
+    res.json({ success: true, message: 'Conversion recorded', widgetToken: storeContext.widgetToken });
   } catch (err: any) {
     console.error('[Plugin] track-conversion error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -1121,9 +1267,23 @@ router.post('/update-profile', async (req: Request, res: Response) => {
     // Accept userId or id (frontend sends userId)
     const userId = data.userId || data.id;
     const email = data.email;
+    const token = data.token || req.get('Authorization')?.replace(/^Bearer\s+/i, '');
 
     if (!userId && !email) {
       return res.status(400).json({ success: false, error: 'userId or email required' });
+    }
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(String(token), getJwtSecret()) as { userId?: string; email?: string };
+        if ((userId && decoded.userId && decoded.userId !== userId) || (email && decoded.email && decoded.email !== email)) {
+          return res.status(403).json({ success: false, error: 'Token does not match profile user' });
+        }
+      } catch {
+        return res.status(401).json({ success: false, error: 'Profile token expired or invalid' });
+      }
+    } else if (process.env.STRICT_USER_AUTH === 'true') {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
     const updateFields: Record<string, unknown> = {};
@@ -1194,16 +1354,19 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'productId required' });
     }
 
+    const storeContext = storeId ? await resolveStoreContext(req, storeId, currentUrl) : null;
+
     // Try to find product by UUID first, then by any other match
     let product: any = null;
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
 
     if (isUUID) {
-      const { data } = await supabase
+      let productQuery = supabase
         .from('inventory')
         .select('id, product_name, sizes, measurements')
-        .eq('id', productId)
-        .maybeSingle();
+        .eq('id', productId);
+      if (storeContext) productQuery = productQuery.eq('store_id', storeContext.storeUUID);
+      const { data } = await productQuery.maybeSingle();
       product = data;
       console.log('[Plugin][SizeRec] Lookup by UUID:', product ? `found "${product.product_name}"` : 'not found');
     }
@@ -1211,18 +1374,16 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
     // Fallback: try matching by WooCommerce numeric ID in product_link or other heuristic
     if (!product && storeId && currentUrl) {
       try {
-        const storeUUID = await lookupStoreUUID(storeId);
-        if (storeUUID) {
-          const url = new URL(currentUrl);
-          const { data } = await supabase
-            .from('inventory')
-            .select('id, product_name, sizes, measurements')
-            .eq('store_id', storeUUID)
-            .like('product_link', `%${url.pathname}%`)
-            .maybeSingle();
-          product = data;
-          console.log('[Plugin][SizeRec] Fallback lookup by URL:', product ? `found "${product.product_name}"` : 'not found');
-        }
+        const storeContext = await resolveStoreContext(req, storeId, currentUrl);
+        const url = new URL(currentUrl);
+        const { data } = await supabase
+          .from('inventory')
+          .select('id, product_name, sizes, measurements')
+          .eq('store_id', storeContext.storeUUID)
+          .like('product_link', `%${url.pathname}%`)
+          .maybeSingle();
+        product = data;
+        console.log('[Plugin][SizeRec] Fallback lookup by URL:', product ? `found "${product.product_name}"` : 'not found');
       } catch (urlErr: any) {
         console.warn('[Plugin][SizeRec] URL fallback failed:', urlErr.message);
       }
@@ -1289,13 +1450,16 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
       console.log('[Plugin][SizeRec] No user measurements — returning generic:', genericFit);
       return res.json({
         success: true,
+        widgetToken: storeContext?.widgetToken,
         recommendation: {
           bestFit: genericFit,
+          alternatives: availableSizes.filter((size) => size !== genericFit).slice(0, 2),
           confidence: 30,
           source: 'generic',
           userMeasurements: cleanMeasurements,
           sizeChart,
           fitFeel: {},
+          sizeUpDownInfo: buildSizeUpDownInfo(genericFit, availableSizes.filter((size) => size !== genericFit).slice(0, 2)),
           detailedInsights: {
             whyBestFit: 'Add your measurements during onboarding for a more accurate recommendation.',
           },
@@ -1334,6 +1498,7 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      widgetToken: storeContext?.widgetToken,
       recommendation: {
         bestFit: result.recommended,
         alternatives: result.alternatives,
@@ -1342,6 +1507,7 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
         userMeasurements: cleanMeasurements,
         sizeChart,
         fitFeel,
+        sizeUpDownInfo: buildSizeUpDownInfo(result.recommended, result.alternatives),
         detailedInsights: {
           whyBestFit: `Based on your measurements, ${result.recommended} is the best match using ${result.source === 'product_specific' ? 'product-specific sizing data' : 'standard size charts'}.`,
         },
@@ -1349,7 +1515,7 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error('[Plugin] size-recommendation error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -1358,15 +1524,9 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
 // ──────────────────────────────────────────────
 router.post('/complete-look', async (req: Request, res: Response) => {
   try {
-    const { storeId, productId } = req.body;
-    if (!storeId) {
-      return res.status(400).json({ success: false, error: 'storeId required' });
-    }
-
-    const storeUUID = await lookupStoreUUID(storeId);
-    if (!storeUUID) {
-      return res.status(404).json({ success: false, error: 'Store not found' });
-    }
+    const { storeId, productId, currentUrl } = req.body;
+    const storeContext = await resolveStoreContext(req, storeId, currentUrl || req.get('Origin') || req.get('Referer'));
+    const storeUUID = storeContext.storeUUID;
 
     const supabase = getSupabase();
     let query = supabase
@@ -1384,10 +1544,10 @@ router.post('/complete-look', async (req: Request, res: Response) => {
     }
 
     console.log(`[Plugin] complete-look: store=${storeId} returned ${items?.length ?? 0} items`);
-    res.json({ success: true, items: items || [] });
+    res.json({ success: true, items: items || [], widgetToken: storeContext.widgetToken });
   } catch (err: any) {
     console.error('[Plugin] complete-look error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    sendPluginError(res, err);
   }
 });
 
@@ -1400,6 +1560,7 @@ router.post('/detect-skin-tone', upload.single('image'), (_req: Request, res: Re
   res.json({
     success: true,
     skinTone: '#C68642',
+    hexColor: '#C68642',
     label: 'Medium',
     message: 'Skin tone detection stub — connect a real provider for production.',
   });
@@ -1411,14 +1572,13 @@ router.post('/detect-skin-tone', upload.single('image'), (_req: Request, res: Re
 // ──────────────────────────────────────────────
 router.get('/consume-tryon', async (req: Request, res: Response) => {
   const { storeId, tryonType } = req.query as Record<string, string>;
-  if (!storeId) return res.status(400).json({ success: false, error: 'storeId required' });
-  const storeUUID = await lookupStoreUUID(storeId);
-  if (!storeUUID) return res.status(404).json({ success: false, error: 'Store not found' });
+  const storeContext = await resolveStoreContext(req, storeId, req.get('Origin') || req.get('Referer'));
+  const storeUUID = storeContext.storeUUID;
   const supabase = getSupabase();
   const { error } = await supabase.rpc('increment_tryons_used', { p_store_id: storeUUID }).single();
   if (error) console.warn('[Plugin] consume-tryon GET rpc:', error.message);
   console.log(`[Plugin] consume-tryon (GET): store=${storeId} type=${tryonType || '?'}`);
-  res.json({ success: true });
+  res.json({ success: true, widgetToken: storeContext.widgetToken });
 });
 
 router.get('/tryon-analytics', async (req: Request, res: Response) => {

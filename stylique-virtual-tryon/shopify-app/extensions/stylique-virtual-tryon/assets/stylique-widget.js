@@ -31,6 +31,9 @@
 
   function api(config, path, options) {
     var headers = Object.assign({ 'Content-Type': 'application/json' }, (options && options.headers) || {});
+    if (config.widgetToken) {
+      headers['X-Stylique-Widget-Token'] = config.widgetToken;
+    }
     var init = Object.assign({}, options || {}, { headers: headers });
     if (init.body && typeof init.body !== 'string' && !(init.body instanceof FormData)) {
       init.body = JSON.stringify(init.body);
@@ -41,6 +44,9 @@
     return fetch(normalizeBackend(config.backendUrl) + path, init).then(function (response) {
       return response.text().then(function (text) {
         var payload = safeJsonParse(text);
+        if (payload && payload.widgetToken) {
+          config.widgetToken = payload.widgetToken;
+        }
         if (!response.ok) {
           var message = payload.error || payload.message || ('HTTP ' + response.status);
           throw new Error(message);
@@ -79,6 +85,15 @@
 
   function normalizeSize(value) {
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function matchVariant(product, recommendedSize) {
@@ -377,15 +392,42 @@
       }).then(function (payload) {
         var rec = payload.recommendation || {};
         state.recommendedSize = rec.bestFit || rec.recommendedSize || rec.recommended || rec.size || null;
+        var confidence = Math.max(0, Math.min(100, Math.round(Number(rec.confidence || 0))));
+        var fitFeel = rec.fitFeel || {};
+        var fitRows = ['chest', 'shoulder', 'waist', 'length', 'sleeve', 'hips']
+          .filter(function (key) { return fitFeel[key]; })
+          .slice(0, 2)
+          .map(function (key) {
+            return '<span class="stylique-extension-fit-line">' + escapeHtml(key.charAt(0).toUpperCase() + key.slice(1)) + ': ' + escapeHtml(fitFeel[key]) + '</span>';
+          })
+          .join('');
+        var alternatives = Array.isArray(rec.alternatives) ? rec.alternatives.filter(Boolean).slice(0, 2) : [];
+        var alternativeHtml = alternatives.length
+          ? '<div class="stylique-extension-alt-sizes">' + alternatives.map(function (size) {
+              return '<button type="button" class="stylique-extension-size-choice" data-stylique-alt-size="' + escapeHtml(size) + '">Size ' + escapeHtml(size) + '</button>';
+            }).join('') + '</div>'
+          : '';
         fitEl.classList.add('is-visible');
         fitEl.innerHTML = [
           '<p class="stylique-extension-note">Recommended size</p>',
-          '<strong>' + (state.recommendedSize || 'Best available') + '</strong>',
-          '<p class="stylique-extension-note">Confidence: ' + Math.round(Number(rec.confidence || 0)) + '%</p>',
+          '<strong>' + escapeHtml(state.recommendedSize || 'Best available') + '</strong>',
+          '<div class="stylique-extension-confidence" aria-label="Fit confidence">',
+          '  <span>Fit confidence</span><span>' + confidence + '%</span>',
+          '  <div class="stylique-extension-confidence-track"><div style="width:' + confidence + '%"></div></div>',
+          '</div>',
+          fitRows ? '<div class="stylique-extension-fit-lines">' + fitRows + '</div>' : '',
+          alternativeHtml,
           '<div class="stylique-extension-actions">',
           '  <button type="button" class="stylique-extension-btn stylique-extension-btn-primary" data-stylique-cart>Use this size</button>',
           '</div>'
         ].join('');
+        fitEl.querySelectorAll('[data-stylique-alt-size]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            state.recommendedSize = button.getAttribute('data-stylique-alt-size');
+            fitEl.querySelectorAll('[data-stylique-alt-size]').forEach(function (item) { item.classList.remove('is-selected'); });
+            button.classList.add('is-selected');
+          });
+        });
         fitEl.querySelector('[data-stylique-cart]').addEventListener('click', addToCart);
         setStatus('Size recommendation ready.', 'success');
       }).catch(function (error) {

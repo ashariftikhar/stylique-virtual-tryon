@@ -124,7 +124,7 @@ function corsDecision(
 
 const CORS_METHODS = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
 const CORS_HEADERS =
-  'Content-Type, Authorization, X-Current-URL, X-Store-ID, X-Stylique-Sync-Secret, X-Webhook-Secret, X-Sync-Secret, ngrok-skip-browser-warning';
+  'Content-Type, Authorization, X-Current-URL, X-Store-ID, X-Stylique-Widget-Token, X-Stylique-Sync-Secret, X-Webhook-Secret, X-Sync-Secret, ngrok-skip-browser-warning';
 
 /** Runs before all routes: reflect Origin + handle OPTIONS preflight */
 function attachEarlyCors(panelOrigin: string, mode: 'development' | 'production') {
@@ -177,6 +177,7 @@ app.use(
       'Authorization',
       'X-Current-URL',
       'X-Store-ID',
+      'X-Stylique-Widget-Token',
       'X-Stylique-Sync-Secret',
       'X-Webhook-Secret',
       'X-Sync-Secret',
@@ -232,7 +233,7 @@ app.use('/api/plugin', pluginRoutes);
 const skinUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 app.post('/api/detect-skin-tone', skinUpload.single('image'), (_req, res) => {
   console.log('[detect-skin-tone] stub response');
-  res.json({ success: true, skinTone: '#C68642', label: 'Medium', message: 'Stub — connect real provider for production.' });
+  res.json({ success: true, skinTone: '#C68642', hexColor: '#C68642', label: 'Medium', message: 'Stub - connect real provider for production.' });
 });
 console.log('✓ Plugin routes        (/plugin/*, /api/plugin/* with rate limiting)');
 

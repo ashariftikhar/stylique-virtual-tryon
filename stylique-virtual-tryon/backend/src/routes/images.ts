@@ -29,6 +29,19 @@ interface ScoredImage extends ImageCandidate {
   labels?: string[];
 }
 
+const NEGATIVE_TEXT_HINTS = [
+  'placeholder', 'coming soon', 'logo', 'size chart', 'size-chart', 'measurement',
+  'measurements', 'guide', 'swatch', 'fabric', 'texture', 'detail', 'closeup',
+  'close-up', 'zoom', 'banner', 'poster', 'lookbook', 'icon', 'thumbnail',
+];
+
+const POSITIVE_TEXT_HINTS = [
+  'model', 'front', 'full', 'body', 'wearing', 'worn', 'outfit', 'product',
+  'dress', 'shirt', 'top', 'jacket', 'coat', 'pants', 'jeans', 'skirt',
+];
+
+const STRONG_POSITIVE_TEXT_HINTS = ['model', 'front', 'full', 'body', 'wearing', 'worn'];
+
 function isPublicHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -65,17 +78,64 @@ function isPublicHttpUrl(value: string): boolean {
 // ──────────────────────────────────────────────
 // Rule-based pre-filter
 // ──────────────────────────────────────────────
-function filterImages(images: ImageCandidate[]): ImageCandidate[] {
-  return images.filter((img) => {
-    if (img.alt) {
-      const altLower = img.alt.toLowerCase();
-      if (altLower.includes('placeholder') || altLower.includes('coming soon') || altLower.includes('logo')) {
-        return false;
-      }
+function imageText(img: ImageCandidate): string {
+  let path = '';
+  try {
+    path = decodeURIComponent(new URL(img.url).pathname || '');
+  } catch {
+    path = img.url || '';
+  }
+  return `${img.alt || ''} ${path}`.toLowerCase();
+}
+
+function imageDedupeKey(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString().toLowerCase();
+  } catch {
+    return url.trim().toLowerCase();
+  }
+}
+
+function hasTextHint(text: string, hints: string[]): boolean {
+  return hints.some((hint) => text.includes(hint));
+}
+
+export function filterImages(images: ImageCandidate[]): ImageCandidate[] {
+  const seen = new Set<string>();
+  const accepted: ImageCandidate[] = [];
+
+  for (const img of images) {
+    if (!img.url || !isPublicHttpUrl(img.url)) continue;
+
+    const key = imageDedupeKey(img.url);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const text = imageText(img);
+    if (hasTextHint(text, NEGATIVE_TEXT_HINTS) && !hasTextHint(text, STRONG_POSITIVE_TEXT_HINTS)) {
+      console.log(`[Images] rejected by text hints: alt="${img.alt || ''}" url=${img.url.slice(0, 80)}`);
+      continue;
     }
-    if (!img.url || !isPublicHttpUrl(img.url)) return false;
-    return true;
-  });
+
+    accepted.push(img);
+  }
+
+  return accepted;
+}
+
+function heuristicImageScore(imageUrl: string, alt?: string): number {
+  const text = `${imageUrl} ${alt || ''}`.toLowerCase();
+  let score = 58;
+
+  if (hasTextHint(text, POSITIVE_TEXT_HINTS)) score += 14;
+  if (text.includes('model') || text.includes('wearing') || text.includes('front')) score += 10;
+  if (text.includes('large') || text.includes('high') || text.includes('hq') || text.includes('2048')) score += 8;
+  if (hasTextHint(text, NEGATIVE_TEXT_HINTS)) score -= 35;
+
+  return Math.max(0, Math.min(100, score));
 }
 
 // ──────────────────────────────────────────────
@@ -98,18 +158,14 @@ function getRekognition(): RekognitionClient | null {
   return rekognitionClient;
 }
 
-async function scoreImageWithRekognition(imageUrl: string): Promise<{ score: number; labels: string[] }> {
+async function scoreImageWithRekognition(imageUrl: string, alt?: string): Promise<{ score: number; labels: string[] }> {
   const client = getRekognition();
 
   if (!client) {
     // Fallback mock scoring when AWS is not configured
-    const baseScore = 65;
-    const urlLower = imageUrl.toLowerCase();
-    const qualityBonus = (urlLower.includes('-hq') || urlLower.includes('-high') || urlLower.includes('_large')) ? 15 : 0;
-    const modelBonus = (urlLower.includes('model') || urlLower.includes('front')) ? 10 : 0;
     return {
-      score: Math.min(100, baseScore + qualityBonus + modelBonus),
-      labels: ['mock-scored'],
+      score: heuristicImageScore(imageUrl, alt),
+      labels: ['heuristic-scored'],
     };
   }
 
@@ -186,7 +242,7 @@ async function scoreImageWithRekognition(imageUrl: string): Promise<{ score: num
 // Tier 2: 2-4 usable images
 // Tier 3: <= 1 usable image
 // ──────────────────────────────────────────────
-function computeTier(scoredImages: ScoredImage[]): number {
+export function computeTier(scoredImages: ScoredImage[]): number {
   const usable = scoredImages.filter(img => img.score >= 40).length;
   if (usable >= 5) return 1;
   if (usable >= 2) return 2;
@@ -223,7 +279,7 @@ export async function processProductImages(
 
   const scoredImages: ScoredImage[] = await Promise.all(
     filtered.map(async (img) => {
-      const { score, labels } = await scoreImageWithRekognition(img.url);
+      const { score, labels } = await scoreImageWithRekognition(img.url, img.alt);
       console.log(`[Images]   score=${score} labels=[${labels.slice(0, 5).join(', ')}] url=${img.url.slice(0, 70)}…`);
       return { ...img, score, labels };
     }),

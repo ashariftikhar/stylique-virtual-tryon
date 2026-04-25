@@ -2783,6 +2783,12 @@
   transition: border-color 0.2s;
 }
 .stylique-alt-card:hover { border-color: #cbd5e1; }
+.stylique-alt-card-button {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
 
 .stylique-alt-title {
   display: block;

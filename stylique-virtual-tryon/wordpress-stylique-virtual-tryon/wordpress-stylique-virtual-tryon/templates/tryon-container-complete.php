@@ -1002,17 +1002,30 @@ if ( isset( $product ) && $product ) {
       opts = opts || {};
       var isApiCall = (typeof url === 'string') && url.indexOf(STYLIQUE_API_BASE) === 0;
       if (isApiCall) {
+        var widgetToken = window.styliqueOptions && window.styliqueOptions.widgetToken;
         if (opts.headers instanceof Headers) {
           if (!opts.headers.has('ngrok-skip-browser-warning')) {
             opts.headers.set('ngrok-skip-browser-warning', 'true');
           }
+          if (widgetToken && !opts.headers.has('X-Stylique-Widget-Token')) {
+            opts.headers.set('X-Stylique-Widget-Token', widgetToken);
+          }
         } else if (opts.headers && typeof opts.headers === 'object' && !Array.isArray(opts.headers)) {
-          opts.headers = Object.assign({ 'ngrok-skip-browser-warning': 'true' }, opts.headers);
+          opts.headers = Object.assign({ 'ngrok-skip-browser-warning': 'true' }, widgetToken ? { 'X-Stylique-Widget-Token': widgetToken } : {}, opts.headers);
         } else {
-          opts.headers = { 'ngrok-skip-browser-warning': 'true' };
+          opts.headers = Object.assign({ 'ngrok-skip-browser-warning': 'true' }, widgetToken ? { 'X-Stylique-Widget-Token': widgetToken } : {});
         }
       }
-      return fetch(url, opts);
+      return fetch(url, opts).then(function(response) {
+        if (isApiCall && response && response.clone) {
+          response.clone().json().then(function(payload) {
+            if (payload && payload.widgetToken) {
+              window.styliqueOptions.widgetToken = payload.widgetToken;
+            }
+          }).catch(function() {});
+        }
+        return response;
+      });
     }
 
     // Configuration
@@ -3798,18 +3811,18 @@ if ( isset( $product ) && $product ) {
               
             if (sizeUpDownInfo.sizeDown) {
               altSizesHtml += `
-                <div class="stylique-alt-card">
+                <button type="button" class="stylique-alt-card stylique-alt-card-button" data-stylique-alt-size="${sizeUpDownInfo.sizeDown.size}">
                   <span class="stylique-alt-title">Try ${sizeUpDownInfo.sizeDown.size} (Snug)</span>
                   <span class="stylique-alt-notes">${(sizeUpDownInfo.sizeDown.notes || []).join(' &bull; ')}</span>
-                </div>
+                </button>
               `;
             }
             if (sizeUpDownInfo.sizeUp) {
               altSizesHtml += `
-                <div class="stylique-alt-card">
+                <button type="button" class="stylique-alt-card stylique-alt-card-button" data-stylique-alt-size="${sizeUpDownInfo.sizeUp.size}">
                   <span class="stylique-alt-title">Try ${sizeUpDownInfo.sizeUp.size} (Relaxed)</span>
                   <span class="stylique-alt-notes">${(sizeUpDownInfo.sizeUp.notes || []).join(' &bull; ')}</span>
-                </div>
+                </button>
               `;
             }
             altSizesHtml += `</div></div>`;
@@ -3911,6 +3924,12 @@ if ( isset( $product ) && $product ) {
             ${collapsibleTableHtml}
           </div>
         `;
+          container.querySelectorAll('[data-stylique-alt-size]').forEach(function(button) {
+            button.addEventListener('click', function() {
+              var size = button.getAttribute('data-stylique-alt-size');
+              if (size && window.addToCart) window.addToCart(size);
+            });
+          });
         } else {
           container.innerHTML = `<p class="stylique-error-text">${data.error || 'Failed to load size recommendation'}</p>`;
         }

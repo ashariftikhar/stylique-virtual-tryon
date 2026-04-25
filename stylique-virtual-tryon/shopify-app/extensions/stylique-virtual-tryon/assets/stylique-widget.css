@@ -310,6 +310,56 @@
   font-size: 28px;
 }
 
+.stylique-extension-confidence {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stylique-extension-confidence-track {
+  grid-column: 1 / -1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.1);
+}
+
+.stylique-extension-confidence-track div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--stylique-primary), var(--stylique-secondary));
+}
+
+.stylique-extension-fit-lines,
+.stylique-extension-alt-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stylique-extension-fit-line,
+.stylique-extension-size-choice {
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 999px;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
+.stylique-extension-size-choice {
+  cursor: pointer;
+}
+
+.stylique-extension-size-choice.is-selected {
+  border-color: var(--stylique-primary);
+  color: var(--stylique-primary);
+}
+
 .stylique-extension-gallery {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
