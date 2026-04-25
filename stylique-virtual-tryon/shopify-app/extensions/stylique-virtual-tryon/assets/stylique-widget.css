@@ -287,6 +287,91 @@
   display: grid;
 }
 
+.stylique-extension-complete-look {
+  display: none;
+  gap: 12px;
+}
+
+.stylique-extension-complete-look.is-visible {
+  display: grid;
+}
+
+.stylique-extension-complete-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stylique-extension-complete-head h4 {
+  margin: 2px 0 0;
+  color: #10131f;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.stylique-extension-look-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stylique-extension-look-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+  padding: 8px;
+  text-decoration: none;
+}
+
+.stylique-extension-look-image {
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.stylique-extension-look-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stylique-extension-look-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stylique-extension-look-info strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: 12px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stylique-extension-look-info span {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stylique-extension-look-info em {
+  color: var(--stylique-primary);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .stylique-extension-result-frame {
   display: grid;
   place-items: center;
@@ -403,6 +488,10 @@
 
   .stylique-extension-actions {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .stylique-extension-look-grid {
     grid-template-columns: 1fr;
   }
 

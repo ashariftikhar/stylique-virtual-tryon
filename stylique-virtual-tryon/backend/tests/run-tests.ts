@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { buildCompleteLookPayload } from '../src/routes/plugin.ts';
 import { computeTier, filterImages } from '../src/routes/images.ts';
 import { recommendFromGeneric, recommendFromProductMeasurements } from '../src/routes/recommendations.ts';
 
@@ -40,7 +41,59 @@ function testRecommendations() {
   assert.ok(generic.alternatives.length > 0);
 }
 
+function testCompleteLookPayload() {
+  const payload = buildCompleteLookPayload([
+    {
+      id: 'current-inventory-id',
+      product_name: 'Current Product',
+      image_url: 'https://cdn.example.com/current.jpg',
+      price: 29,
+      sizes: ['S', 'M'],
+      shopify_product_id: '111',
+    },
+    {
+      id: 'recommended-1',
+      product_name: 'Recommended Jacket',
+      image_url: 'https://cdn.example.com/jacket-flat.jpg',
+      tryon_image_url: 'https://cdn.example.com/jacket-tryon.jpg',
+      product_link: 'https://store.example.com/products/jacket',
+      price: '79.5',
+      sizes: ['M', 'L', 'Default Title'],
+    },
+    {
+      id: 'recommended-2',
+      product_name: 'No Image Product',
+      price: 10,
+    },
+  ], '111', 4, 'widget-token');
+
+  assert.equal(payload.success, true);
+  assert.equal(payload.widgetToken, 'widget-token');
+  assert.equal(payload.items.length, 1);
+  assert.equal(payload.products.length, 1);
+  assert.equal(payload.outfits.length, 1);
+  assert.equal(payload.items[0]?.id, 'recommended-1');
+  assert.equal(payload.items[0]?.image_url, 'https://cdn.example.com/jacket-tryon.jpg');
+  assert.equal(payload.items[0]?.price, '79.50');
+  assert.deepEqual(payload.items[0]?.sizes, ['M', 'L']);
+  assert.equal(payload.outfits[0]?.items[0]?.product_name, 'Recommended Jacket');
+
+  const emptyPayload = buildCompleteLookPayload([
+    {
+      id: 'empty-1',
+      product_name: 'Missing Image',
+      price: 20,
+    },
+  ], undefined, 4);
+
+  assert.deepEqual(emptyPayload.items, []);
+  assert.deepEqual(emptyPayload.products, []);
+  assert.deepEqual(emptyPayload.outfits, []);
+  assert.equal(emptyPayload.reasoning, 'No same-store synced recommendations are available yet.');
+}
+
 testImages();
 testRecommendations();
+testCompleteLookPayload();
 
 console.log('Backend focused tests passed');

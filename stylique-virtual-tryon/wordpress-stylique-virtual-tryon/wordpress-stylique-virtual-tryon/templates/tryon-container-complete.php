@@ -5384,55 +5384,22 @@ if ( isset( $product ) && $product ) {
           }
         }
       } catch (e) {
-        // Ignore recommendation failure and fall back to WooCommerce catalog.
+        // Ignore recommendation failure and keep the synced-products section hidden.
       }
 
-      // 2. Fallback to WooCommerce Store API if outfit data is empty.
-      try {
-        if (!data.products || data.products.length === 0) {
-          const fallbackRes = await fetch('/wp-json/wc/store/v1/products?per_page=4');
-          if (fallbackRes.ok) {
-            const fallbackProducts = await fallbackRes.json();
-            if (Array.isArray(fallbackProducts)) {
-              data.products = fallbackProducts
-                .filter(p => !numericProductId || String(p.id) !== String(numericProductId))
-                .slice(0, 4)
-                .map(p => {
-                  const image = Array.isArray(p.images) && p.images[0] ? p.images[0].src : '';
-                  const rawPrice = p.prices && p.prices.price ? Number(p.prices.price) : 5900;
-                  const minorUnit = p.prices && Number.isFinite(Number(p.prices.currency_minor_unit))
-                    ? Number(p.prices.currency_minor_unit)
-                    : 2;
-                  const parsedPrice = Number.isFinite(rawPrice) ? rawPrice / Math.pow(10, minorUnit) : 59.00;
-                  return {
-                    title: p.name || 'Product',
-                    price: parsedPrice,
-                    featured_image: image,
-                    url: p.permalink || '#'
-                  };
-                });
-            }
-          }
-        }
-      } catch (e) {
-        // Ignore catalog failure and use visual fallback below.
-      }
-
-      // 3. ULTIMATE FALLBACK: For local testing or blank stores, inject premium mock data!
+      // 2. If no synced recommendations exist, keep the section hidden instead of showing fake products.
       if (!data.products || data.products.length === 0) {
-        data.products = [
-          { title: "Classic Denim Jacket", price: 89.00, featured_image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=200&q=80", url: "#" },
-          { title: "Minimalist White Sneakers", price: 65.00, featured_image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=200&q=80", url: "#" },
-          { title: "Premium Wool Beanie", price: 32.00, featured_image: "https://images.unsplash.com/photo-1576871337645-33a5fbdf6b32?w=200&q=80", url: "#" },
-          { title: "Canvas Tote Bag", price: 45.00, featured_image: "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=200&q=80", url: "#" }
-        ];
+        carousel.innerHTML = '';
+        container.style.display = 'none';
+        return;
       }
 
       // Render the result
       if (data.products && data.products.length > 0) {
         let html = '';
         data.products.forEach(p => {
-          let imgUrl = p.featured_image || 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=200&q=80';
+          let imgUrl = p.featured_image || '';
+          if (!imgUrl) return;
           if (imgUrl.includes('cdn.shopify.com')) {
             imgUrl = imgUrl.replace(/(\.[^.]*)$/, '_200x200$1');
           }
@@ -5446,12 +5413,12 @@ if ( isset( $product ) && $product ) {
           const price = parsedPrice.toFixed(2);
           
           html += `
-            <a href="${p.url}" class="stylique-suggestion-card">
+            <a href="${styliqueTier3EscapeHtml(p.url || '#')}" class="stylique-suggestion-card">
               <div class="stylique-suggestion-img-wrap">
-                <img src="${imgUrl}" alt="${p.title}">
+                <img src="${styliqueTier3EscapeHtml(imgUrl)}" alt="${styliqueTier3EscapeHtml(p.title)}">
               </div>
               <div class="stylique-suggestion-info">
-                <p class="stylique-suggestion-title">${p.title}</p>
+                <p class="stylique-suggestion-title">${styliqueTier3EscapeHtml(p.title)}</p>
                 <p class="stylique-suggestion-price">$${price}</p>
               </div>
             </a>

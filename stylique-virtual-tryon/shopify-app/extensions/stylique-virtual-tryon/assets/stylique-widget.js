@@ -174,6 +174,7 @@
       '          <div class="stylique-extension-card" data-stylique-upload-card></div>',
       '          <div class="stylique-extension-card stylique-extension-fit" data-stylique-fit></div>',
       '          <div class="stylique-extension-card stylique-extension-result" data-stylique-result></div>',
+      '          <div class="stylique-extension-card stylique-extension-complete-look" data-stylique-complete-look></div>',
       '          <div class="stylique-extension-status" data-stylique-status></div>',
       '        </div>',
       '      </div>',
@@ -224,7 +225,8 @@
       pendingEmail: '',
       selectedFile: null,
       inventoryProduct: null,
-      recommendedSize: null
+      recommendedSize: null,
+      completeLookLoadedFor: ''
     };
 
     var product = config.product || {};
@@ -234,6 +236,7 @@
     var uploadEl = root.querySelector('[data-stylique-upload-card]');
     var fitEl = root.querySelector('[data-stylique-fit]');
     var resultEl = root.querySelector('[data-stylique-result]');
+    var completeLookEl = root.querySelector('[data-stylique-complete-look]');
     var imageEl = root.querySelector('[data-stylique-product-image]');
     var galleryEl = root.querySelector('[data-stylique-gallery]');
 
@@ -369,12 +372,105 @@
         if (payload.available && payload.product) {
           state.inventoryProduct = payload.product;
           setStatus('Stylique is ready for this product.', 'success');
+          loadCompleteLook();
           if (Number(payload.product.tier || 3) >= 3) loadSizeRecommendation();
         } else {
           setStatus('This product is syncing. You can still use size recommendation if data is available.');
         }
       }).catch(function (error) {
         setStatus(error.message || 'Could not check product availability.', 'error');
+      });
+    }
+
+    function normalizeCompleteLookItems(payload) {
+      if (!payload || !payload.success) return [];
+      var source = [];
+      if (Array.isArray(payload.outfits)) {
+        payload.outfits.forEach(function (outfit) {
+          if (outfit && Array.isArray(outfit.items)) {
+            source = source.concat(outfit.items);
+          }
+        });
+      }
+      if (source.length === 0 && Array.isArray(payload.items)) source = payload.items;
+      if (source.length === 0 && Array.isArray(payload.products)) source = payload.products;
+
+      return source.map(function (item) {
+        return {
+          title: item.product_name || item.title || 'Product',
+          image: item.image_url || item.featured_image || item.image || '',
+          url: item.product_link || item.url || '',
+          price: item.price
+        };
+      }).filter(function (item) {
+        return item.title && item.image;
+      }).slice(0, 4);
+    }
+
+    function formatCompleteLookPrice(value) {
+      if (value == null || value === '') return '';
+      var numeric = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.]/g, ''));
+      if (!Number.isFinite(numeric)) return escapeHtml(value);
+      return '$' + numeric.toFixed(2);
+    }
+
+    function renderCompleteLook(items) {
+      if (!completeLookEl) return;
+      if (!items || items.length === 0) {
+        completeLookEl.classList.remove('is-visible');
+        completeLookEl.innerHTML = '';
+        return;
+      }
+
+      completeLookEl.classList.add('is-visible');
+      completeLookEl.innerHTML = [
+        '<div class="stylique-extension-complete-head">',
+        '  <div>',
+        '    <p class="stylique-extension-note">Same-store styling picks</p>',
+        '    <h4>Complete the Look</h4>',
+        '  </div>',
+        '</div>',
+        '<div class="stylique-extension-look-grid">',
+        items.map(function (item) {
+          var price = formatCompleteLookPrice(item.price);
+          var openTag = item.url
+            ? '<a class="stylique-extension-look-card" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener">'
+            : '<div class="stylique-extension-look-card">';
+          var closeTag = item.url ? '</a>' : '</div>';
+          return [
+            openTag,
+            '  <div class="stylique-extension-look-image"><img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.title) + '"></div>',
+            '  <div class="stylique-extension-look-info">',
+            '    <strong>' + escapeHtml(item.title) + '</strong>',
+            price ? '    <span>' + price + '</span>' : '',
+            item.url ? '    <em>View Product</em>' : '',
+            '  </div>',
+            closeTag
+          ].join('');
+        }).join(''),
+        '</div>'
+      ].join('');
+    }
+
+    function loadCompleteLook() {
+      var inventoryId = state.inventoryProduct && state.inventoryProduct.id;
+      if (!inventoryId) return;
+      if (state.completeLookLoadedFor === inventoryId) return;
+      state.completeLookLoadedFor = inventoryId;
+
+      api(config, '/api/plugin/complete-look', {
+        method: 'POST',
+        body: {
+          storeId: config.storeId || config.shopDomain,
+          productId: inventoryId,
+          currentUrl: config.currentUrl || window.location.href,
+          limit: 4
+        }
+      }).then(function (payload) {
+        renderCompleteLook(normalizeCompleteLookItems(payload));
+      }).catch(function (error) {
+        log(config, 'complete look failed', error.message);
+        renderCompleteLook([]);
       });
     }
 
@@ -465,6 +561,7 @@
             renderUpload();
           });
           loadSizeRecommendation();
+          loadCompleteLook();
           setStatus('Try-on result ready.', 'success');
         })
         .catch(function (error) { setStatus(error.message || 'Try-on failed.', 'error'); });

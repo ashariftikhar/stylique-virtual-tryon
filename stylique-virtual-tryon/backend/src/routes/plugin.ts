@@ -192,6 +192,33 @@ const inventorySelect =
 
 type NumericMeasurements = Record<string, number>;
 
+export interface CompleteLookProductRow {
+  id: string;
+  product_name?: string | null;
+  image_url?: string | null;
+  tryon_image_url?: string | null;
+  product_link?: string | null;
+  price?: number | string | null;
+  sizes?: unknown;
+  brand?: string | null;
+  shopify_product_id?: string | number | null;
+  woocommerce_product_id?: string | number | null;
+  images?: unknown;
+}
+
+export interface CompleteLookItem {
+  id: string;
+  product_name: string;
+  title: string;
+  image_url: string;
+  product_link: string;
+  url: string;
+  price: string | null;
+  sizes: string[];
+  brand?: string;
+  reason: string;
+}
+
 interface SizeChartEntry {
   size: string;
   measurements: NumericMeasurements;
@@ -264,6 +291,113 @@ function resolveAvailableSizes(productSizes: unknown, productMeasurements: unkno
   const merged = variantSizes.length > 0 ? variantSizes : measuredSizes;
 
   return merged.length > 0 ? merged : ['M'];
+}
+
+function normalizeCompleteLookSizes(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((size): size is string => isRealSizeLabel(size))
+      .map((size) => size.trim());
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>).filter(isRealSizeLabel);
+  }
+
+  return [];
+}
+
+function firstImageFromImages(value: unknown): string {
+  if (!Array.isArray(value)) return '';
+
+  for (const image of value) {
+    if (typeof image === 'string' && image.trim()) return image.trim();
+    if (image && typeof image === 'object') {
+      const record = image as Record<string, unknown>;
+      const url = record.url || record.src;
+      if (typeof url === 'string' && url.trim()) return url.trim();
+    }
+  }
+
+  return '';
+}
+
+function normalizeCompleteLookPrice(value: unknown): string | null {
+  if (value == null || value === '') return null;
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (Number.isFinite(numeric)) return numeric.toFixed(2);
+  return String(value);
+}
+
+function normalizeCompleteLookItem(row: CompleteLookProductRow): CompleteLookItem | null {
+  const title = String(row.product_name || '').trim();
+  const imageUrl = String(row.tryon_image_url || row.image_url || firstImageFromImages(row.images) || '').trim();
+
+  if (!row.id || !title || !imageUrl) return null;
+
+  const productLink = String(row.product_link || '').trim();
+  const item: CompleteLookItem = {
+    id: row.id,
+    product_name: title,
+    title,
+    image_url: imageUrl,
+    product_link: productLink,
+    url: productLink,
+    price: normalizeCompleteLookPrice(row.price),
+    sizes: normalizeCompleteLookSizes(row.sizes),
+    reason: 'Same-store recommendation',
+  };
+
+  if (row.brand) item.brand = String(row.brand);
+  return item;
+}
+
+function isCurrentCompleteLookProduct(row: CompleteLookProductRow, productId: unknown): boolean {
+  if (productId == null || productId === '') return false;
+  const current = String(productId).trim();
+  if (!current) return false;
+
+  return [
+    row.id,
+    row.shopify_product_id,
+    row.woocommerce_product_id,
+  ].some((value) => value != null && String(value).trim() === current);
+}
+
+export function buildCompleteLookPayload(
+  rows: CompleteLookProductRow[],
+  productId?: unknown,
+  limit = 4,
+  widgetToken?: string,
+) {
+  const safeLimit = Math.max(1, Math.min(8, Number.isFinite(Number(limit)) ? Number(limit) : 4));
+  const items = rows
+    .filter((row) => !isCurrentCompleteLookProduct(row, productId))
+    .map(normalizeCompleteLookItem)
+    .filter((item): item is CompleteLookItem => Boolean(item))
+    .slice(0, safeLimit);
+
+  const reasoning = items.length > 0
+    ? "Recommended from this store's synced catalog."
+    : 'No same-store synced recommendations are available yet.';
+  const outfits = items.length > 0
+    ? [{
+        id: 'same-store-look',
+        title: 'Complete the Look',
+        reasoning,
+        totalConfidence: 8.5,
+        items,
+      }]
+    : [];
+
+  return {
+    success: true,
+    items,
+    products: items,
+    outfits,
+    reasoning,
+    widgetToken,
+  };
 }
 
 function cleanUserMeasurements(userMeasurements: Record<string, unknown>): NumericMeasurements {
@@ -1524,27 +1658,27 @@ router.post('/size-recommendation', async (req: Request, res: Response) => {
 // ──────────────────────────────────────────────
 router.post('/complete-look', async (req: Request, res: Response) => {
   try {
-    const { storeId, productId, currentUrl } = req.body;
+    const { storeId, productId, currentUrl, limit } = req.body;
     const storeContext = await resolveStoreContext(req, storeId, currentUrl || req.get('Origin') || req.get('Referer'));
     const storeUUID = storeContext.storeUUID;
+    const safeLimit = Math.max(1, Math.min(8, Number.isFinite(Number(limit)) ? Number(limit) : 4));
 
     const supabase = getSupabase();
-    let query = supabase
+    const { data: rows, error } = await supabase
       .from('inventory')
-      .select('id, product_name, image_url, tryon_image_url, product_link, price, sizes')
-      .eq('store_id', storeUUID);
-    if (productId && isValidUUID(productId)) {
-      query = query.neq('id', productId);
-    }
-    const { data: items, error } = await query.limit(6);
+      .select('id, product_name, image_url, tryon_image_url, product_link, price, sizes, brand, shopify_product_id, woocommerce_product_id, images, updated_at')
+      .eq('store_id', storeUUID)
+      .order('updated_at', { ascending: false, nullsFirst: false })
+      .limit(Math.min(safeLimit + 8, 16));
 
     if (error) {
       console.error('[Plugin] complete-look error:', error.message);
       return res.status(500).json({ success: false, error: 'DB error' });
     }
 
-    console.log(`[Plugin] complete-look: store=${storeId} returned ${items?.length ?? 0} items`);
-    res.json({ success: true, items: items || [], widgetToken: storeContext.widgetToken });
+    const payload = buildCompleteLookPayload((rows || []) as CompleteLookProductRow[], productId, safeLimit, storeContext.widgetToken);
+    console.log(`[Plugin] complete-look: store=${storeContext.storeId} returned ${payload.items.length} items`);
+    res.json(payload);
   } catch (err: any) {
     console.error('[Plugin] complete-look error:', err);
     sendPluginError(res, err);
