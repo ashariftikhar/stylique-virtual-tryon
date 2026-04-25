@@ -299,11 +299,23 @@
         
         <div class="stylique-upload-section">
           <div class="stylique-upload-area" id="stylique-upload-area">
-            <div class="stylique-upload-content">
-              <div class="stylique-upload-copy">
-                <span class="stylique-upload-kicker">Upload your photo</span>
-                <p class="stylique-upload-helper">Best with a front-facing photo and plain background.</p>
+            <div class="stylique-best-results-box">
+              <div class="stylique-pose-graphic">
+                <svg viewBox="0 0 450 450" width="48" height="48" fill="currentColor">
+                  <g transform="translate(142.08)">
+                    <path d="m80.464 46.312c2.879 5.759 1.241 10.697 0.521 16.455-7.475 6.998-31.078 3.504-34.891 9.753-7.947 12.037-32.768 47.87-33.012 58.78 0.292 9.58 20.009 44.25 31.403 56.01 2.711 0.6 7.019 1.03 8.741-0.39 0.898-4.93 1.165-8.9 2.209-12.63-1.445-0.85-3.172-0.19-5.263-0.06-5.79-7.04-11.969-33.65-13.056-40.28 5.266-9.52 8.786-21.77 17.701-35.794 2.478 18.584 7.906 47.884 5.562 58.894-19.574 42.67 3.037 130.68 3.622 146.86-6.45 30.65 9.279 90.59 9.678 96.15-0.428 5.14-3.491 8.94-1.545 12.12-2.603 11.04-4.497 15.03-2.337 21.51 2.159 6.48 17.766 8.09 20.767 4.1 0.934-6.07-0.608-21.38-2.767-24.26 1.148-2.46 2.541-11.11 0.197-18.52-2.757-9.48 5.825-63.07-0.775-78.04 0.841-3.4 2.173-14.49 2.187-19.44-0.804-2.97 0.48-35.1 2-60.19 1.527 25.12 2.807 57.43 2 60.41-2.879 2.88 0.518 18.51 2.6 21.5-2.052 6.29 3.223 66.5 7.494 73.5-2.34 7.41 0.29 14.82 1.44 17.28-2.16 2.88-4.53 19.84-3.6 25.91 3 4 19.44 0.73 21.6-5.75s-0.98-8.4-3.58-19.44c1.94-3.19-0.74-10.7-1.17-15.84 0.4-5.56 8.72-58.48 2.27-89.96-1.06-14.53 25.84-107.34 3.9-147.96 0.91-12.1-0.43-42.54 2.15-60.036-0.72 6.476 2.52 48.076 7.21 60.426-3.17 15.23 1.75 57.89-1.13 62.21-1.23 5.14-1.41 13.64-1.95 20.15 3.6-2.16 3.05-4.59 5.24-3.18 2.6 5.13-5.81 10.99-5.84 15.54 5.75 0 16.48-7.22 12.34-31.38-0.02-9.69 15.98-62.05 8.29-75.02 2.65-8.42-3.77-60.692-8.82-71.075-3.81-6.249-28-3.814-35.47-10.813-0.72-5.758-3.6-11.522-0.72-17.281 6.47-9.357 6.71-40.116-11.316-40.281-23.263 0.0131-20.359 30.705-13.88 40.062z"/>
+                    <path fill="var(--stylique-text-secondary)" d="m91.781 3.6875c-7.44 0.3311-14.886 5.3164-18.031 16.938 0.478-0.24 0.894 0.12 1.54-0.061-0.657 2.69-0.276 5.571-0.276 5.571s1.054-0.404 1.861-0.48c-0.292-0.729 0.079-3.822 0.603-5.591 9.247-2.977 24.172-3.359 29.962 0.591 1.33 2.405 1.07 6.595 1.07 7.044 0.51-0.259 1.3 0.367 1.68-0.044 0-0.79 0.19-3.646-0.46-6.321 0.44 0.085 1.39 0.51 1.69 0.585-0.35-10.723-10.07-18.658-19.639-18.232z"/>
+                  </g>
+                </svg>
               </div>
+              <div class="stylique-best-results-badges">
+                <span class="stylique-badge-item"><svg class="stylique-check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Front Facing</span>
+                <span class="stylique-badge-item"><svg class="stylique-check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Good Lighting</span>
+                <span class="stylique-badge-item"><svg class="stylique-check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Plain Background</span>
+              </div>
+            </div>
+
+            <div class="stylique-upload-content">
               <div class="stylique-upload-core">
                 <input type="file" id="stylique-file-input" accept="image/*" style="display: none;">
                 <button class="stylique-btn-upload-round" onclick="handleUploadClick()">
@@ -320,16 +332,7 @@
 
           
           <div class="stylique-image-preview" id="stylique-image-preview" style="display: none;">
-            <div class="stylique-upload-selection-icon" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-            </div>
-            <div class="stylique-upload-selection-copy">
-              <span class="stylique-upload-selection-label">Photo selected</span>
-              <span class="stylique-upload-selection-name" id="stylique-selected-file-name">Ready for try-on</span>
-            </div>
-            <img id="stylique-preview-img" alt="Selected photo" aria-hidden="true">
+            <img id="stylique-preview-img" alt="Selected photo">
             <div class="stylique-preview-actions">
               <button class="stylique-btn-icon" onclick="handleUploadClick()"
                 title="Change photo">
@@ -347,8 +350,8 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
             <div class="stylique-privacy-text-content">
-              <h6>Private by design</h6>
-              <p>Processed securely. Never stored.</p>
+              <h6>Your Privacy</h6>
+              <p>Your photo is securely processed to generate the try-on result and never saved on our server. We do not store, share, or re-use the images.</p>
             </div>
           </div>
         </div>
@@ -907,7 +910,7 @@
   {% assign _stylique_backend = 'https://www.styliquetechnologies.com' %}
 {% endif %}
 {% assign _stylique_store_id = section.settings.store_id | strip %}
-{% if _stylique_store_id == blank or _stylique_store_id == 'auto' %}
+{% if _stylique_store_id == blank %}
   {% assign _stylique_store_id = shop.permanent_domain %}
 {% endif %}
 
@@ -2556,18 +2559,10 @@
       reader.onload = function (e) {
         document.getElementById('stylique-preview-img').src = e.target.result;
         document.getElementById('stylique-image-preview').style.display = 'block';
+        
+        // Hide the upload area after image is selected
         var uploadSection = document.querySelector('.stylique-upload-section');
-        var uploadArea = document.getElementById('stylique-upload-area');
-        var selectedFileName = document.getElementById('stylique-selected-file-name');
-        if (uploadSection) uploadSection.classList.add('is-file-selected');
-        if (uploadArea) uploadArea.classList.add('has-selected-image');
-        if (selectedFileName) {
-          var displayName = file.name || 'Photo selected';
-          if (displayName.length > 34) {
-            displayName = displayName.slice(0, 16) + '...' + displayName.slice(-12);
-          }
-          selectedFileName.textContent = displayName;
-        }
+        if (uploadSection) uploadSection.style.display = 'none';
         
         // Enable try-on buttons when image is selected
         const start2DButton = document.getElementById('stylique-start-2d-tryon');
@@ -4030,10 +4025,6 @@
       window.styliqueSection.garmentImage = null;
       document.getElementById('stylique-image-preview').style.display = 'none';
       document.getElementById('stylique-file-input').value = '';
-      var selectedFileName = document.getElementById('stylique-selected-file-name');
-      if (selectedFileName) selectedFileName.textContent = 'Ready for try-on';
-      var previewImage = document.getElementById('stylique-preview-img');
-      if (previewImage) previewImage.removeAttribute('src');
 
       // Reset 2D result
       var result2D = document.getElementById('stylique-inline-result');
@@ -4056,8 +4047,6 @@
       if (uploadArea) uploadArea.style.display = 'block';
       var uploadSection = document.querySelector('.stylique-upload-section');
       if (uploadSection) uploadSection.style.display = 'block';
-      if (uploadArea) uploadArea.classList.remove('has-selected-image');
-      if (uploadSection) uploadSection.classList.remove('is-file-selected');
 
       // Restore action section
       var actionSection = document.querySelector('.stylique-action-section');
@@ -4836,9 +4825,6 @@
       || {{ product.featured_image | image_url: width: 200 | json }};
     const productUrl = product.url || {{ product.url | json }};
 
-    itemsList.classList.remove('is-ready');
-    itemsList.classList.add('is-rendering');
-
     // Show loading state first
     itemsList.innerHTML = `
       <div class="stylique-result-item-card">
@@ -5232,11 +5218,6 @@
         </div>
         ${confidenceHtml ? `<div class="stylique-result-confidence-row">${confidenceHtml}</div>` : ''}
       </div>`;
-
-    window.requestAnimationFrame(() => {
-      container.classList.remove('is-rendering');
-      container.classList.add('is-ready');
-    });
   }
   
   // Build the "Complete the Look" horizontally scrolling carousel via native Shopify API
@@ -5705,8 +5686,8 @@
 "type": "text",
 "id": "store_id",
 "label": "Stylique store ID",
-"default": "auto",
-"info": "Leave as auto to use this shop's permanent domain."
+"default": "test-store-1100000000000000000000000000000005002.myshopify.com",
+"info": "Must match stores.store_id in Supabase (usually your-shop.myshopify.com). Leave blank to use this shop’s permanent domain."
 },
 {
 "type": "text",
@@ -5747,21 +5728,21 @@
 "type": "color",
 "id": "primary_color",
 "label": "Primary Color",
-"default": "#642FD7",
+"default": "#667eea",
 "info": "Main brand color for buttons and accents"
 },
 {
 "type": "color",
 "id": "secondary_color",
 "label": "Secondary Color",
-"default": "#F4536F",
+"default": "#764ba2",
 "info": "Secondary color for gradients and effects"
 },
 {
 "type": "color",
 "id": "text_color",
 "label": "Text Color",
-"default": "#1a1a2e",
+"default": "#333333",
 "info": "Main text color"
 },
 {
@@ -5772,7 +5753,7 @@
 "max": 20,
 "step": 1,
 "unit": "px",
-"default": 16,
+"default": 8,
 "info": "Roundness of buttons and elements"
 }
 ],
