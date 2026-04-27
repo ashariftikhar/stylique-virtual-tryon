@@ -5,20 +5,38 @@ import { recommendFromGeneric, recommendFromProductMeasurements } from '../src/r
 import { parseSizeChart } from '../src/utils/htmlUtils.ts';
 
 function testImages() {
-  const filtered = filterImages([
+  const previousAllowLocal = process.env.ALLOW_LOCAL_IMAGE_URLS;
+
+  process.env.ALLOW_LOCAL_IMAGE_URLS = 'false';
+  const filtered = filterImages(imageFixtures());
+
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0]?.alt, 'Model front');
+
+  process.env.ALLOW_LOCAL_IMAGE_URLS = 'true';
+  const localFiltered = filterImages(imageFixtures());
+  assert.equal(localFiltered.length, 2);
+  assert.equal(localFiltered[1]?.alt, 'Local product');
+
+  if (previousAllowLocal === undefined) {
+    delete process.env.ALLOW_LOCAL_IMAGE_URLS;
+  } else {
+    process.env.ALLOW_LOCAL_IMAGE_URLS = previousAllowLocal;
+  }
+
+  assert.equal(computeTier([{ url: 'a', score: 90 }, { url: 'b', score: 55 }, { url: 'c', score: 40 }, { url: 'd', score: 70 }, { url: 'e', score: 80 }]), 1);
+  assert.equal(computeTier([{ url: 'a', score: 90 }, { url: 'b', score: 55 }, { url: 'c', score: 10 }]), 2);
+  assert.equal(computeTier([{ url: 'a', score: 90 }, { url: 'b', score: 20 }]), 3);
+}
+
+function imageFixtures() {
+  return [
     { url: 'https://cdn.example.com/products/model-front.jpg?width=800', alt: 'Model front' },
     { url: 'https://cdn.example.com/products/model-front.jpg?width=1200', alt: 'Duplicate model front' },
     { url: 'https://cdn.example.com/assets/logo.png', alt: 'Brand logo' },
     { url: 'https://cdn.example.com/products/size-chart.png', alt: 'Size chart' },
     { url: 'http://localhost/product.jpg', alt: 'Local product' },
-  ]);
-
-  assert.equal(filtered.length, 1);
-  assert.equal(filtered[0]?.alt, 'Model front');
-
-  assert.equal(computeTier([{ url: 'a', score: 90 }, { url: 'b', score: 55 }, { url: 'c', score: 40 }, { url: 'd', score: 70 }, { url: 'e', score: 80 }]), 1);
-  assert.equal(computeTier([{ url: 'a', score: 90 }, { url: 'b', score: 55 }, { url: 'c', score: 10 }]), 2);
-  assert.equal(computeTier([{ url: 'a', score: 90 }, { url: 'b', score: 20 }]), 3);
+  ];
 }
 
 function testRecommendations() {

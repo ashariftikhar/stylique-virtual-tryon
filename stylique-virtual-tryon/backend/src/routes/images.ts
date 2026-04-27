@@ -42,6 +42,34 @@ const POSITIVE_TEXT_HINTS = [
 
 const STRONG_POSITIVE_TEXT_HINTS = ['model', 'front', 'full', 'body', 'wearing', 'worn'];
 
+function allowLocalImageUrls(): boolean {
+  return ['true', '1', 'yes'].includes(String(process.env.ALLOW_LOCAL_IMAGE_URLS || '').toLowerCase());
+}
+
+function isLocalOrPrivateHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+
+  if (
+    normalized === 'localhost' ||
+    normalized.endsWith('.local') ||
+    normalized === '127.0.0.1' ||
+    normalized === '::1' ||
+    normalized === '[::1]' ||
+    normalized.startsWith('10.') ||
+    normalized.startsWith('192.168.')
+  ) {
+    return true;
+  }
+
+  const private172 = normalized.match(/^172\.(\d+)\./);
+  if (private172) {
+    const secondOctet = Number(private172[1]);
+    return secondOctet >= 16 && secondOctet <= 31;
+  }
+
+  return false;
+}
+
 function isPublicHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -49,27 +77,28 @@ function isPublicHttpUrl(value: string): boolean {
       return false;
     }
 
-    const hostname = url.hostname.toLowerCase();
-    if (
-      hostname === 'localhost' ||
-      hostname.endsWith('.local') ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1' ||
-      hostname.startsWith('10.') ||
-      hostname.startsWith('192.168.')
-    ) {
+    if (isLocalOrPrivateHostname(url.hostname)) {
       return false;
     }
 
-    const private172 = hostname.match(/^172\.(\d+)\./);
-    if (private172) {
-      const secondOctet = Number(private172[1]);
-      if (secondOctet >= 16 && secondOctet <= 31) {
-        return false;
-      }
-    }
-
     return true;
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedHttpImageUrl(value: string): boolean {
+  if (isPublicHttpUrl(value)) {
+    return true;
+  }
+
+  if (!allowLocalImageUrls()) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && isLocalOrPrivateHostname(url.hostname);
   } catch {
     return false;
   }
@@ -108,7 +137,7 @@ export function filterImages(images: ImageCandidate[]): ImageCandidate[] {
   const accepted: ImageCandidate[] = [];
 
   for (const img of images) {
-    if (!img.url || !isPublicHttpUrl(img.url)) continue;
+    if (!img.url || !isAllowedHttpImageUrl(img.url)) continue;
 
     const key = imageDedupeKey(img.url);
     if (seen.has(key)) continue;
@@ -159,6 +188,13 @@ function getRekognition(): RekognitionClient | null {
 }
 
 async function scoreImageWithRekognition(imageUrl: string, alt?: string): Promise<{ score: number; labels: string[] }> {
+  if (!isPublicHttpUrl(imageUrl) && allowLocalImageUrls()) {
+    return {
+      score: heuristicImageScore(imageUrl, alt),
+      labels: ['local-heuristic-scored'],
+    };
+  }
+
   const client = getRekognition();
 
   if (!client) {

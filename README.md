@@ -89,6 +89,14 @@ AWS_SECRET_ACCESS_KEY=...
 AWS_REGION=eu-west-1
 ```
 
+Local WooCommerce testing helper:
+
+```text
+ALLOW_LOCAL_IMAGE_URLS=true
+```
+
+Use `ALLOW_LOCAL_IMAGE_URLS=true` only for local development when WooCommerce media URLs are `localhost`, `.local`, `127.0.0.1`, or private LAN URLs. Production should leave this unset so image scoring only accepts public media URLs.
+
 `STRICT_STOREFRONT_AUTH=true` can be enabled after confirming all live widgets pass signed widget token context correctly.
 
 ## Storepanel Deployment
