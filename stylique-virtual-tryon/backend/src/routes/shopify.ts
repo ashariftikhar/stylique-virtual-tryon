@@ -283,9 +283,9 @@ ${css}
   );
 
   html = html.replace(
-    /window\.styliqueSection\.shopifyProductImages = \[\];\s*\{\% if product and product\.images \%\}\s*window\.styliqueSection\.shopifyProductImages = \{\{ product\.images \| map: 'src' \| json \}\};\s*console\.log\('\[Stylique\] Shopify product images captured:', window\.styliqueSection\.shopifyProductImages\.length, 'images'\);\s*\{\% endif \%\}/,
+    /window\.styliqueSection\.shopifyProductImages = \[\];\s*\{\% if product and product\.images \%\}\s*window\.styliqueSection\.shopifyProductImages = \{\{ product\.images \| map: 'src' \| json \}\};\s*(?:console\.log|styliqueDebugLog)\('\[Stylique\] Shopify product images captured:', window\.styliqueSection\.shopifyProductImages\.length, 'images'\);\s*\{\% endif \%\}/,
     `window.styliqueSection.shopifyProductImages = window.__styliqueProductBootstrap.images || [];
-    console.log('[Stylique] Shopify product images captured:', window.styliqueSection.shopifyProductImages.length, 'images');`,
+    styliqueDebugLog('[Stylique] Shopify product images captured:', window.styliqueSection.shopifyProductImages.length, 'images');`,
   );
 
   html = html.replace(
@@ -314,10 +314,11 @@ ${css}
     [`{{ section.settings.primary_color }}`, escapeHtml(theme.primaryColor)],
     [`{{ section.settings.secondary_color }}`, escapeHtml(theme.secondaryColor)],
     [`{{ section.settings.text_color }}`, escapeHtml(theme.textColor)],
+    [`{{ section.settings.debug_mode | default: false | json }}`, 'false'],
     [`{{ section.settings.border_radius | plus: 8 }}`, String(theme.borderRadius + 8)],
     [`{{ section.settings.border_radius }}`, String(theme.borderRadius)],
     [`var STYLIQUE_API_BASE = {{ _stylique_backend | json }};`, `var STYLIQUE_API_BASE = window.StyliqueConfig.backendUrl;`],
-    [`console.log('[Stylique] Store ID:', {{ _stylique_store_id | json }});`, `console.log('[Stylique] Store ID:', window.StyliqueConfig.storeId);`],
+    [`styliqueDebugLog('[Stylique] Store ID:', {{ _stylique_store_id | json }});`, `styliqueDebugLog('[Stylique] Store ID:', window.StyliqueConfig.storeId);`],
     [`storeId: {{ _stylique_store_id | json }},`, `storeId: window.StyliqueConfig.storeId,`],
     [`domain: window.location.hostname,`, `domain: window.StyliqueConfig.shop || window.location.hostname,`],
     [`shopifyProductId: {% if product %}{{ product.id }}{% else %}null{% endif %}`, `shopifyProductId: window.__styliqueProductBootstrap.id || null`],

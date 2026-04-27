@@ -1,8 +1,0 @@
-﻿2026-04-24T07:06:19.3364793Z ##[group]Run node --check ./extensions/stylique-virtual-tryon/assets/stylique-widget.js
-2026-04-24T07:06:19.3365447Z [36;1mnode --check ./extensions/stylique-virtual-tryon/assets/stylique-widget.js[0m
-2026-04-24T07:06:19.3385887Z shell: /usr/bin/bash -e {0}
-2026-04-24T07:06:19.3386133Z env:
-2026-04-24T07:06:19.3386941Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
-2026-04-24T07:06:19.3387295Z   SHOPIFY_APP_CLIENT_ID: ***
-2026-04-24T07:06:19.3387847Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
-2026-04-24T07:06:19.3388371Z ##[endgroup]

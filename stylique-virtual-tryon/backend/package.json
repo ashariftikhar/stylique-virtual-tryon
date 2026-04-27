@@ -8,9 +8,7 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc --noEmit",
     "start": "tsx src/index.ts",
-    "test": "node --experimental-strip-types tests/run-tests.ts",
-    "shopify:e2e": "node scripts/shopify-e2e-product.mjs",
-    "ngrok:setup": "node scripts/ngrok-shopify-setup.mjs"
+    "test": "node --experimental-strip-types tests/run-tests.ts"
   },
   "keywords": [],
   "author": "",

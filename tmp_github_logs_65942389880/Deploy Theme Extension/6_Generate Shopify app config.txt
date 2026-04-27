@@ -1,8 +1,0 @@
-﻿2026-04-24T07:06:19.3254470Z ##[group]Run sed "s/REPLACE_WITH_SHOPIFY_API_KEY/${SHOPIFY_APP_CLIENT_ID}/g" shopify.app.toml.example > shopify.app.toml
-2026-04-24T07:06:19.3255405Z [36;1msed "s/REPLACE_WITH_SHOPIFY_API_KEY/${SHOPIFY_APP_CLIENT_ID}/g" shopify.app.toml.example > shopify.app.toml[0m
-2026-04-24T07:06:19.3277366Z shell: /usr/bin/bash -e {0}
-2026-04-24T07:06:19.3277617Z env:
-2026-04-24T07:06:19.3278253Z   SHOPIFY_CLI_PARTNERS_TOKEN: ***
-2026-04-24T07:06:19.3278603Z   SHOPIFY_APP_CLIENT_ID: ***
-2026-04-24T07:06:19.3279122Z   COMMIT_URL: https://github.com/ashariftikhar/stylique-virtual-tryon/commit/e9fe4161e40402c3485e902499e27c9dd775ff7f
-2026-04-24T07:06:19.3279657Z ##[endgroup]
