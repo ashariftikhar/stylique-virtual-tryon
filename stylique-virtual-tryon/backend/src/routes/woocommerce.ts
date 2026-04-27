@@ -19,6 +19,33 @@ function normalizeHost(value: string): string {
   return value.trim().toLowerCase().replace(/^www\./, '').replace(/\.+$/, '');
 }
 
+function isLocalOrPrivateWooHost(value: string): boolean {
+  const host = normalizeHost(value)
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/:\d+$/, '');
+
+  if (
+    host === 'localhost' ||
+    host.endsWith('.local') ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    host === '[::1]' ||
+    host.startsWith('10.') ||
+    host.startsWith('192.168.')
+  ) {
+    return true;
+  }
+
+  const private172 = host.match(/^172\.(\d+)\./);
+  if (private172) {
+    const secondOctet = Number(private172[1]);
+    return secondOctet >= 16 && secondOctet <= 31;
+  }
+
+  return false;
+}
+
 function parseSiteUrl(value: string | undefined): URL | null {
   if (!value || typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -259,7 +286,12 @@ async function syncWooCommerceProductToInventory(
   }));
 
   if (data.id && allImages.length > 0) {
-    processProductImages(data.id, allImages).catch(err =>
+    const allowLocalImageUrls = isLocalOrPrivateWooHost(storeDomain);
+    if (allowLocalImageUrls) {
+      console.log(`[WooCommerce] Local/private store domain detected (${storeDomain}); using local image heuristic scoring.`);
+    }
+
+    processProductImages(data.id, allImages, { allowLocalImageUrls }).catch(err =>
       console.error(`[WooCommerce] Background image processing failed for ${data.id}:`, err.message),
     );
   } else if (data.id && allImages.length === 0) {

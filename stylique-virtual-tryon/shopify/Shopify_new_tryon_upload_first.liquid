@@ -568,6 +568,9 @@
       <div class="stylique-result-items-list" id="stylique-result-items-list">
         <!-- Populated dynamically by JS -->
       </div>
+
+      <!-- Size recommendation loaded dynamically -->
+      <div id="stylique-result-size-details" style="display:none;"></div>
       
       <!-- Complete the Look -->
       <div id="stylique-complete-look-container" style="display: none;">
@@ -578,9 +581,6 @@
           <!-- Dynamically populated -->
         </div>
       </div>
-
-      <!-- Size recommendation loaded dynamically -->
-      <div id="stylique-result-size-details" style="display:none;"></div>
     </div>
 
     <!-- Bottom Action Bar -->
@@ -5227,93 +5227,77 @@
       </div>`;
   }
   
-  // Build the "Complete the Look" horizontally scrolling carousel via native Shopify API
+  // Build the "Complete the Look" carousel from Stylique same-store recommendations.
   async function buildCompleteTheLook(productId) {
     const container = document.getElementById('stylique-complete-look-container');
     const carousel = document.getElementById('stylique-suggestions-carousel');
     if (!container || !carousel) return;
-    
-    // Resolve product ID or fallback safely
-    let numericProductId = null;
-    if (productId) {
-      numericProductId = productId.toString().includes('/') ? productId.split('/').pop() : productId;
-    } else if (window.styliqueSection && window.styliqueSection.currentProduct && window.styliqueSection.currentProduct.id) {
-      numericProductId = window.styliqueSection.currentProduct.id;
-    }
+
+    container.style.display = 'none';
+    carousel.innerHTML = '';
 
     try {
-      let data = { products: [] };
-      
-      // 1. Attempt targeted algorithmic cross-sells
-      try {
-        if (numericProductId) {
-          let response = await fetch('/recommendations/products.json?product_id=' + numericProductId + '&limit=4');
-          if (response.ok) {
-            data = await response.json();
-          }
-        }
-      } catch (e) {
-        // Ignore targeted failure
-      }
-      
-      // 2. Fallback to general catalog if empty
-      try {
-        if (!data.products || data.products.length === 0) {
-          const fallbackRes = await fetch('/products.json?limit=4');
-          if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json();
-            data.products = fallbackData.products || [];
-          }
-        }
-      } catch (e) {
-        // Ignore general failure
+      const resolvedProductId = window.styliqueSection.productUuid
+        || window.styliqueSection.internalProductId
+        || productId
+        || window.styliqueSection.currentProduct?.id
+        || '';
+
+      const response = await styFetch(STYLIQUE_API_BASE + '/api/plugin/complete-look', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: window.styliqueSection.storeId,
+          productId: resolvedProductId,
+          userId: window.styliqueSection.user?.id || null,
+          currentUrl: window.styliqueSection.currentUrl,
+          limit: 4
+        })
+      });
+
+      if (!response.ok) {
+        styliqueDebugWarn('Stylique: Complete the Look unavailable.', response.status);
+        return;
       }
 
-      // 3. ULTIMATE FALLBACK: For local testing or blank stores, inject premium mock data!
-      if (!data.products || data.products.length === 0) {
-        data.products = [
-          { title: "Classic Denim Jacket", price: 89.00, featured_image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=200&q=80", url: "#" },
-          { title: "Minimalist White Sneakers", price: 65.00, featured_image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=200&q=80", url: "#" },
-          { title: "Premium Wool Beanie", price: 32.00, featured_image: "https://images.unsplash.com/photo-1576871337645-33a5fbdf6b32?w=200&q=80", url: "#" },
-          { title: "Canvas Tote Bag", price: 45.00, featured_image: "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=200&q=80", url: "#" }
-        ];
+      const data = await response.json();
+      const outfitItems = Array.isArray(data.outfits)
+        ? data.outfits.flatMap(function(outfit) {
+            return Array.isArray(outfit.items) ? outfit.items : [];
+          })
+        : [];
+      const products = outfitItems.length > 0
+        ? outfitItems
+        : (Array.isArray(data.items) ? data.items : (Array.isArray(data.products) ? data.products : []));
+
+      if (!products || products.length === 0) {
+        return;
       }
 
-      // Render the result
-      if (data.products && data.products.length > 0) {
-        let html = '';
-        data.products.forEach(p => {
-          let imgUrl = p.featured_image || 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=200&q=80';
-          if (imgUrl.includes('cdn.shopify.com')) {
-            imgUrl = imgUrl.replace(/(\.[^.]*)$/, '_200x200$1');
-          }
-          
-          let parsedPrice = 59.00;
-          if (typeof p.price === 'number') {
-            parsedPrice = p.price > 1000 ? p.price / 100 : p.price;
-          } else if (typeof p.price === 'string') {
-            parsedPrice = parseFloat(p.price);
-          }
-          const price = parsedPrice.toFixed(2);
-          
-          html += `
-            <a href="${p.url}" class="stylique-suggestion-card">
-              <div class="stylique-suggestion-img-wrap">
-                <img src="${imgUrl}" alt="${p.title}">
-              </div>
-              <div class="stylique-suggestion-info">
-                <p class="stylique-suggestion-title">${p.title}</p>
-                <p class="stylique-suggestion-price">$${price}</p>
-              </div>
-            </a>
-          `;
-        });
-        
-        carousel.innerHTML = html;
-        container.style.display = 'block';
-      }
+      carousel.innerHTML = products.slice(0, 4).map(function(p) {
+        const title = p.title || p.product_name || 'Product';
+        const imgUrl = p.image_url || p.featured_image || '';
+        const url = p.url || p.product_link || '#';
+        const rawPrice = p.price != null && p.price !== '' ? String(p.price) : '';
+        const numericPrice = rawPrice ? Number(rawPrice) : NaN;
+        const price = Number.isFinite(numericPrice) ? '$' + numericPrice.toFixed(2) : '';
+
+        return `
+          <a href="${styliqueEscapeHtml(url)}" class="stylique-suggestion-card">
+            <div class="stylique-suggestion-img-wrap">
+              ${imgUrl ? `<img src="${styliqueEscapeHtml(imgUrl)}" alt="${styliqueEscapeHtml(title)}">` : ''}
+            </div>
+            <div class="stylique-suggestion-info">
+              <p class="stylique-suggestion-title">${styliqueEscapeHtml(title)}</p>
+              ${price ? `<p class="stylique-suggestion-price">${price}</p>` : ''}
+            </div>
+          </a>
+        `;
+      }).join('');
+
+      container.style.display = 'block';
     } catch (error) {
-      styliqueDebugWarn('Stylique: Fatal UI error in Complete The Look generation.', error);
+      styliqueDebugWarn('Stylique: Complete the Look could not be loaded.', error);
     }
   }
 
@@ -5567,6 +5551,32 @@
       notice.classList.remove('is-visible');
     }, 4200);
   }
+
+  function styliqueRestoreScrollPosition(scrollY) {
+    const restoreY = Number.isFinite(scrollY) ? scrollY : 0;
+    window.requestAnimationFrame(function() {
+      window.scrollTo(0, restoreY);
+      window.requestAnimationFrame(function() {
+        window.scrollTo(0, restoreY);
+      });
+    });
+    window.setTimeout(function() {
+      window.scrollTo(0, restoreY);
+    }, 80);
+  }
+
+  function styliqueEscapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char];
+    });
+  }
+
   function lockStyliqueBodyScroll(lockKey) {
     const key = lockKey || 'main';
     if (!window.styliqueBodyScrollLocks) {
@@ -5601,10 +5611,10 @@
   function unlockStyliqueBodyScroll(lockKey) {
     const key = lockKey || 'main';
     const locks = window.styliqueBodyScrollLocks;
-    if (!locks) return;
+    if (!locks) return null;
 
     locks.delete(key);
-    if (locks.size > 0) return;
+    if (locks.size > 0) return null;
 
     const state = window.styliqueBodyScrollState || {};
     document.documentElement.classList.remove('stylique-modal-open');
@@ -5618,7 +5628,8 @@
 
     const restoreY = Number.isFinite(state.scrollY) ? state.scrollY : 0;
     window.styliqueBodyScrollState = null;
-    window.requestAnimationFrame(() => window.scrollTo(0, restoreY));
+    styliqueRestoreScrollPosition(restoreY);
+    return restoreY;
   }
 
   function initStyliqueMobileModalPolish() {
@@ -5734,9 +5745,12 @@
         modal.classList.remove('is-closing', 'is-open', 'is-opening');
         document.removeEventListener('keydown', styliqueHandleModalKeydown);
         window.requestAnimationFrame(function() {
-          unlockStyliqueBodyScroll('main');
+          const restoreY = unlockStyliqueBodyScroll('main');
           if (returnFocus && typeof returnFocus.focus === 'function') {
             try { returnFocus.focus({ preventScroll: true }); } catch (e) { returnFocus.focus(); }
+          }
+          if (restoreY !== null) {
+            styliqueRestoreScrollPosition(restoreY);
           }
         });
       };

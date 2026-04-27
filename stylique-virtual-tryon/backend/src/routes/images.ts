@@ -29,6 +29,10 @@ interface ScoredImage extends ImageCandidate {
   labels?: string[];
 }
 
+interface ImageProcessingOptions {
+  allowLocalImageUrls?: boolean;
+}
+
 const NEGATIVE_TEXT_HINTS = [
   'placeholder', 'coming soon', 'logo', 'size chart', 'size-chart', 'measurement',
   'measurements', 'guide', 'swatch', 'fabric', 'texture', 'detail', 'closeup',
@@ -42,8 +46,9 @@ const POSITIVE_TEXT_HINTS = [
 
 const STRONG_POSITIVE_TEXT_HINTS = ['model', 'front', 'full', 'body', 'wearing', 'worn'];
 
-function allowLocalImageUrls(): boolean {
-  return ['true', '1', 'yes'].includes(String(process.env.ALLOW_LOCAL_IMAGE_URLS || '').toLowerCase());
+function allowLocalImageUrls(options?: ImageProcessingOptions): boolean {
+  return Boolean(options?.allowLocalImageUrls)
+    || ['true', '1', 'yes'].includes(String(process.env.ALLOW_LOCAL_IMAGE_URLS || '').toLowerCase());
 }
 
 function isLocalOrPrivateHostname(hostname: string): boolean {
@@ -87,12 +92,12 @@ function isPublicHttpUrl(value: string): boolean {
   }
 }
 
-function isAllowedHttpImageUrl(value: string): boolean {
+function isAllowedHttpImageUrl(value: string, options?: ImageProcessingOptions): boolean {
   if (isPublicHttpUrl(value)) {
     return true;
   }
 
-  if (!allowLocalImageUrls()) {
+  if (!allowLocalImageUrls(options)) {
     return false;
   }
 
@@ -132,12 +137,12 @@ function hasTextHint(text: string, hints: string[]): boolean {
   return hints.some((hint) => text.includes(hint));
 }
 
-export function filterImages(images: ImageCandidate[]): ImageCandidate[] {
+export function filterImages(images: ImageCandidate[], options?: ImageProcessingOptions): ImageCandidate[] {
   const seen = new Set<string>();
   const accepted: ImageCandidate[] = [];
 
   for (const img of images) {
-    if (!img.url || !isAllowedHttpImageUrl(img.url)) continue;
+    if (!img.url || !isAllowedHttpImageUrl(img.url, options)) continue;
 
     const key = imageDedupeKey(img.url);
     if (seen.has(key)) continue;
@@ -187,8 +192,12 @@ function getRekognition(): RekognitionClient | null {
   return rekognitionClient;
 }
 
-async function scoreImageWithRekognition(imageUrl: string, alt?: string): Promise<{ score: number; labels: string[] }> {
-  if (!isPublicHttpUrl(imageUrl) && allowLocalImageUrls()) {
+async function scoreImageWithRekognition(
+  imageUrl: string,
+  alt?: string,
+  options?: ImageProcessingOptions,
+): Promise<{ score: number; labels: string[] }> {
+  if (!isPublicHttpUrl(imageUrl) && allowLocalImageUrls(options)) {
     return {
       score: heuristicImageScore(imageUrl, alt),
       labels: ['local-heuristic-scored'],
@@ -291,12 +300,13 @@ export function computeTier(scoredImages: ScoredImage[]): number {
 export async function processProductImages(
   productId: string,
   images: ImageCandidate[],
+  options?: ImageProcessingOptions,
 ): Promise<{ bestUrl: string; tier: number; scoredImages: ScoredImage[] }> {
   const supabase = getSupabase();
 
   console.log(`[Images] processProductImages: product=${productId} received=${images.length} images`);
 
-  const filtered = filterImages(images);
+  const filtered = filterImages(images, options);
   console.log(`[Images] After filtering: ${filtered.length}/${images.length} passed`);
 
   if (filtered.length === 0) {
@@ -315,7 +325,7 @@ export async function processProductImages(
 
   const scoredImages: ScoredImage[] = await Promise.all(
     filtered.map(async (img) => {
-      const { score, labels } = await scoreImageWithRekognition(img.url, img.alt);
+      const { score, labels } = await scoreImageWithRekognition(img.url, img.alt, options);
       console.log(`[Images]   score=${score} labels=[${labels.slice(0, 5).join(', ')}] url=${img.url.slice(0, 70)}…`);
       return { ...img, score, labels };
     }),

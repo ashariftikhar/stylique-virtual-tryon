@@ -18,6 +18,11 @@ function testImages() {
   assert.equal(localFiltered.length, 2);
   assert.equal(localFiltered[1]?.alt, 'Local product');
 
+  process.env.ALLOW_LOCAL_IMAGE_URLS = 'false';
+  const overrideFiltered = filterImages(imageFixtures(), { allowLocalImageUrls: true });
+  assert.equal(overrideFiltered.length, 2);
+  assert.equal(overrideFiltered[1]?.alt, 'Local product');
+
   if (previousAllowLocal === undefined) {
     delete process.env.ALLOW_LOCAL_IMAGE_URLS;
   } else {

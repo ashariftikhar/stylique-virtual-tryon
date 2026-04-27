@@ -6108,11 +6108,11 @@ body.stylique-modal-open {
 
 .stylique-processing-overlay {
   background:
-    radial-gradient(circle at 18% 12%, rgba(244, 83, 111, 0.22), transparent 34%),
-    radial-gradient(circle at 82% 8%, rgba(100, 47, 215, 0.26), transparent 34%),
-    linear-gradient(135deg, rgba(15, 23, 42, 0.72), rgba(30, 41, 59, 0.58));
-  backdrop-filter: blur(18px) saturate(1.12);
-  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+    radial-gradient(circle at 18% 12%, rgba(100, 47, 215, 0.08), transparent 34%),
+    radial-gradient(circle at 82% 10%, rgba(244, 83, 111, 0.07), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 247, 244, 0.96));
+  backdrop-filter: blur(10px) saturate(1.04);
+  -webkit-backdrop-filter: blur(10px) saturate(1.04);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.28s ease;
@@ -6128,11 +6128,11 @@ body.stylique-modal-open {
 }
 
 .stylique-processing-content {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82));
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  box-shadow: 0 28px 90px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.45) inset;
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  background: #ffffff;
+  border: 1px solid rgba(100, 47, 215, 0.10);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .stylique-modal-content.stylique-result-active {
@@ -6188,6 +6188,37 @@ body.stylique-modal-open {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+@media (min-width: 769px) {
+  .stylique-modal-content.stylique-result-active {
+    max-width: min(1120px, calc(100vw - 48px)) !important;
+  }
+
+  .stylique-result-view[style*="display: grid"],
+  .stylique-result-view.show-result {
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr) !important;
+    gap: 24px !important;
+    column-gap: 24px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .stylique-result-left,
+  .stylique-result-right,
+  .stylique-result-image-container {
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .stylique-result-left {
+    overflow: hidden !important;
+  }
+
+  .stylique-result-right {
+    overflow-x: hidden !important;
+  }
 }
 
 @media (max-width: 768px) {
