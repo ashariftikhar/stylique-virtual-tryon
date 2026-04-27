@@ -504,3 +504,121 @@
     width: 100%;
   }
 }
+
+/* Delivery polish: modal lifecycle, scroll lock, accessibility, and smooth result reveal */
+html.stylique-extension-modal-open,
+body.stylique-extension-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+.stylique-extension-modal.is-opening,
+.stylique-extension-modal.is-open,
+.stylique-extension-modal.is-closing {
+  display: flex;
+}
+
+.stylique-extension-modal {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+
+.stylique-extension-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.stylique-extension-modal.is-closing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stylique-extension-backdrop {
+  opacity: 0;
+  transition: opacity 0.24s ease, backdrop-filter 0.24s ease;
+}
+
+.stylique-extension-modal.is-open .stylique-extension-backdrop {
+  opacity: 1;
+}
+
+.stylique-extension-shell {
+  opacity: 0;
+  transform: translateY(18px) scale(0.96);
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stylique-extension-modal.is-open .stylique-extension-shell {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.stylique-extension-modal.is-closing .stylique-extension-shell {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+.stylique-extension-close,
+.stylique-extension-btn,
+.stylique-extension-trigger,
+.stylique-extension-size-choice,
+.stylique-extension-look-card {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stylique-extension-close {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.stylique-extension-widget :focus-visible {
+  outline: 3px solid rgba(100, 47, 215, 0.42);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+.stylique-extension-result {
+  opacity: 0;
+  transform: translateY(10px) scale(0.99);
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stylique-extension-result.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.stylique-extension-result-image {
+  opacity: 0;
+  transition: opacity 0.32s ease;
+}
+
+.stylique-extension-result.is-loaded .stylique-extension-result-image {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .stylique-extension-shell {
+    transform: translateY(28px);
+  }
+
+  .stylique-extension-modal.is-open .stylique-extension-shell {
+    transform: translateY(0);
+  }
+
+  .stylique-extension-close {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stylique-extension-modal,
+  .stylique-extension-backdrop,
+  .stylique-extension-shell,
+  .stylique-extension-result,
+  .stylique-extension-result-image {
+    transition: none !important;
+  }
+}

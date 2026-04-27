@@ -226,7 +226,10 @@
       selectedFile: null,
       inventoryProduct: null,
       recommendedSize: null,
-      completeLookLoadedFor: ''
+      completeLookLoadedFor: '',
+      modalReturnFocus: null,
+      modalCloseTimer: null,
+      scrollState: null
     };
 
     var product = config.product || {};
@@ -252,15 +255,120 @@
       statusEl.className = 'stylique-extension-status' + (tone ? ' is-' + tone : '');
     }
 
+    function focusableElements(container) {
+      return [].slice.call(container.querySelectorAll([
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled]):not([type="hidden"])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])'
+      ].join(','))).filter(function (el) {
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+      });
+    }
+
+    function focusFirstInModal() {
+      var first = modal.querySelector('[data-stylique-close]') || focusableElements(modal)[0];
+      if (first && first.focus) {
+        setTimeout(function () {
+          try { first.focus({ preventScroll: true }); } catch (error) { first.focus(); }
+        }, 0);
+      }
+    }
+
+    function lockBodyScroll() {
+      if (state.scrollState) return;
+      var scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      state.scrollState = {
+        scrollY: scrollY,
+        position: document.body.style.position,
+        top: document.body.style.top,
+        left: document.body.style.left,
+        right: document.body.style.right,
+        width: document.body.style.width,
+        overflow: document.body.style.overflow
+      };
+      document.documentElement.classList.add('stylique-extension-modal-open');
+      document.body.classList.add('stylique-extension-modal-open');
+      document.body.style.position = 'fixed';
+      document.body.style.top = '-' + scrollY + 'px';
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function unlockBodyScroll() {
+      if (!state.scrollState) return;
+      var restoreY = Number.isFinite(state.scrollState.scrollY) ? state.scrollState.scrollY : 0;
+      document.documentElement.classList.remove('stylique-extension-modal-open');
+      document.body.classList.remove('stylique-extension-modal-open');
+      document.body.style.position = state.scrollState.position || '';
+      document.body.style.top = state.scrollState.top || '';
+      document.body.style.left = state.scrollState.left || '';
+      document.body.style.right = state.scrollState.right || '';
+      document.body.style.width = state.scrollState.width || '';
+      document.body.style.overflow = state.scrollState.overflow || '';
+      state.scrollState = null;
+      window.requestAnimationFrame(function () { window.scrollTo(0, restoreY); });
+    }
+
+    function handleModalKeydown(event) {
+      if (!modal.classList.contains('is-open')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      var focusables = focusableElements(modal);
+      if (focusables.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
     function open() {
-      modal.classList.add('is-open');
+      if (modal.classList.contains('is-open') || modal.classList.contains('is-opening')) return;
+      clearTimeout(state.modalCloseTimer);
+      state.modalReturnFocus = document.activeElement;
+      lockBodyScroll();
+      modal.classList.remove('is-closing');
+      modal.classList.add('is-opening');
       modal.setAttribute('aria-hidden', 'false');
+      document.addEventListener('keydown', handleModalKeydown);
+      window.requestAnimationFrame(function () {
+        modal.classList.add('is-open');
+        modal.classList.remove('is-opening');
+        focusFirstInModal();
+      });
       checkProduct();
     }
 
     function close() {
-      modal.classList.remove('is-open');
-      modal.setAttribute('aria-hidden', 'true');
+      if (modal.classList.contains('is-closing')) return;
+      modal.classList.remove('is-open', 'is-opening');
+      modal.classList.add('is-closing');
+      document.removeEventListener('keydown', handleModalKeydown);
+      clearTimeout(state.modalCloseTimer);
+      state.modalCloseTimer = setTimeout(function () {
+        modal.classList.remove('is-closing');
+        modal.setAttribute('aria-hidden', 'true');
+        unlockBodyScroll();
+        if (state.modalReturnFocus && state.modalReturnFocus.focus) {
+          try { state.modalReturnFocus.focus({ preventScroll: true }); } catch (error) { state.modalReturnFocus.focus(); }
+        }
+      }, 300);
     }
 
     function renderAuth() {
@@ -544,19 +652,30 @@
       setStatus('Creating your try-on...');
       api(config, '/api/plugin/embed-tryon-2d', { method: 'POST', body: form, headers: {} })
         .then(function (payload) {
-          resultEl.classList.add('is-visible');
+          resultEl.classList.add('is-visible', 'is-entering');
           resultEl.innerHTML = [
             '<div class="stylique-extension-result-frame">',
-            '  <img class="stylique-extension-result-image" src="' + (payload.resultImage || imageUrl(config)) + '" alt="Virtual try-on result">',
+            '  <img class="stylique-extension-result-image" data-stylique-result-image src="' + (payload.resultImage || imageUrl(config)) + '" alt="Virtual try-on result">',
             '</div>',
             '<div class="stylique-extension-actions">',
             '  <button type="button" class="stylique-extension-btn stylique-extension-btn-primary" data-stylique-cart>Add to cart</button>',
             '  <button type="button" class="stylique-extension-btn" data-stylique-again>Try again</button>',
             '</div>'
           ].join('');
+          var resultImageEl = resultEl.querySelector('[data-stylique-result-image]');
+          if (resultImageEl) {
+            resultImageEl.addEventListener('load', function () {
+              resultEl.classList.add('is-loaded');
+              resultEl.classList.remove('is-entering');
+            }, { once: true });
+            if (resultImageEl.complete) {
+              resultEl.classList.add('is-loaded');
+              resultEl.classList.remove('is-entering');
+            }
+          }
           resultEl.querySelector('[data-stylique-cart]').addEventListener('click', addToCart);
           resultEl.querySelector('[data-stylique-again]').addEventListener('click', function () {
-            resultEl.classList.remove('is-visible');
+            resultEl.classList.remove('is-visible', 'is-entering', 'is-loaded');
             state.selectedFile = null;
             renderUpload();
           });
