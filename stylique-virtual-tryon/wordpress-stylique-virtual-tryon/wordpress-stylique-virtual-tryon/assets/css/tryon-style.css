@@ -1041,7 +1041,7 @@
   border-radius: 50%;
   transition: var(--stylique-transition);
   position: absolute;
-  top: 15px;
+  top: 8px;
   right: 24px;
   z-index: 10;
   -webkit-tap-highlight-color: transparent;
@@ -1069,7 +1069,7 @@
 
 @media (max-width: 768px) {
   .stylique-modal-close {
-    top: 16px;
+    top: 9px;
     right: 18px;
   }
 }
@@ -5216,7 +5216,7 @@ body.stylique-modal-open {
   }
 
   .stylique-modal-close {
-    top: 18px !important;
+    top: 11px !important;
     right: 14px !important;
     z-index: 14;
     width: 32px;

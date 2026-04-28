@@ -4691,6 +4691,17 @@
       if (mainInterface) {
         mainInterface.style.display = 'none';
       }
+
+      const parentSection = resultView.closest('.stylique-section-content');
+      const mainSection = resultView.closest('.stylique-section');
+      if (parentSection) {
+        parentSection.style.width = '100%';
+        parentSection.style.flex = '1 1 auto';
+        parentSection.style.minWidth = '0';
+      }
+      if (mainSection) {
+        mainSection.style.padding = '0';
+      }
       
       const modalContent = document.querySelector('.stylique-modal-content');
       if (modalContent) {
@@ -4702,7 +4713,12 @@
       resultView.classList.remove('is-visible');
       resultView.classList.add('show-result', 'is-loading-image');
       resultView.style.display = 'grid';
+      resultView.style.visibility = 'visible';
       resultView.scrollTop = 0;
+      const resultRightColumn = resultView.querySelector('.stylique-result-right');
+      if (resultRightColumn) {
+        resultRightColumn.scrollTop = 0;
+      }
 
       const fitDetailsSection = document.getElementById('stylique-result-size-details');
       if (fitDetailsSection) {
@@ -5301,6 +5317,7 @@
 
     if (resultView) {
       resultView.style.display = 'none';
+      resultView.style.visibility = '';
       resultView.classList.remove('show-result', 'is-visible', 'is-loading-image');
       
       const resultImg = document.getElementById('stylique-result-main-image');
@@ -5309,6 +5326,7 @@
       const fitDetailsSection = document.getElementById('stylique-result-size-details');
       const completeLookContainer = document.getElementById('stylique-complete-look-container');
       const suggestionsCarousel = document.getElementById('stylique-suggestions-carousel');
+      const resultRightColumn = resultView.querySelector('.stylique-result-right');
       
       if (resultImg) {
         resultImg.src = '';
@@ -5323,11 +5341,23 @@
       }
       if (completeLookContainer) completeLookContainer.style.display = 'none';
       if (suggestionsCarousel) suggestionsCarousel.innerHTML = '';
+      if (resultRightColumn) resultRightColumn.scrollTop = 0;
     }
 
     if (mainInterface) {
       mainInterface.style.display = '';
       mainInterface.style.visibility = '';
+
+      const parentSection = resultView ? resultView.closest('.stylique-section-content') : null;
+      const mainSection = resultView ? resultView.closest('.stylique-section') : null;
+      if (parentSection) {
+        parentSection.style.width = '';
+        parentSection.style.flex = '';
+        parentSection.style.minWidth = '';
+      }
+      if (mainSection) {
+        mainSection.style.padding = '';
+      }
       
       const modalContent = document.querySelector('.stylique-modal-content');
       if (modalContent) {

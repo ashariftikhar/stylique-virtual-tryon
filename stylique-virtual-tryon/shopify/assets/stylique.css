@@ -1008,7 +1008,7 @@
   border-radius: 50%;
   transition: var(--stylique-transition);
   position: absolute;
-  top: 15px;
+  top: 8px;
   right: 24px;
   z-index: 10;
   -webkit-tap-highlight-color: transparent;
@@ -1036,7 +1036,7 @@
 
 @media (max-width: 768px) {
   .stylique-modal-close {
-    top: 16px;
+    top: 9px;
     right: 18px;
   }
 }
@@ -5177,7 +5177,7 @@ body.stylique-modal-open {
   }
 
   .stylique-modal-close {
-    top: 18px !important;
+    top: 11px !important;
     right: 14px !important;
     z-index: 14;
     width: 32px;
@@ -6243,13 +6243,15 @@ body.stylique-modal-open {
   }
 }
 
-/* Premium result-page stabilization: overrides older result rules without changing widget logic. */
+/* Final Shopify result-page stabilization: one authoritative result layout path. */
 .stylique-modal-content.stylique-result-active {
-  width: min(1120px, calc(100vw - 40px)) !important;
-  max-width: min(1120px, calc(100vw - 40px)) !important;
-  max-height: min(90vh, 820px) !important;
+  width: min(940px, calc(100vw - 72px)) !important;
+  max-width: min(940px, calc(100vw - 72px)) !important;
+  max-height: min(86vh, 700px) !important;
   overflow: hidden !important;
-  background: #fffdf9;
+  background: #ffffff !important;
+  border-radius: 22px !important;
+  box-shadow: 0 20px 56px rgba(15, 23, 42, 0.14) !important;
 }
 
 .stylique-modal-content.stylique-result-active .stylique-section,
@@ -6260,22 +6262,29 @@ body.stylique-modal-open {
   min-width: 0 !important;
 }
 
+.stylique-result-view {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
 .stylique-result-view.show-result {
   display: grid !important;
-  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr) !important;
+  grid-template-columns: minmax(0, 1fr) 332px !important;
   grid-template-rows: minmax(0, 1fr) auto !important;
-  gap: 22px !important;
+  align-items: stretch !important;
+  gap: 14px !important;
   width: 100% !important;
   max-width: 100% !important;
-  min-height: min(640px, calc(90vh - 44px)) !important;
-  max-height: min(820px, calc(90vh - 44px)) !important;
-  padding: 22px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  padding: 14px !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(100, 47, 215, 0.07), transparent 30%),
-    linear-gradient(135deg, #fffdf9 0%, #f8f5ef 100%);
-  border-radius: 28px;
+  background: #ffffff !important;
+  border-radius: 22px !important;
 }
 
 .stylique-result-view.show-result .stylique-result-left,
@@ -6286,28 +6295,36 @@ body.stylique-modal-open {
 }
 
 .stylique-result-left {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   min-width: 0 !important;
   min-height: 0 !important;
-  height: auto !important;
+  height: 100% !important;
   width: 100% !important;
+  position: relative;
   box-sizing: border-box !important;
-  border-radius: 22px !important;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.9), transparent 34%),
-    linear-gradient(145deg, #f7f2e9 0%, #fdfbf7 100%) !important;
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 18px 48px rgba(15, 23, 42, 0.08);
+  padding: 10px !important;
+  border-radius: 16px !important;
+  background: #f8f8f6 !important;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
   overflow: hidden !important;
 }
 
 .stylique-result-image-container {
   min-width: 0 !important;
-  min-height: 0 !important;
+  min-height: clamp(300px, 52vh, 340px) !important;
   height: 100% !important;
   width: 100% !important;
   max-height: 100% !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
   box-sizing: border-box !important;
-  background: transparent !important;
+  background: #f8f8f6 !important;
+  overflow: hidden !important;
 }
 
 .stylique-result-image-container img,
@@ -6321,17 +6338,56 @@ body.stylique-modal-open {
 }
 
 .stylique-result-right {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-start;
   min-width: 0 !important;
   width: 100% !important;
   margin-left: 0 !important;
-  padding: 2px 4px 2px 0 !important;
-  gap: 14px !important;
+  padding: 0 2px 0 0 !important;
+  gap: 10px !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   max-height: 100% !important;
   scrollbar-width: thin;
-  scrollbar-color: rgba(15, 23, 42, 0.22) transparent;
+  scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
+}
+
+.stylique-result-items-header h5 {
+  font-size: 15px;
+}
+
+.stylique-result-item-name {
+  font-size: 15px;
+}
+
+.stylique-result-item-thumb-wrap {
+  width: 54px;
+  height: 72px;
+}
+
+.stylique-suggestions-carousel {
+  gap: 10px;
+}
+
+.stylique-suggestion-card {
+  width: 96px;
+}
+
+.stylique-suggestion-img-wrap {
+  width: 96px;
+  height: 96px;
+}
+
+.stylique-result-bottom-bar {
+  gap: 12px;
+  padding: 12px 0 0 0;
+}
+
+.stylique-pill-btn {
+  padding: 14px 20px;
+  border-radius: 10px;
 }
 
 .stylique-result-right::-webkit-scrollbar {
@@ -6358,8 +6414,8 @@ body.stylique-modal-open {
 #stylique-complete-look-container {
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
 }
 
 .stylique-result-item-card {
@@ -6389,7 +6445,7 @@ body.stylique-modal-open {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8b5cf6;
+  color: #6b7280;
 }
 
 .stylique-result-fit-card-header h6 {
@@ -6409,9 +6465,9 @@ body.stylique-modal-open {
   min-height: 30px;
   padding: 5px 10px;
   border-radius: 999px;
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid rgba(16, 185, 129, 0.22);
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   font-size: 13px;
   font-weight: 900;
 }
@@ -6420,7 +6476,7 @@ body.stylique-modal-open {
   overflow-x: auto;
   border: 1px solid rgba(15, 23, 42, 0.07);
   border-radius: 12px;
-  background: #fff;
+  background: #ffffff;
 }
 
 .stylique-result-fit-table {
@@ -6450,7 +6506,7 @@ body.stylique-modal-open {
   width: 112px !important;
   height: 104px !important;
   border-radius: 14px !important;
-  background: #f7f2e9 !important;
+  background: #f8f8f6 !important;
   border: 1px solid rgba(15, 23, 42, 0.08) !important;
 }
 
@@ -6460,8 +6516,9 @@ body.stylique-modal-open {
   align-items: center;
   justify-content: flex-end;
   gap: 12px !important;
-  padding: 0 !important;
+  padding: 4px 0 0 !important;
   margin: 0 !important;
+  background: transparent !important;
 }
 
 @media (max-width: 768px) {
@@ -6478,29 +6535,35 @@ body.stylique-modal-open {
     gap: 12px !important;
     min-height: 0 !important;
     max-height: 92dvh !important;
-    padding: 56px 14px max(14px, env(safe-area-inset-bottom, 0px)) !important;
+    padding: 56px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     border-radius: inherit;
   }
 
   .stylique-result-left {
-    height: clamp(230px, 42dvh, 390px) !important;
+    padding: 12px !important;
     border-radius: 18px !important;
   }
 
-  .stylique-result-right {
-    overflow: visible !important;
+  .stylique-result-image-container {
+    min-height: 0 !important;
+    height: clamp(220px, 42dvh, 360px) !important;
     max-height: none !important;
+  }
+
+  .stylique-result-right {
     padding: 0 !important;
     gap: 12px !important;
+    overflow: visible !important;
+    max-height: none !important;
   }
 
   .stylique-result-fit-card,
   #stylique-complete-look-container,
   .stylique-result-item-card {
     border-radius: 16px;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
   }
 
   .stylique-result-bottom-bar {
@@ -6509,7 +6572,7 @@ body.stylique-modal-open {
     z-index: 8 !important;
     justify-content: center !important;
     padding: 12px 0 0 !important;
-    background: linear-gradient(180deg, rgba(255,253,249,0), #fffdf9 38%, #fffdf9 100%) !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0), #ffffff 36%, #ffffff 100%) !important;
   }
 }
 
