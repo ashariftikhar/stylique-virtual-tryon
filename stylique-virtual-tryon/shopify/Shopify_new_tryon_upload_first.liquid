@@ -917,6 +917,12 @@
 <script>
   (function () {
     var STYLIQUE_API_BASE = {{ _stylique_backend | json }};
+    var styliqueQueryParams = new URLSearchParams(window.location.search);
+    var STYLIQUE_DEBUG_UI = window.STYLIQUE_DEBUG_UI === true
+      || window.STYLIQUE_DEBUG_UI === 'true'
+      || styliqueQueryParams.get('styliqueDebug') === '1'
+      || styliqueQueryParams.get('styliqueDebug') === 'true';
+    window.STYLIQUE_DEBUG_UI = STYLIQUE_DEBUG_UI;
 
     styliqueDebugLog('[Stylique] API base URL:', STYLIQUE_API_BASE);
     styliqueDebugLog('[Stylique] Store ID:', {{ _stylique_store_id | json }});
@@ -958,7 +964,8 @@
       tryonsUsed: 0,
       storeStatus: null,
       stores: null,
-      debugMode: {{ section.settings.debug_mode | default: false | json }}
+      debugMode: {{ section.settings.debug_mode | default: false | json }} || STYLIQUE_DEBUG_UI,
+      uiDebugMode: STYLIQUE_DEBUG_UI
     };
 
     styliqueDebugLog('[Stylique] Section initialized, store:', window.styliqueSection.storeId);
@@ -2763,7 +2770,12 @@
               consumeTryonAndTrack('2d', result.product?.id).catch(() => { });
 
               clearInterval(textInterval);
+              styliqueDebugUI('2D try-on success received. Preparing result transition.', {
+                productId: result.product?.id || null,
+                hasResultImage: !!result.resultImage
+              });
               hideProcessingOverlay(() => {
+                styliqueDebugUI('Processing overlay closed; invoking showResultView().');
                 // Show the premium full-widget result view after the processing sheet fades.
                 showResultView(result.resultImage, result.product?.id);
               });
@@ -4679,17 +4691,23 @@
   function showResultView(resultImage, productId) {
     try {
       styliqueDebugLog('🎨 showResultView: Entering full-widget mode...', { hasImage: !!resultImage, productId });
+      styliqueDebugUI('showResultView() start', {
+        productId: productId || null,
+        hasImage: !!resultImage
+      });
 
       const resultView = document.getElementById('stylique-result-view');
       const mainInterface = document.getElementById('stylique-tryon-interface');
 
       if (!resultView) {
         console.error('❌ Critical: stylique-result-view not found');
+        styliqueDebugWarnUI('showResultView() aborted because #stylique-result-view was not found.');
         return;
       }
 
       if (mainInterface) {
         mainInterface.style.display = 'none';
+        mainInterface.setAttribute('aria-hidden', 'true');
       }
 
       const parentSection = resultView.closest('.stylique-section-content');
@@ -4706,14 +4724,17 @@
       const modalContent = document.querySelector('.stylique-modal-content');
       if (modalContent) {
         modalContent.classList.add('stylique-result-active');
+        modalContent.setAttribute('data-stylique-view', 'result');
       }
 
       document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.setProperty('display', 'none', 'important'));
 
-      resultView.classList.remove('is-visible');
+      resultView.classList.remove('is-visible', 'is-image-error');
       resultView.classList.add('show-result', 'is-loading-image');
       resultView.style.display = 'grid';
       resultView.style.visibility = 'visible';
+      resultView.style.opacity = '1';
+      resultView.style.pointerEvents = 'auto';
       resultView.scrollTop = 0;
       const resultRightColumn = resultView.querySelector('.stylique-result-right');
       if (resultRightColumn) {
@@ -4726,8 +4747,16 @@
         fitDetailsSection.style.display = 'none';
       }
 
+      styliqueDebugResultState('after result state activation');
       window.requestAnimationFrame(() => {
         resultView.classList.add('is-visible');
+        styliqueDebugResultState('after requestAnimationFrame is-visible');
+        window.setTimeout(function() {
+          styliqueDebugResultState('150ms after result activation');
+        }, 150);
+        window.setTimeout(function() {
+          styliqueDebugResultState('500ms after result activation');
+        }, 500);
       });
 
       styliqueDebugLog('✅ Result view shown.');
@@ -4742,6 +4771,9 @@
         if (errorState) errorState.style.display = 'none';
         resultImg.style.display = 'none';
         resultImg.style.opacity = '0';
+        styliqueDebugUI('Result image assigned; waiting for image load.', {
+          srcPreview: String(resultImage).slice(0, 120)
+        });
 
         resultImg.onload = function() {
           if (loadingState) loadingState.style.display = 'none';
@@ -4749,6 +4781,7 @@
           resultImg.style.opacity = '1';
           const activeResultView = document.getElementById('stylique-result-view');
           if (activeResultView) activeResultView.classList.remove('is-loading-image');
+          if (activeResultView) activeResultView.classList.remove('is-image-error');
 
           // Debug: Log image and container dimensions
           const container = document.querySelector('.stylique-result-image-container');
@@ -4776,20 +4809,35 @@
             styliqueDebugLog('  - ResultView offsetWidth:', resultView.offsetWidth, 'offsetHeight:', resultView.offsetHeight);
             styliqueDebugLog('  - ResultView display:', window.getComputedStyle(resultView).display);
           }
+          styliqueDebugResultState('result image onload');
         };
 
         resultImg.onerror = function() {
           if (loadingState) loadingState.style.display = 'none';
           if (errorState) errorState.style.display = 'block';
+          const activeResultView = document.getElementById('stylique-result-view');
+          if (activeResultView) {
+            activeResultView.classList.remove('is-loading-image');
+            activeResultView.classList.add('is-image-error');
+          }
+          styliqueDebugWarnUI('Result image failed to load.', {
+            srcPreview: String(resultImage).slice(0, 120)
+          });
+          styliqueDebugResultState('result image onerror');
           console.error('❌ Result image failed to load. URL:', resultImage.slice(0, 50) + '...');
         };
 
         resultImg.src = resultImage;
       } else {
+        if (loadingState) loadingState.style.display = 'none';
         if (errorState) {
           errorState.textContent = 'No result image returned by API.';
           errorState.style.display = 'block';
         }
+        resultView.classList.remove('is-loading-image');
+        resultView.classList.add('is-image-error');
+        styliqueDebugWarnUI('showResultView() received no result image.');
+        styliqueDebugResultState('missing result image');
       }
 
       // 6. Populate items and recommendations
@@ -5312,13 +5360,17 @@
 
   function hideResultView() {
     styliqueDebugLog('🔄 hideResultView: Restoring interface...');
+    styliqueDebugUI('hideResultView() start');
     const resultView = document.getElementById('stylique-result-view');
     const mainInterface = document.getElementById('stylique-tryon-interface');
 
     if (resultView) {
       resultView.style.display = 'none';
       resultView.style.visibility = '';
+      resultView.style.opacity = '';
+      resultView.style.pointerEvents = '';
       resultView.classList.remove('show-result', 'is-visible', 'is-loading-image');
+      resultView.classList.remove('is-image-error');
       
       const resultImg = document.getElementById('stylique-result-main-image');
       const loadingState = document.getElementById('stylique-result-image-loading');
@@ -5347,6 +5399,7 @@
     if (mainInterface) {
       mainInterface.style.display = '';
       mainInterface.style.visibility = '';
+      mainInterface.removeAttribute('aria-hidden');
 
       const parentSection = resultView ? resultView.closest('.stylique-section-content') : null;
       const mainSection = resultView ? resultView.closest('.stylique-section') : null;
@@ -5362,11 +5415,13 @@
       const modalContent = document.querySelector('.stylique-modal-content');
       if (modalContent) {
         modalContent.classList.remove('stylique-result-active');
+        modalContent.removeAttribute('data-stylique-view');
       }
     }
 
     // Restore headers
     document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.display = '');
+    styliqueDebugResultState('after hideResultView');
   }
 
   // Legacy function — kept for backward compat but no longer used
@@ -5500,6 +5555,71 @@
   function styliqueDebugWarn() {
     if (window.styliqueSection && window.styliqueSection.debugMode && window.console) {
       console.warn.apply(console, arguments);
+    }
+  }
+
+  function styliqueShouldDebugUI() {
+    return !!(window.STYLIQUE_DEBUG_UI || (window.styliqueSection && window.styliqueSection.uiDebugMode));
+  }
+
+  function styliqueDebugUI() {
+    if (!styliqueShouldDebugUI() || !window.console) return;
+    var args = ['[Stylique][UI]'];
+    Array.prototype.push.apply(args, arguments);
+    console.log.apply(console, args);
+  }
+
+  function styliqueDebugWarnUI() {
+    if (!styliqueShouldDebugUI() || !window.console) return;
+    var args = ['[Stylique][UI]'];
+    Array.prototype.push.apply(args, arguments);
+    console.warn.apply(console, args);
+  }
+
+  function styliqueDescribeElement(el) {
+    if (!el) return null;
+    var rect = el.getBoundingClientRect();
+    var styles = window.getComputedStyle(el);
+    return {
+      id: el.id || null,
+      className: el.className || '',
+      display: styles.display,
+      visibility: styles.visibility,
+      opacity: styles.opacity,
+      position: styles.position,
+      zIndex: styles.zIndex,
+      width: styles.width,
+      height: styles.height,
+      minHeight: styles.minHeight,
+      maxHeight: styles.maxHeight,
+      overflow: styles.overflow,
+      overflowY: styles.overflowY,
+      pointerEvents: styles.pointerEvents,
+      rect: {
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        top: Math.round(rect.top),
+        left: Math.round(rect.left)
+      }
+    };
+  }
+
+  function styliqueDebugResultState(label) {
+    if (!styliqueShouldDebugUI()) return;
+    try {
+      styliqueDebugUI(label, {
+        modal: styliqueDescribeElement(document.getElementById('stylique-modal')),
+        modalContent: styliqueDescribeElement(document.querySelector('.stylique-modal-content')),
+        mainInterface: styliqueDescribeElement(document.getElementById('stylique-tryon-interface')),
+        resultView: styliqueDescribeElement(document.getElementById('stylique-result-view')),
+        resultLeft: styliqueDescribeElement(document.querySelector('.stylique-result-left')),
+        resultRight: styliqueDescribeElement(document.querySelector('.stylique-result-right')),
+        resultImage: styliqueDescribeElement(document.getElementById('stylique-result-main-image')),
+        loadingState: styliqueDescribeElement(document.getElementById('stylique-result-image-loading')),
+        errorState: styliqueDescribeElement(document.getElementById('stylique-result-image-error'))
+      });
+    } catch (error) {
+      styliqueDebugWarnUI('Failed to snapshot result state.', error);
     }
   }
 
@@ -5739,6 +5859,7 @@
   window.openStyliqueModal = function () {
     const modal = document.getElementById('stylique-modal');
     if (modal) {
+      styliqueDebugUI('openStyliqueModal() invoked.');
       if (modal.classList.contains('is-open') || modal.classList.contains('is-opening')) return;
       initStyliqueMobileModalPolish();
       window.clearTimeout(window.styliqueModalCloseTimer);
@@ -5760,6 +5881,9 @@
   window.closeStyliqueModal = function () {
     const modal = document.getElementById('stylique-modal');
     if (modal && !modal.classList.contains('is-closing')) {
+      styliqueDebugWarnUI('closeStyliqueModal() invoked.', {
+        resultViewActive: !!document.getElementById('stylique-result-view')?.classList.contains('show-result')
+      });
       const modalContent = modal.querySelector('.stylique-modal-content');
       const processingOverlay = modal.querySelector('#stylique-processing-overlay');
       const returnFocus = window.styliqueModalReturnFocus;

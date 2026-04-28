@@ -6245,13 +6245,13 @@ body.stylique-modal-open {
 
 /* Final Shopify result-page stabilization: one authoritative result layout path. */
 .stylique-modal-content.stylique-result-active {
-  width: min(940px, calc(100vw - 72px)) !important;
-  max-width: min(940px, calc(100vw - 72px)) !important;
-  max-height: min(86vh, 700px) !important;
+  width: min(900px, calc(100vw - 96px)) !important;
+  max-width: min(900px, calc(100vw - 96px)) !important;
+  max-height: min(84vh, 670px) !important;
   overflow: hidden !important;
   background: #ffffff !important;
-  border-radius: 22px !important;
-  box-shadow: 0 20px 56px rgba(15, 23, 42, 0.14) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.13) !important;
 }
 
 .stylique-modal-content.stylique-result-active .stylique-section,
@@ -6271,20 +6271,31 @@ body.stylique-modal-open {
 
 .stylique-result-view.show-result {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 332px !important;
+  grid-template-columns: minmax(0, 1fr) 320px !important;
   grid-template-rows: minmax(0, 1fr) auto !important;
   align-items: stretch !important;
-  gap: 14px !important;
+  gap: 12px !important;
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
-  min-height: 0 !important;
+  min-height: min(540px, calc(84vh - 28px)) !important;
   max-height: 100% !important;
-  padding: 14px !important;
+  padding: 12px !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
   background: #ffffff !important;
-  border-radius: 22px !important;
+  border-radius: 20px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 3 !important;
+  transform: none !important;
+}
+
+.stylique-result-view.show-result.is-visible {
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .stylique-result-view.show-result .stylique-result-left,
@@ -6300,12 +6311,12 @@ body.stylique-modal-open {
   justify-content: center;
   align-items: center;
   min-width: 0 !important;
-  min-height: 0 !important;
+  min-height: 320px !important;
   height: 100% !important;
   width: 100% !important;
   position: relative;
   box-sizing: border-box !important;
-  padding: 10px !important;
+  padding: 8px !important;
   border-radius: 16px !important;
   background: #f8f8f6 !important;
   border: 1px solid rgba(15, 23, 42, 0.06);
@@ -6315,7 +6326,7 @@ body.stylique-modal-open {
 
 .stylique-result-image-container {
   min-width: 0 !important;
-  min-height: clamp(300px, 52vh, 340px) !important;
+  min-height: clamp(280px, 48vh, 320px) !important;
   height: 100% !important;
   width: 100% !important;
   max-height: 100% !important;
@@ -6325,6 +6336,27 @@ body.stylique-modal-open {
   box-sizing: border-box !important;
   background: #f8f8f6 !important;
   overflow: hidden !important;
+}
+
+.stylique-result-image-loading,
+.stylique-result-image-error {
+  top: 50%;
+  left: 50%;
+  width: calc(100% - 32px);
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.stylique-result-view.is-loading-image .stylique-result-image-loading {
+  display: block !important;
+}
+
+.stylique-result-view.is-image-error .stylique-result-image-loading {
+  display: none !important;
+}
+
+.stylique-result-view.is-image-error .stylique-result-image-error {
+  display: block !important;
 }
 
 .stylique-result-image-container img,
@@ -6345,7 +6377,7 @@ body.stylique-modal-open {
   width: 100% !important;
   margin-left: 0 !important;
   padding: 0 2px 0 0 !important;
-  gap: 10px !important;
+  gap: 8px !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
@@ -6354,40 +6386,46 @@ body.stylique-modal-open {
   scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
 }
 
+.stylique-result-right > * {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}
+
 .stylique-result-items-header h5 {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .stylique-result-item-name {
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .stylique-result-item-thumb-wrap {
-  width: 54px;
-  height: 72px;
+  width: 52px;
+  height: 68px;
 }
 
 .stylique-suggestions-carousel {
-  gap: 10px;
+  gap: 8px;
 }
 
 .stylique-suggestion-card {
-  width: 96px;
+  width: 92px;
 }
 
 .stylique-suggestion-img-wrap {
-  width: 96px;
-  height: 96px;
+  width: 92px;
+  height: 92px;
 }
 
 .stylique-result-bottom-bar {
-  gap: 12px;
-  padding: 12px 0 0 0;
+  gap: 10px;
+  padding: 10px 0 0 0;
 }
 
 .stylique-pill-btn {
-  padding: 14px 20px;
-  border-radius: 10px;
+  padding: 13px 18px;
+  border-radius: 9px;
 }
 
 .stylique-result-right::-webkit-scrollbar {
@@ -6419,7 +6457,7 @@ body.stylique-modal-open {
 }
 
 .stylique-result-item-card {
-  padding: 14px !important;
+  padding: 12px !important;
 }
 
 .stylique-result-item-fit-summary-line-single {
@@ -6427,7 +6465,7 @@ body.stylique-modal-open {
 }
 
 .stylique-result-fit-card {
-  padding: 14px;
+  padding: 12px;
 }
 
 .stylique-result-fit-card-header {
