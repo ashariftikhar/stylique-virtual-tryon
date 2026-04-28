@@ -547,7 +547,7 @@
       <div id="stylique-result-view" class="stylique-result-view" style="display: none;">
 
     <!-- Left Column: Clean Result Image -->
-    <div class="stylique-result-left" style="background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative;">
+    <div class="stylique-result-left">
       <div id="stylique-result-image-loading" style="position: absolute; text-align: center; color: #666; font-size: 14px;">
         <div class="stylique-spinner-small" style="margin: 0 auto 10px;"></div>
         Loading your try-on...
@@ -4688,30 +4688,8 @@
         return;
       }
 
-      // 🛡️ BULLETPROOF FIX: HTML Parser Escape 🛡️
-      // Due to missing </div> tags upstream, resultView is often incorrectly parsed as a descendant of mainInterface.
-      // If we hide mainInterface, resultView becomes 0x0. We MUST teleport it outside physically!
-      if (mainInterface && resultView.parentNode !== mainInterface.parentNode) {
-        styliqueDebugLog('🚀 Extricating resultView from broken HTML tree and teleporting to safety!');
-        mainInterface.parentNode.insertBefore(resultView, mainInterface.nextSibling);
-      }
-
-      // 1. Swap Visibility
       if (mainInterface) {
-        mainInterface.style.cssText = 'display: none !important;';
-      }
-      
-      // Force parents to 100% width to prevent flex-shrink dimensional collapse
-      // ALSO: strip out padding from the main section to prevent nested double-padding which creates unwanted scrollbars!
-      const parentSection = resultView.closest('.stylique-section-content');
-      const mainSection = resultView.closest('.stylique-section');
-      
-      if (parentSection) {
-        parentSection.style.setProperty('width', '100%', 'important');
-        parentSection.style.setProperty('flex', '1', 'important');
-      }
-      if (mainSection) {
-        mainSection.style.setProperty('padding', '0', 'important');
+        mainInterface.style.display = 'none';
       }
       
       const modalContent = document.querySelector('.stylique-modal-content');
@@ -4719,20 +4697,24 @@
         modalContent.classList.add('stylique-result-active');
       }
 
-      // 2. Hide global headers
       document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.setProperty('display', 'none', 'important'));
 
-      // 3. Show result-view naturally
       resultView.classList.remove('is-visible');
       resultView.classList.add('show-result', 'is-loading-image');
-      
-      // Provide an aggressive backup style sequence just in case
-      resultView.style.cssText = 'display: grid !important; visibility: visible !important; min-height: 0 !important; width: 100% !important; z-index: 99999 !important;';
+      resultView.style.display = 'grid';
+      resultView.scrollTop = 0;
+
+      const fitDetailsSection = document.getElementById('stylique-result-size-details');
+      if (fitDetailsSection) {
+        fitDetailsSection.innerHTML = '';
+        fitDetailsSection.style.display = 'none';
+      }
+
       window.requestAnimationFrame(() => {
         resultView.classList.add('is-visible');
       });
 
-      styliqueDebugLog('✅ Result-view teleported and shown.');
+      styliqueDebugLog('✅ Result view shown.');
 
       // 5. Set the result image with loading/error state
       const resultImg = document.getElementById('stylique-result-main-image');
@@ -5077,6 +5059,58 @@
     });
   }
 
+  function renderResultFitDetailsSection(displaySize, fitContent) {
+    const section = document.getElementById('stylique-result-size-details');
+    if (!section) return;
+
+    const tableRows = fitContent && Array.isArray(fitContent.tableRows) ? fitContent.tableRows : [];
+    if (!fitContent || tableRows.length === 0) {
+      section.innerHTML = '';
+      section.style.display = 'none';
+      return;
+    }
+
+    const safeSizeLabel = normalizeDisplaySizeLabel(fitContent.sizeLabel || displaySize);
+    const sizeLabel = safeSizeLabel ? `Size ${safeSizeLabel}` : 'Garment';
+    const tableNote = fitContent.isFallbackTable
+      ? '<p class="stylique-result-fit-table-note">Full measurement values appear after user and size-chart data are connected.</p>'
+      : '';
+    const rowsHtml = tableRows.map(row => `
+      <tr>
+        <td>${row.label}</td>
+        <td>${row.you}</td>
+        <td>${row.garment}</td>
+        <td>${row.fit}</td>
+      </tr>
+    `).join('');
+
+    section.innerHTML = `
+      <div class="stylique-result-fit-card">
+        <div class="stylique-result-fit-card-header">
+          <div>
+            <span class="stylique-result-fit-eyebrow">Fit details</span>
+            <h6>How ${sizeLabel} compares</h6>
+          </div>
+          ${safeSizeLabel ? `<span class="stylique-result-fit-size-pill">${safeSizeLabel}</span>` : ''}
+        </div>
+        <div class="stylique-result-fit-table-wrap">
+          <table class="stylique-result-fit-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>You</th>
+                <th>${sizeLabel}</th>
+                <th>Fit</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        ${tableNote}
+      </div>`;
+    section.style.display = 'block';
+  }
+
   // Render a single item card (uwear.ai style)
   function renderItemCard(container, title, image, url, size, confidence, fitNotes) {
     const displaySize = normalizeDisplaySizeLabel(size);
@@ -5164,51 +5198,10 @@
       fitSummaryLineHtml = `<p class="stylique-result-item-fit-summary-line stylique-result-item-fit-summary-line-single">${summaryLine}</p>`;
     }
 
-    let detailsHtml = '';
-    const tableRows = fitContent && Array.isArray(fitContent.tableRows) ? fitContent.tableRows : [];
-    if (tableRows.length > 0) {
-      const sizeLabel = fitContent.sizeLabel ? `Size ${fitContent.sizeLabel}` : 'Garment';
-      const tableNote = fitContent.isFallbackTable
-        ? '<p class="stylique-result-fit-table-note">Full measurement values appear after user and size-chart data are connected.</p>'
-        : '';
-      const rowsHtml = tableRows.map(row => `
-        <tr>
-          <td>${row.label}</td>
-          <td>${row.you}</td>
-          <td>${row.garment}</td>
-          <td>${row.fit}</td>
-        </tr>
-      `).join('');
+    renderResultFitDetailsSection(displaySize, fitContent);
 
-      detailsHtml = `
-        <div class="stylique-result-fit-details">
-          <button type="button" class="stylique-result-fit-details-summary" aria-expanded="false" onclick="window.toggleStyliqueFitDetails(this, event)">
-            <span>Fit details</span>
-            <svg class="stylique-result-fit-details-icon" fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="14"><path d="M6 9l6 6 6-6"></path></svg>
-          </button>
-          <div class="stylique-result-fit-popover" role="dialog" aria-label="Fit details" onclick="event.stopPropagation()">
-            <div class="stylique-result-fit-popover-header">
-              <span>Fit details</span>
-              <button type="button" class="stylique-result-fit-popover-close" aria-label="Close fit details" onclick="window.closeStyliqueFitDetails(this, event)">&times;</button>
-            </div>
-            <table class="stylique-result-fit-table">
-              <thead>
-                <tr>
-                  <th>Area</th>
-                  <th>You</th>
-                  <th>${sizeLabel}</th>
-                  <th>Fit</th>
-                </tr>
-              </thead>
-              <tbody>${rowsHtml}</tbody>
-            </table>
-            ${tableNote}
-          </div>
-        </div>`;
-    }
-
-    const fitHtml = fitSummaryLineHtml || detailsHtml
-      ? `<div class="stylique-result-item-fit-summary" aria-label="Fit summary">${fitSummaryLineHtml}${detailsHtml}</div>`
+    const fitHtml = fitSummaryLineHtml
+      ? `<div class="stylique-result-item-fit-summary" aria-label="Fit summary">${fitSummaryLineHtml}</div>`
       : '';
 
     container.innerHTML = `
@@ -5307,12 +5300,15 @@
     const mainInterface = document.getElementById('stylique-tryon-interface');
 
     if (resultView) {
-      resultView.style.cssText = 'display: none !important;';
+      resultView.style.display = 'none';
       resultView.classList.remove('show-result', 'is-visible', 'is-loading-image');
       
       const resultImg = document.getElementById('stylique-result-main-image');
       const loadingState = document.getElementById('stylique-result-image-loading');
       const errorState = document.getElementById('stylique-result-image-error');
+      const fitDetailsSection = document.getElementById('stylique-result-size-details');
+      const completeLookContainer = document.getElementById('stylique-complete-look-container');
+      const suggestionsCarousel = document.getElementById('stylique-suggestions-carousel');
       
       if (resultImg) {
         resultImg.src = '';
@@ -5321,17 +5317,17 @@
       }
       if (loadingState) loadingState.style.display = 'none';
       if (errorState) errorState.style.display = 'none';
+      if (fitDetailsSection) {
+        fitDetailsSection.innerHTML = '';
+        fitDetailsSection.style.display = 'none';
+      }
+      if (completeLookContainer) completeLookContainer.style.display = 'none';
+      if (suggestionsCarousel) suggestionsCarousel.innerHTML = '';
     }
 
     if (mainInterface) {
-      // Re-enable main interface visibility
-      mainInterface.style.cssText = 'display: block !important; visibility: visible !important;';
-      
-      // Re-enable padding on parent
-      const mainSection = document.getElementById('stylique-main-section');
-      if (mainSection) {
-        mainSection.style.padding = '';
-      }
+      mainInterface.style.display = '';
+      mainInterface.style.visibility = '';
       
       const modalContent = document.querySelector('.stylique-modal-content');
       if (modalContent) {
