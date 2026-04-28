@@ -5701,13 +5701,13 @@
   function styliqueRestoreScrollPosition(scrollY) {
     const restoreY = Number.isFinite(scrollY) ? scrollY : 0;
     window.requestAnimationFrame(function() {
-      window.scrollTo(0, restoreY);
+      window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
       window.requestAnimationFrame(function() {
-        window.scrollTo(0, restoreY);
+        window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
       });
     });
     window.setTimeout(function() {
-      window.scrollTo(0, restoreY);
+      window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
     }, 80);
   }
 
@@ -5774,7 +5774,6 @@
 
     const restoreY = Number.isFinite(state.scrollY) ? state.scrollY : 0;
     window.styliqueBodyScrollState = null;
-    styliqueRestoreScrollPosition(restoreY);
     return restoreY;
   }
 
@@ -5894,14 +5893,19 @@
         modal.setAttribute('aria-hidden', 'true');
         modal.classList.remove('is-closing', 'is-open', 'is-opening');
         document.removeEventListener('keydown', styliqueHandleModalKeydown);
+        // Step 1: unlock body (restores position/overflow, returns saved scrollY)
+        const restoreY = unlockStyliqueBodyScroll('main');
+        // Step 2: restore scroll position in rAF, then focus after scroll settles
         window.requestAnimationFrame(function() {
-          const restoreY = unlockStyliqueBodyScroll('main');
-          if (returnFocus && typeof returnFocus.focus === 'function') {
-            try { returnFocus.focus({ preventScroll: true }); } catch (e) { returnFocus.focus(); }
-          }
           if (restoreY !== null) {
             styliqueRestoreScrollPosition(restoreY);
           }
+          // Step 3: return focus AFTER scroll is restored — delay prevents jump
+          window.setTimeout(function() {
+            if (returnFocus && typeof returnFocus.focus === 'function') {
+              try { returnFocus.focus({ preventScroll: true }); } catch (e) { /* silent */ }
+            }
+          }, 100);
         });
       };
 

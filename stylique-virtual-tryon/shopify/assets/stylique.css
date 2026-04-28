@@ -6155,6 +6155,16 @@ body.stylique-modal-open {
   opacity: 0;
 }
 
+@keyframes stylique-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.stylique-result-view.is-loading-image .stylique-result-image-container {
+  animation: stylique-skeleton-pulse 1.8s ease-in-out infinite;
+  background: linear-gradient(135deg, #f0f0ec 0%, #e8e8e4 50%, #f0f0ec 100%) !important;
+}
+
 .stylique-result-right > * {
   opacity: 0;
   transform: translateY(8px);
@@ -6223,11 +6233,19 @@ body.stylique-modal-open {
 
 @media (max-width: 768px) {
   .stylique-modal-wrapper .stylique-modal-content {
-    transform: translateY(26px);
+    transform: translateY(100%);
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 92dvh !important;
+    transition: opacity 0.36s ease, transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   .stylique-modal-wrapper.is-open .stylique-modal-content {
     transform: translateY(0);
+  }
+
+  .stylique-modal-wrapper.is-closing .stylique-modal-content {
+    transform: translateY(100%);
+    transition: opacity 0.26s ease, transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   .stylique-modal-close,
@@ -6620,6 +6638,7 @@ body.stylique-modal-open {
   .stylique-modal-wrapper .stylique-modal-backdrop,
   .stylique-processing-overlay,
   .stylique-result-view,
+  .stylique-result-view.is-loading-image .stylique-result-image-container,
   .stylique-result-right > * {
     animation: none !important;
     transition: none !important;
