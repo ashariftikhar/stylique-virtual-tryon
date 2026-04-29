@@ -5313,10 +5313,52 @@
       fitSummaryLineHtml = `<p class="stylique-result-item-fit-summary-line stylique-result-item-fit-summary-line-single">${summaryLine}</p>`;
     }
 
-    renderResultFitDetailsSection(displaySize, fitContent);
+    // Build the inline popover for fit details (old working approach)
+    let detailsHtml = '';
+    const tableRows = fitContent && Array.isArray(fitContent.tableRows) ? fitContent.tableRows : [];
+    if (tableRows.length > 0) {
+      const sizeLabel = fitContent.sizeLabel ? `Size ${fitContent.sizeLabel}` : 'Garment';
+      const tableNote = fitContent.isFallbackTable
+        ? '<p class="stylique-result-fit-table-note">Full measurement values appear after user and size-chart data are connected.</p>'
+        : '';
+      const rowsHtml = tableRows.map(row => `
+        <tr>
+          <td>${row.label}</td>
+          <td>${row.you}</td>
+          <td>${row.garment}</td>
+          <td>${row.fit}</td>
+        </tr>
+      `).join('');
 
-    const fitHtml = fitSummaryLineHtml
-      ? `<div class="stylique-result-item-fit-summary" aria-label="Fit summary">${fitSummaryLineHtml}</div>`
+      detailsHtml = `
+        <div class="stylique-result-fit-details">
+          <button type="button" class="stylique-result-fit-details-summary" aria-expanded="false" onclick="window.toggleStyliqueFitDetails(this, event)">
+            <span>Fit details</span>
+            <svg class="stylique-result-fit-details-icon" fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="14"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <div class="stylique-result-fit-popover" role="dialog" aria-label="Fit details" onclick="event.stopPropagation()">
+            <div class="stylique-result-fit-popover-header">
+              <span>Fit details</span>
+              <button type="button" class="stylique-result-fit-popover-close" aria-label="Close fit details" onclick="window.closeStyliqueFitDetails(this, event)">&times;</button>
+            </div>
+            <table class="stylique-result-fit-table">
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>You</th>
+                  <th>${sizeLabel}</th>
+                  <th>Fit</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+            ${tableNote}
+          </div>
+        </div>`;
+    }
+
+    const fitHtml = fitSummaryLineHtml || detailsHtml
+      ? `<div class="stylique-result-item-fit-summary" aria-label="Fit summary">${fitSummaryLineHtml}${detailsHtml}</div>`
       : '';
 
     container.innerHTML = `
