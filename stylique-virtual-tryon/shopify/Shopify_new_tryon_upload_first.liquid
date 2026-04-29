@@ -6013,8 +6013,41 @@
 
       modal.classList.remove('is-open', 'is-opening');
       modal.classList.add('is-closing');
+
+      // Immediately fade out inner content to prevent flash during close animation
+      const resultView = document.getElementById('stylique-result-view');
+      const mainInterface = document.getElementById('stylique-tryon-interface');
+      if (resultView && resultView.classList.contains('show-result')) {
+        resultView.style.setProperty('transition', 'opacity 0.18s ease', 'important');
+        resultView.style.setProperty('opacity', '0', 'important');
+        resultView.style.setProperty('pointer-events', 'none', 'important');
+      }
+      if (mainInterface) {
+        mainInterface.style.setProperty('transition', 'opacity 0.18s ease');
+        mainInterface.style.setProperty('opacity', '0');
+      }
+      if (modalContent) {
+        modalContent.style.setProperty('transition', 'opacity 0.22s ease');
+        modalContent.style.setProperty('opacity', '0');
+      }
+
       window.clearTimeout(window.styliqueModalCloseTimer);
-      window.styliqueModalCloseTimer = window.setTimeout(finishClose, 320);
+      window.styliqueModalCloseTimer = window.setTimeout(function() {
+        // Clean up result view state after animation
+        if (resultView && resultView.classList.contains('show-result')) {
+          hideResultView();
+        }
+        // Reset opacity/transition on inner elements
+        if (mainInterface) {
+          mainInterface.style.transition = '';
+          mainInterface.style.opacity = '';
+        }
+        if (modalContent) {
+          modalContent.style.transition = '';
+          modalContent.style.opacity = '';
+        }
+        finishClose();
+      }, 320);
     } else if (modal) {
       unlockStyliqueBodyScroll('main');
     }
