@@ -233,7 +233,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 /* Tier 3 Premium Size Advisor */
@@ -930,18 +930,6 @@
     max-height: 90vh; /* Don't trap entire screen */
     border-radius: 20px;
     transform: scale(1) !important; /* Ignore desktop 0.9 scale on mobile */
-    animation: stylique-modal-slide-up-mobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  @keyframes stylique-modal-slide-up-mobile {
-    from {
-      opacity: 0;
-      transform: translateY(40px) scale(0.98);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
   }
 }
 
@@ -1831,127 +1819,58 @@
   background: transparent;
   padding: 0;
   border: none;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   position: relative;
 }
 
-.stylique-upload-section::before {
-  content: 'ℹ';
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 24px;
-  height: 24px;
-  background: rgba(100, 47, 215, 0.1);
-  border-radius: 50%;
+/* Upload zone — centered premium layout */
+.stylique-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.stylique-upload-icon-wrap {
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, rgba(100, 47, 215, 0.1), rgba(244, 83, 111, 0.07));
+  border-radius: 14px;
   color: var(--stylique-primary);
+  margin-bottom: 2px;
+}
+
+.stylique-upload-heading {
+  margin: 0;
   font-size: 14px;
   font-weight: 600;
-  cursor: help;
-  z-index: 5;
-}
-
-.stylique-best-results-box {
-  display: none;
-}
-
-.stylique-pose-graphic {
-  flex-shrink: 0;
-  color: var(--stylique-primary);
-  background: rgba(100, 47, 215, 0.05);
-  border-radius: 8px;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stylique-best-results-text h6 {
-  margin: 0 0 0.5rem 0;
-  font-size: 13px;
-  font-weight: 600;
   color: var(--stylique-text);
+  letter-spacing: -0.01em;
 }
 
-.stylique-best-results-badges {
+.stylique-upload-hints {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-  margin: 16px 0 0 0;
-}
-
-.stylique-badge-item {
-  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  background: rgba(100, 47, 215, 0.04);
-  border: 1px solid rgba(100, 47, 215, 0.15);
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--stylique-text-secondary);
-  transition: all 0.2s ease;
-}
-
-.stylique-badge-item:hover {
-  background: rgba(100, 47, 215, 0.08);
-  transform: translateY(-1px);
-}
-
-.stylique-badge-item svg {
-  color: #10b981;
-  width: 12px;
-  height: 12px;
-}
-
-.stylique-upload-core {
-  display: flex;
-  justify-content: center;
-  padding: 0.5rem 0;
-}
-
-.stylique-privacy-box {
-  background: rgba(100, 47, 215, 0.05);
-  border: 1px solid rgba(100, 47, 215, 0.15);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-top: 1rem;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.stylique-privacy-icon {
-  color: var(--stylique-primary);
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.stylique-privacy-text-content h6 {
-  margin: 0 0 0.25rem 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--stylique-text);
-}
-
-.stylique-privacy-text-content p {
-  margin: 0;
   font-size: 11px;
   color: var(--stylique-text-secondary);
-  line-height: 1.4;
-  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.stylique-hint-dot {
+  opacity: 0.4;
+  font-weight: 700;
 }
 
 .stylique-upload-area {
   border: 2px dashed rgba(100, 47, 215, 0.15);
   border-radius: 14px;
-  padding: 1.5rem;
+  padding: 1.25rem 1rem;
   background: rgba(255, 255, 255, 0.6);
   transition: var(--stylique-transition);
   cursor: pointer;
@@ -2003,48 +1922,6 @@
   }
 }
 
-.stylique-upload-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.stylique-upload-icon {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(100, 47, 215, 0.1), rgba(244, 83, 111, 0.08));
-  border-radius: 12px;
-}
-
-.stylique-upload-icon svg {
-  color: var(--stylique-primary);
-  width: 24px;
-  height: 24px;
-}
-
-.stylique-upload-text {
-  flex: 1;
-  text-align: left;
-}
-
-.stylique-upload-text h5 {
-  margin: 0 0 0.125rem 0;
-  color: var(--stylique-text);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.stylique-upload-text p {
-  margin: 0 0 0.5rem 0;
-  color: var(--stylique-text-secondary);
-  font-size: 11px;
-  line-height: 1.3;
-}
-
 .stylique-btn-upload-round {
   display: inline-flex;
   align-items: center;
@@ -2054,14 +1931,15 @@
   color: white;
   border: none;
   border-radius: 50px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--stylique-transition);
   white-space: nowrap;
-  min-width: 160px;
-  min-height: 44px;
+  min-width: 150px;
+  min-height: 40px;
   box-shadow: 0 2px 8px rgba(100, 47, 215, 0.2);
+  margin-top: 2px;
 }
 
 .stylique-btn-upload-round:hover {
@@ -2073,30 +1951,99 @@
   transform: translateY(0);
 }
 
-/* Image Preview */
+/* ── File Chip — shown after upload ── */
+.stylique-file-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-left: 3px solid #10b981;
+  border-radius: 10px;
+  animation: stylique-chip-in 0.3s ease-out;
+}
+
+@keyframes stylique-chip-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.stylique-file-chip-icon {
+  color: #10b981;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.stylique-file-chip-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stylique-file-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--stylique-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stylique-file-chip-size {
+  font-size: 11px;
+  color: var(--stylique-text-secondary);
+  flex-shrink: 0;
+}
+
+.stylique-file-chip-change {
+  background: none;
+  border: none;
+  color: var(--stylique-text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: var(--stylique-transition);
+  flex-shrink: 0;
+}
+
+.stylique-file-chip-change:hover {
+  background: rgba(100, 47, 215, 0.08);
+  color: var(--stylique-primary);
+}
+
+/* ── Compact Privacy Line ── */
+.stylique-privacy-line {
+  margin: 10px 0 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
+
+.stylique-privacy-line svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* Hidden image preview (kept for data URL only) */
 .stylique-image-preview {
-  position: relative;
-  display: inline-block;
-  margin-top: 0.75rem;
-}
-
-.stylique-image-preview img {
-  width: 120px;
-  height: 160px;
-  object-fit: cover;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.stylique-preview-actions {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
-/* Action Section - Minimal */
+/* Action Section - Tight */
 .stylique-action-section {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .stylique-tryon-options h6 {
@@ -3806,18 +3753,9 @@
     gap: 0.5rem;
   }
 
+
   .stylique-btn-tryon {
     padding: 0.75rem 1rem;
-  }
-
-  .stylique-upload-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 0.75rem;
-  }
-
-  .stylique-upload-text {
-    text-align: center;
   }
 
   .stylique-tryon-header {
@@ -5243,15 +5181,7 @@ body.stylique-modal-open {
   }
 
   .stylique-upload-section {
-    margin-bottom: 8px;
-  }
-
-  .stylique-upload-section::before {
-    display: none;
-  }
-
-  .stylique-upload-core {
-    padding: 0;
+    margin-bottom: 4px;
   }
 
   .stylique-upload-area {
@@ -5259,25 +5189,9 @@ body.stylique-modal-open {
     border-radius: 12px;
   }
 
-  .stylique-upload-content {
-    align-items: center;
-    text-align: left;
-    gap: 10px;
-  }
-
-  .stylique-upload-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-  }
-
-  .stylique-upload-text h5 {
-    font-size: 13px;
-  }
-
-  .stylique-upload-text p {
-    font-size: 11px;
-    margin-bottom: 6px;
+  .stylique-upload-icon-wrap {
+    width: 40px;
+    height: 40px;
   }
 
   .stylique-btn-upload-round,
@@ -5294,21 +5208,18 @@ body.stylique-modal-open {
     padding: 11px 16px;
   }
 
-  .stylique-image-preview img {
-    width: 96px;
-    height: 128px;
+  .stylique-upload-hints {
+    display: none;
+  }
+
+  .stylique-requirements-note {
+    display: none;
   }
 
   .stylique-tryon-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-  }
-
-  .stylique-requirements-note,
-  .stylique-privacy-box,
-  .stylique-best-results-badges {
-    display: none;
   }
 
   .stylique-login-prompt,
@@ -5719,19 +5630,10 @@ body.stylique-modal-open {
     font-size: 11.5px;
   }
 
+
   .stylique-modal-brand-mark {
     width: 21px;
     height: 21px;
-  }
-
-  .stylique-upload-content {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-
-  .stylique-upload-text {
-    text-align: center;
   }
 
   .stylique-tryon-buttons {
@@ -6027,9 +5929,10 @@ body.stylique-modal-open {
 }
 /* Delivery polish: lifecycle transitions, focus, notices, and stable result layout */
 .stylique-modal-wrapper {
+  animation: none !important;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.24s ease;
+  transition: opacity 0.28s ease;
 }
 
 .stylique-modal-wrapper.is-open {
