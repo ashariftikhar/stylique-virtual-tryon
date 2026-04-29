@@ -492,7 +492,6 @@
 
         </div>
       </div>
-      </div> <!-- Ensure right column is closed -->
     </div> <!-- Ensure stylique-modal-grid is closed -->
 
     </div> <!-- End stylique-tryon-interface -->
@@ -548,7 +547,8 @@
       <div id="stylique-result-view" class="stylique-result-view" style="display: none;">
 
     <!-- Left Column: Clean Result Image -->
-    <div class="stylique-result-left">
+    <div class="stylique-result-left"
+        style="background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative;">
       <div id="stylique-result-image-loading" style="position: absolute; text-align: center; color: #666; font-size: 14px;">
         <div class="stylique-spinner-small" style="margin: 0 auto 10px;"></div>
         Loading your try-on...
@@ -570,9 +570,6 @@
         <!-- Populated dynamically by JS -->
       </div>
 
-      <!-- Size recommendation loaded dynamically -->
-      <div id="stylique-result-size-details" style="display:none;"></div>
-      
       <!-- Complete the Look -->
       <div id="stylique-complete-look-container" style="display: none;">
         <div class="stylique-result-items-header" style="padding-top: 16px;">
@@ -582,6 +579,9 @@
           <!-- Dynamically populated -->
         </div>
       </div>
+
+      <!-- Size recommendation loaded dynamically -->
+      <div id="stylique-result-size-details" style="display:none;"></div>
     </div>
 
     <!-- Bottom Action Bar -->
@@ -4689,6 +4689,50 @@
   // PREMIUM RESULT VIEW — uwear.ai-style
   // ─────────────────────────────────────────────────────────────
 
+  // Skeleton image helper: wraps an <img> parent with a shimmer overlay
+  function styliqueAttachSkeleton(imgEl) {
+    if (!imgEl || !imgEl.parentElement) return;
+    const parent = imgEl.parentElement;
+    if (parent.style.position === '' || parent.style.position === 'static') {
+      parent.style.position = 'relative';
+    }
+    let skel = parent.querySelector('.stylique-skeleton-img');
+    if (!skel) {
+      skel = document.createElement('div');
+      skel.className = 'stylique-skeleton-img';
+      parent.appendChild(skel);
+    }
+    skel.classList.remove('is-loaded');
+    const markLoaded = function() {
+      skel.classList.add('is-loaded');
+      imgEl.removeEventListener('load', markLoaded);
+      imgEl.removeEventListener('error', markLoaded);
+    };
+    if (imgEl.complete && imgEl.naturalWidth > 0) {
+      markLoaded();
+    } else {
+      imgEl.addEventListener('load', markLoaded);
+      imgEl.addEventListener('error', markLoaded);
+    }
+  }
+
+  // Smooth screen transition helper
+  function styliqueTransitionScreen(hideEl, showEl) {
+    if (hideEl) {
+      hideEl.style.display = 'none';
+    }
+    if (showEl) {
+      showEl.classList.add('stylique-screen-fade-enter');
+      showEl.classList.remove('is-active');
+      showEl.style.display = '';
+      window.requestAnimationFrame(function() {
+        window.requestAnimationFrame(function() {
+          showEl.classList.add('is-active');
+        });
+      });
+    }
+  }
+
   function showResultView(resultImage, productId) {
     try {
       styliqueDebugLog('🎨 showResultView: Entering full-widget mode...', { hasImage: !!resultImage, productId });
@@ -4706,36 +4750,45 @@
         return;
       }
 
+      // BULLETPROOF FIX: HTML Parser Escape
+      // Due to ambiguous </div> nesting, resultView may be incorrectly parsed
+      // as a descendant of mainInterface. Teleport it to safety before hiding.
+      if (mainInterface && resultView.parentNode !== mainInterface.parentNode) {
+        styliqueDebugLog('🚀 Teleporting resultView out of mainInterface tree');
+        mainInterface.parentNode.insertBefore(resultView, mainInterface.nextSibling);
+      }
+
+      // 1. Swap Visibility — hide the main interface with !important
       if (mainInterface) {
-        mainInterface.style.display = 'none';
+        mainInterface.style.cssText = 'display: none !important;';
         mainInterface.setAttribute('aria-hidden', 'true');
       }
 
+      // Force parents to 100% width to prevent flex-shrink dimensional collapse
       const parentSection = resultView.closest('.stylique-section-content');
       const mainSection = resultView.closest('.stylique-section');
       if (parentSection) {
-        parentSection.style.width = '100%';
-        parentSection.style.flex = '1 1 auto';
-        parentSection.style.minWidth = '0';
+        parentSection.style.setProperty('width', '100%', 'important');
+        parentSection.style.setProperty('flex', '1', 'important');
       }
       if (mainSection) {
-        mainSection.style.padding = '0';
+        mainSection.style.setProperty('padding', '0', 'important');
       }
       
       const modalContent = document.querySelector('.stylique-modal-content');
       if (modalContent) {
         modalContent.classList.add('stylique-result-active');
         modalContent.setAttribute('data-stylique-view', 'result');
+        modalContent.style.setProperty('overflow', 'hidden', 'important');
       }
 
+      // 2. Hide global headers
       document.querySelectorAll('.stylique-tryon-header').forEach(el => el.style.setProperty('display', 'none', 'important'));
 
+      // 3. Show result-view with aggressive !important backup
       resultView.classList.remove('is-visible', 'is-image-error');
       resultView.classList.add('show-result', 'is-loading-image');
-      resultView.style.display = 'grid';
-      resultView.style.visibility = 'visible';
-      resultView.style.opacity = '1';
-      resultView.style.pointerEvents = 'auto';
+      resultView.style.cssText = 'display: grid !important; visibility: visible !important; min-height: 0 !important; width: 100% !important; z-index: 99999 !important; background: #fafafa !important;';
       resultView.scrollTop = 0;
       const resultRightColumn = resultView.querySelector('.stylique-result-right');
       if (resultRightColumn) {
@@ -4752,15 +4805,9 @@
       window.requestAnimationFrame(() => {
         resultView.classList.add('is-visible');
         styliqueDebugResultState('after requestAnimationFrame is-visible');
-        window.setTimeout(function() {
-          styliqueDebugResultState('150ms after result activation');
-        }, 150);
-        window.setTimeout(function() {
-          styliqueDebugResultState('500ms after result activation');
-        }, 500);
       });
 
-      styliqueDebugLog('✅ Result view shown.');
+      styliqueDebugLog('✅ Result-view teleported and shown.');
 
       // 5. Set the result image with loading/error state
       const resultImg = document.getElementById('stylique-result-main-image');
@@ -4827,6 +4874,9 @@
           styliqueDebugResultState('result image onerror');
           console.error('❌ Result image failed to load. URL:', resultImage.slice(0, 50) + '...');
         };
+
+        // Attach skeleton shimmer while image loads
+        styliqueAttachSkeleton(resultImg);
 
         resultImg.src = resultImage;
       } else {
@@ -5366,10 +5416,7 @@
     const mainInterface = document.getElementById('stylique-tryon-interface');
 
     if (resultView) {
-      resultView.style.display = 'none';
-      resultView.style.visibility = '';
-      resultView.style.opacity = '';
-      resultView.style.pointerEvents = '';
+      resultView.style.cssText = 'display: none;';
       resultView.classList.remove('show-result', 'is-visible', 'is-loading-image');
       resultView.classList.remove('is-image-error');
       
@@ -5398,8 +5445,7 @@
     }
 
     if (mainInterface) {
-      mainInterface.style.display = '';
-      mainInterface.style.visibility = '';
+      mainInterface.style.cssText = '';
       mainInterface.removeAttribute('aria-hidden');
 
       const parentSection = resultView ? resultView.closest('.stylique-section-content') : null;
@@ -5417,6 +5463,7 @@
       if (modalContent) {
         modalContent.classList.remove('stylique-result-active');
         modalContent.removeAttribute('data-stylique-view');
+        modalContent.style.removeProperty('overflow');
       }
     }
 
@@ -5656,6 +5703,18 @@
       event.preventDefault();
       window.closeStyliqueModal();
       return;
+    }
+
+    // Arrow keys for product carousel navigation
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const prevBtn = modal.querySelector('.stylique-carousel-prev');
+      const nextBtn = modal.querySelector('.stylique-carousel-next');
+      if (prevBtn || nextBtn) {
+        event.preventDefault();
+        if (event.key === 'ArrowLeft' && prevBtn) prevBtn.click();
+        if (event.key === 'ArrowRight' && nextBtn) nextBtn.click();
+        return;
+      }
     }
 
     if (event.key !== 'Tab') return;
