@@ -264,11 +264,13 @@
           {% endif %}
         </div>
         <div class="stylique-product-details">
-          <h4>{{ product.title }}</h4>
-          <p class="stylique-product-price">{{ product.price | money }}</p>
+          <div class="stylique-product-details-left">
+            <h4>{{ product.title }}</h4>
+            <p class="stylique-product-price">{{ product.price | money }}</p>
+          </div>
 
           <div class="stylique-user-info" id="stylique-user-info-container">
-            <span class="stylique-logged-in-as">Logged in as: <strong id="stylique-user-email"></strong></span>
+            <span class="stylique-logged-in-as"><strong id="stylique-user-email"></strong></span>
             <button class="stylique-btn-logout" onclick="logoutFromStylique()" title="Logout">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -278,6 +280,10 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div class="stylique-tryon-for-divider" id="stylique-tryon-for-divider" style="display: none;">
+        <span>Try-On for: <strong id="stylique-tryon-for-name"></strong></span>
       </div>
 
       <div class="stylique-tryon-controls">
@@ -298,15 +304,18 @@
 
         
         <div class="stylique-upload-section">
-          <div class="stylique-upload-area" id="stylique-upload-area">
-            <div class="stylique-upload-zone">
+          <div class="stylique-upload-area" id="stylique-upload-area" onclick="if(!this.classList.contains('is-uploaded')) handleUploadClick()">
+            
+            <!-- Empty State -->
+            <div class="stylique-upload-zone" id="stylique-upload-empty-state">
               <div class="stylique-upload-icon-wrap">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                  <circle cx="12" cy="13" r="4"/>
+                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                  <path d="M12 15V8"/>
+                  <path d="m9 11 3-3 3 3"/>
                 </svg>
               </div>
-              <p class="stylique-upload-heading">Upload your photo</p>
+              <p class="stylique-upload-heading">Select or Drag Try-On Photo</p>
               <div class="stylique-upload-hints">
                 <span>Front-facing</span>
                 <span class="stylique-hint-dot">·</span>
@@ -315,35 +324,24 @@
                 <span>Full body</span>
               </div>
               <input type="file" id="stylique-file-input" accept="image/*" style="display: none;">
-              <button class="stylique-btn-upload-round" onclick="handleUploadClick()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px; vertical-align: -2px;">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17,8 12,3 7,8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
+            </div>
+
+            <!-- Filled State (inside the exact same box) -->
+            <div class="stylique-upload-filled-state" id="stylique-upload-filled-state" style="display: none;">
+              <div class="stylique-filled-success-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
-                Choose Photo
+              </div>
+              <div class="stylique-filled-details">
+                <span class="stylique-filled-name" id="stylique-file-chip-name"></span>
+                <span class="stylique-filled-size" id="stylique-file-chip-size"></span>
+              </div>
+              <button class="stylique-filled-change-btn" onclick="event.stopPropagation(); handleUploadClick()">
+                Change Photo
               </button>
             </div>
-          </div>
-
-          <!-- File chip: shown after upload instead of image preview -->
-          <div class="stylique-file-chip" id="stylique-file-chip" style="display: none;">
-            <div class="stylique-file-chip-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 12l2 2 4-4"/>
-                <circle cx="12" cy="12" r="10"/>
-              </svg>
-            </div>
-            <div class="stylique-file-chip-info">
-              <span class="stylique-file-chip-name" id="stylique-file-chip-name"></span>
-              <span class="stylique-file-chip-size" id="stylique-file-chip-size"></span>
-            </div>
-            <button class="stylique-file-chip-change" onclick="handleUploadClick()" title="Change photo">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </button>
           </div>
 
           <!-- Hidden image preview (kept for data URL storage, not displayed) -->
@@ -1335,12 +1333,23 @@
     function showTryOnInterface() {
       document.getElementById('stylique-login-required').style.display = 'none';
       document.getElementById('stylique-tryon-interface').style.display = 'block';
+      const brandLockup = document.querySelector('.stylique-brand-lockup');
+      if (brandLockup) brandLockup.style.display = 'none';
       const userInfo = document.getElementById('stylique-user-info-container');
       if (userInfo) userInfo.style.display = 'flex'; // Restore normal flex layout
 
       // Update user email display
       if (window.styliqueSection.user && window.styliqueSection.user.email) {
         document.getElementById('stylique-user-email').textContent = window.styliqueSection.user.email;
+        
+        // Show "Try-On for:" text
+        const nameElement = document.getElementById('stylique-tryon-for-name');
+        const divider = document.getElementById('stylique-tryon-for-divider');
+        if (nameElement && divider) {
+          const u = window.styliqueSection.user;
+          nameElement.textContent = u.name || u.firstName || u.email;
+          divider.style.display = 'flex';
+        }
       }
 
       // Check product availability before showing upload section
@@ -2563,22 +2572,23 @@
 
       window.styliqueSection.selectedImage = file;
 
-      // Show preview (hidden, for data URL) and file chip (visible)
+      // Show preview (hidden, for data URL)
       const reader = new FileReader();
       reader.onload = function (e) {
         document.getElementById('stylique-preview-img').src = e.target.result;
-        // Keep image-preview hidden — data URL is stored for the API
         
-        // Hide the upload area after image is selected
+        // Toggle the unified upload area state
         var uploadArea = document.getElementById('stylique-upload-area');
-        if (uploadArea) uploadArea.style.display = 'none';
-        
-        // Show the file chip with filename + size
-        var fileChip = document.getElementById('stylique-file-chip');
-        var chipName = document.getElementById('stylique-file-chip-name');
-        var chipSize = document.getElementById('stylique-file-chip-size');
-        if (fileChip) {
-          fileChip.style.display = 'flex';
+        if (uploadArea) {
+          uploadArea.classList.add('is-uploaded');
+          
+          var emptyState = document.getElementById('stylique-upload-empty-state');
+          var filledState = document.getElementById('stylique-upload-filled-state');
+          if (emptyState) emptyState.style.display = 'none';
+          if (filledState) filledState.style.display = 'flex';
+          
+          var chipName = document.getElementById('stylique-file-chip-name');
+          var chipSize = document.getElementById('stylique-file-chip-size');
           if (chipName) {
             var name = file.name;
             chipName.textContent = name.length > 24 ? name.substring(0, 21) + '...' : name;
@@ -4057,9 +4067,17 @@
       document.getElementById('stylique-image-preview').style.display = 'none';
       document.getElementById('stylique-file-input').value = '';
 
-      // Reset file chip
-      var fileChip = document.getElementById('stylique-file-chip');
-      if (fileChip) fileChip.style.display = 'none';
+      // Reset file chip / upload state
+      var uploadArea = document.getElementById('stylique-upload-area');
+      if (uploadArea) {
+        uploadArea.classList.remove('is-uploaded');
+        uploadArea.style.display = 'block'; // Make sure container is visible
+      }
+      var emptyState = document.getElementById('stylique-upload-empty-state');
+      if (emptyState) emptyState.style.display = 'flex';
+      var filledState = document.getElementById('stylique-upload-filled-state');
+      if (filledState) filledState.style.display = 'none';
+
       var chipName = document.getElementById('stylique-file-chip-name');
       if (chipName) chipName.textContent = '';
       var chipSize = document.getElementById('stylique-file-chip-size');
@@ -4081,9 +4099,7 @@
       var rightColumn = document.querySelector('.stylique-right-column');
       if (rightColumn) rightColumn.classList.remove('stylique-result-mode');
 
-      // Restore upload area
-      var uploadArea = document.getElementById('stylique-upload-area');
-      if (uploadArea) uploadArea.style.display = 'block';
+      // Ensure upload section is visible
       var uploadSection = document.querySelector('.stylique-upload-section');
       if (uploadSection) uploadSection.style.display = 'block';
 
@@ -4768,6 +4784,9 @@
 
       const resultView = document.getElementById('stylique-result-view');
       const mainInterface = document.getElementById('stylique-tryon-interface');
+      
+      const brandLockup = document.querySelector('.stylique-brand-lockup');
+      if (brandLockup) brandLockup.style.display = 'flex';
 
       if (!resultView) {
         console.error('❌ Critical: stylique-result-view not found');
