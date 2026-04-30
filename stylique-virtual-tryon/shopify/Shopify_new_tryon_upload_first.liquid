@@ -4764,6 +4764,8 @@
 
       const resultView = document.getElementById('stylique-result-view');
       const mainInterface = document.getElementById('stylique-tryon-interface');
+      const resultRequestToken = String(Date.now()) + ':' + Math.random().toString(36).slice(2);
+      window.styliqueActiveResultRequestToken = resultRequestToken;
       
       const brandLockup = document.querySelector('.stylique-brand-lockup');
       if (brandLockup) brandLockup.style.display = 'flex';
@@ -4841,6 +4843,8 @@
       if (resultImg && resultImage) {
         if (loadingState) loadingState.style.display = 'block';
         if (errorState) errorState.style.display = 'none';
+        resultImg.onload = null;
+        resultImg.onerror = null;
         resultImg.style.display = 'none';
         resultImg.style.opacity = '0';
         styliqueDebugUI('Result image assigned; waiting for image load.', {
@@ -4848,6 +4852,9 @@
         });
 
         resultImg.onload = function() {
+          if (window.styliqueActiveResultRequestToken !== resultRequestToken || !resultView.classList.contains('show-result')) {
+            return;
+          }
           if (loadingState) loadingState.style.display = 'none';
           resultImg.style.setProperty('display', 'block', 'important');
           resultImg.style.opacity = '1';
@@ -4885,6 +4892,9 @@
         };
 
         resultImg.onerror = function() {
+          if (window.styliqueActiveResultRequestToken !== resultRequestToken || !resultView.classList.contains('show-result')) {
+            return;
+          }
           if (loadingState) loadingState.style.display = 'none';
           if (errorState) errorState.style.display = 'block';
           const activeResultView = document.getElementById('stylique-result-view');
@@ -5495,6 +5505,8 @@
       const resultRightColumn = resultView.querySelector('.stylique-result-right');
       
       if (resultImg) {
+        resultImg.onload = null;
+        resultImg.onerror = null;
         resultImg.src = '';
         resultImg.style.display = 'none';
         resultImg.style.opacity = '0';
@@ -5562,20 +5574,33 @@
 
   function restoreStyliqueTryOnSurface() {
     const tier = window.styliqueSection.productTier;
+    const brandLockup = document.querySelector('.stylique-brand-lockup');
     const actionSection = document.querySelector('.stylique-action-section');
+    const modalGrid = document.querySelector('.stylique-modal-grid');
     const options = document.querySelector('.stylique-tryon-options');
     const rightColumn = document.querySelector('.stylique-right-column');
 
+    if (typeof showTryOnInterface === 'function') {
+      showTryOnInterface();
+    }
+    if (brandLockup) brandLockup.style.display = 'none';
+    if (modalGrid) {
+      modalGrid.classList.remove('stylique-tier-3');
+      modalGrid.style.display = 'grid';
+      modalGrid.style.width = '100%';
+    }
     if (rightColumn) rightColumn.classList.remove('stylique-result-mode');
     if (actionSection) actionSection.style.display = 'block';
 
-    if (tier) {
-      applyTierRouting(tier);
-    } else if (options) {
-      options.style.display = 'block';
-    }
+    window.requestAnimationFrame(function() {
+      if (tier) {
+        applyTierRouting(tier);
+      } else if (options) {
+        options.style.display = 'block';
+      }
 
-    updateTryOnButtonsState();
+      updateTryOnButtonsState();
+    });
   }
 
   // Legacy function — kept for backward compat but no longer used
