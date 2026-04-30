@@ -244,6 +244,12 @@
             <p>Upload a photo and preview how this item looks on you.</p>
           </div>
         </div>
+        <button class="stylique-header-close" onclick="window.closeStyliqueModal()" title="Close">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       <!-- Two-Column Layout Grid -->
@@ -328,7 +334,8 @@
 
             <!-- Filled State (inside the exact same box) -->
             <div class="stylique-upload-filled-state" id="stylique-upload-filled-state" style="display: none;">
-              <div class="stylique-filled-success-icon">
+              <div class="stylique-filled-left">
+                <div class="stylique-filled-success-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                   <polyline points="22 4 12 14.01 9 11.01"/>
@@ -337,6 +344,7 @@
               <div class="stylique-filled-details">
                 <span class="stylique-filled-name" id="stylique-file-chip-name"></span>
                 <span class="stylique-filled-size" id="stylique-file-chip-size"></span>
+              </div>
               </div>
               <button class="stylique-filled-change-btn" onclick="event.stopPropagation(); handleUploadClick()">
                 Change Photo
@@ -1334,6 +1342,9 @@
       document.getElementById('stylique-login-required').style.display = 'none';
       document.getElementById('stylique-tryon-interface').style.display = 'block';
       const brandLockup = document.querySelector('.stylique-brand-lockup');
+      if (brandLockup) brandLockup.style.display = 'none';
+      const globalClose = document.querySelector('.stylique-modal-close');
+      if (globalClose) globalClose.style.display = 'none';
       if (brandLockup) brandLockup.style.display = 'none';
       const userInfo = document.getElementById('stylique-user-info-container');
       if (userInfo) userInfo.style.display = 'flex'; // Restore normal flex layout
@@ -4769,6 +4780,8 @@
       
       const brandLockup = document.querySelector('.stylique-brand-lockup');
       if (brandLockup) brandLockup.style.display = 'flex';
+      const globalClose = document.querySelector('.stylique-modal-close');
+      if (globalClose) globalClose.style.display = 'flex';
 
       if (!resultView) {
         console.error('❌ Critical: stylique-result-view not found');
