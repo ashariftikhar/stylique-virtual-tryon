@@ -217,10 +217,10 @@
 /* Two-Column Layout Grid */
 .stylique-modal-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  grid-template-columns: minmax(0, 1.27fr) minmax(360px, 1fr);
+  gap: 36px;
   width: 100%;
-  padding: 1.25rem;
+  padding: 0;
 }
 
 .stylique-left-column {
@@ -877,7 +877,7 @@
 
 .stylique-modal-content .stylique-section {
   border-radius: inherit;
-  padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+  padding: 36px;
   margin: 0;
   border: none;
   box-shadow: none;
@@ -1718,24 +1718,26 @@
 
 .stylique-product-info {
   background: #ffffff;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid #edf2f7;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
-  margin-bottom: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  gap: 16px;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  height: 96px;
+  box-sizing: border-box;
 }
 
 .stylique-product-image img {
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 72px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  border: 1px solid #f8fafc;
 }
 
 .stylique-product-details {
@@ -1888,13 +1890,13 @@
 /* Upload zone — centered premium layout */
 .stylique-upload-area {
   border: 2px dashed rgba(100, 47, 215, 0.2);
-  border-radius: 16px;
+  border-radius: 20px;
   background: #ffffff;
   transition: var(--stylique-transition);
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  min-height: 120px;
+  min-height: 210px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2116,6 +2118,32 @@
   opacity: 0.6;
 }
 
+.stylique-trust-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.stylique-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.stylique-trust-item svg {
+  opacity: 0.7;
+}
+
+.stylique-trust-separator {
+  width: 1px;
+  height: 12px;
+  background-color: #e2e8f0;
+}
+
 /* Hidden image preview (kept for data URL only) */
 .stylique-image-preview {
   position: absolute;
@@ -2147,18 +2175,22 @@
 /* Minimal Capsule Try-On Buttons with Gradient Border */
 .stylique-btn-tryon {
   flex: 1;
-  padding: 0.6rem 1.25rem;
+  padding: 0 1.25rem;
   background: transparent;
   color: var(--stylique-text);
   border: none;
   border-radius: 50px;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition: var(--stylique-transition);
   position: relative;
   z-index: 1;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stylique-btn-tryon::before {
