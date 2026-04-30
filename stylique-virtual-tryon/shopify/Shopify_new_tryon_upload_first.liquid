@@ -4093,30 +4093,10 @@
       var container3D = document.getElementById('stylique-3d-inline-container');
       if (container3D) container3D.innerHTML = '';
 
-      // Hide premium result view
-      var resultView = document.getElementById('stylique-result-view');
-      if (resultView) resultView.style.display = 'none';
-      var rightColumn = document.querySelector('.stylique-right-column');
-      if (rightColumn) rightColumn.classList.remove('stylique-result-mode');
-
-      // Ensure upload section is visible
-      var uploadSection = document.querySelector('.stylique-upload-section');
-      if (uploadSection) uploadSection.style.display = 'block';
-
-      // Restore action section
-      var actionSection = document.querySelector('.stylique-action-section');
-      if (actionSection) actionSection.style.display = 'block';
-
-      // Re-apply tier routing to restore correct visibility
-      var tier = window.styliqueSection.productTier;
-      if (tier) {
-        applyTierRouting(tier);
-      } else {
-        var options = document.querySelector('.stylique-tryon-options');
-        if (options) options.style.display = 'block';
-      }
-
-      updateTryOnButtonsState();
+      // Restore whichever result path was active using the canonical surface restore.
+      hideResultView();
+      hideInlineResult();
+      restoreStyliqueTryOnSurface();
       hideResultsModal();
       hide3DResultsModal();
     }
@@ -5558,6 +5538,46 @@
     styliqueDebugResultState('after hideResultView');
   }
 
+  function clearStyliqueModalTransientStyles() {
+    const resultView = document.getElementById('stylique-result-view');
+    const mainInterface = document.getElementById('stylique-tryon-interface');
+    const modalContent = document.querySelector('#stylique-modal .stylique-modal-content');
+
+    if (resultView) {
+      resultView.style.removeProperty('transition');
+      resultView.style.removeProperty('opacity');
+      resultView.style.removeProperty('pointer-events');
+    }
+
+    if (mainInterface) {
+      mainInterface.style.removeProperty('transition');
+      mainInterface.style.removeProperty('opacity');
+    }
+
+    if (modalContent) {
+      modalContent.style.removeProperty('transition');
+      modalContent.style.removeProperty('opacity');
+    }
+  }
+
+  function restoreStyliqueTryOnSurface() {
+    const tier = window.styliqueSection.productTier;
+    const actionSection = document.querySelector('.stylique-action-section');
+    const options = document.querySelector('.stylique-tryon-options');
+    const rightColumn = document.querySelector('.stylique-right-column');
+
+    if (rightColumn) rightColumn.classList.remove('stylique-result-mode');
+    if (actionSection) actionSection.style.display = 'block';
+
+    if (tier) {
+      applyTierRouting(tier);
+    } else if (options) {
+      options.style.display = 'block';
+    }
+
+    updateTryOnButtonsState();
+  }
+
   // Legacy function — kept for backward compat but no longer used
   async function loadSizeRecommendationForResult(productId) {
     // Redirect to new V2 function
@@ -5633,7 +5653,6 @@
   }
 
   function resetTryOnFromResult() {
-    hideResultView();
     resetTryOn();
   }
 
@@ -6012,6 +6031,7 @@
       modal.style.display = 'flex';
       modal.setAttribute('aria-hidden', 'false');
       modal.classList.remove('is-closing');
+      clearStyliqueModalTransientStyles();
       modal.classList.add('is-opening');
       lockStyliqueBodyScroll('main');
       document.addEventListener('keydown', styliqueHandleModalKeydown);
@@ -6077,20 +6097,15 @@
 
       window.clearTimeout(window.styliqueModalCloseTimer);
       window.styliqueModalCloseTimer = window.setTimeout(function() {
-        // Clean up result view state after animation
-        if (resultView && resultView.classList.contains('show-result')) {
-          hideResultView();
-        }
-        // Reset opacity/transition on inner elements
-        if (mainInterface) {
-          mainInterface.style.transition = '';
-          mainInterface.style.opacity = '';
-        }
-        if (modalContent) {
-          modalContent.style.transition = '';
-          modalContent.style.opacity = '';
-        }
         finishClose();
+        window.requestAnimationFrame(function() {
+          // Clean up internal state only after the modal is fully off-screen.
+          if (resultView && resultView.classList.contains('show-result')) {
+            hideResultView();
+            restoreStyliqueTryOnSurface();
+          }
+          clearStyliqueModalTransientStyles();
+        });
       }, 320);
     } else if (modal) {
       unlockStyliqueBodyScroll('main');
