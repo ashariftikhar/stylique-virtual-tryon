@@ -276,7 +276,7 @@
           </div>
 
           <div class="stylique-user-info" id="stylique-user-info-container">
-            <span class="stylique-logged-in-as"><strong id="stylique-user-email"></strong></span>
+            <span class="stylique-logged-in-as">Logged in as: <strong id="stylique-user-email"></strong></span>
             <button class="stylique-btn-logout" onclick="logoutFromStylique()" title="Logout">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -288,7 +288,7 @@
         </div>
       </div>
 
-      <div class="stylique-tryon-for-divider" id="stylique-tryon-for-divider" style="display: none;">
+      <div class="stylique-tryon-for-divider" id="stylique-tryon-for-divider" style="display: none;" hidden aria-hidden="true">
         <span>Try-On for: <strong id="stylique-tryon-for-name"></strong></span>
       </div>
 
@@ -314,58 +314,118 @@
             
             <!-- Empty State -->
             <div class="stylique-upload-zone" id="stylique-upload-empty-state">
-              <div class="stylique-upload-icon-wrap">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-                  <path d="M12 15V8"/>
-                  <path d="m9 11 3-3 3 3"/>
+              <div class="stylique-upload-copy-group">
+                <div class="stylique-upload-icon-wrap" aria-hidden="true">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55">
+                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                    <path d="M12 15V8"/>
+                    <path d="m9 11 3-3 3 3"/>
+                  </svg>
+                </div>
+                <div class="stylique-upload-copy">
+                  <p class="stylique-upload-heading">Upload Your Photo</p>
+                  <p class="stylique-upload-subtext">Use a clear front-facing full body photo for the best try-on experience.</p>
+                </div>
+              </div>
+              <button type="button" class="stylique-upload-choose-btn" onclick="event.stopPropagation(); handleUploadClick()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17,8 12,3 7,8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-              </div>
-              <p class="stylique-upload-heading">Select or Drag Try-On Photo</p>
-              <div class="stylique-upload-hints">
-                <span>Front-facing</span>
-                <span class="stylique-hint-dot">·</span>
-                <span>Good lighting</span>
-                <span class="stylique-hint-dot">·</span>
-                <span>Full body</span>
-              </div>
+                Choose Photo
+              </button>
               <input type="file" id="stylique-file-input" accept="image/*" style="display: none;">
             </div>
 
             <!-- Filled State (inside the exact same box) -->
             <div class="stylique-upload-filled-state" id="stylique-upload-filled-state" style="display: none;">
               <div class="stylique-filled-left">
-                <div class="stylique-filled-success-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-              </div>
-              <div class="stylique-filled-details">
-                <span class="stylique-filled-name" id="stylique-file-chip-name"></span>
-                <span class="stylique-filled-size" id="stylique-file-chip-size"></span>
-              </div>
+                <div class="stylique-uploaded-thumb-wrap">
+                  <img id="stylique-uploaded-thumb" alt="Uploaded try-on photo">
+                </div>
+                <div class="stylique-filled-details">
+                  <span class="stylique-filled-name" id="stylique-file-chip-name"></span>
+                  <span class="stylique-filled-size" id="stylique-file-chip-size"></span>
+                </div>
               </div>
               <button class="stylique-filled-change-btn" onclick="event.stopPropagation(); handleUploadClick()">
-                Change Photo
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17,8 12,3 7,8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Replace Photo
               </button>
             </div>
           </div>
-
           <!-- Hidden image preview (kept for data URL storage, not displayed) -->
           <div class="stylique-image-preview" id="stylique-image-preview" style="display: none;">
             <img id="stylique-preview-img" alt="Selected photo">
           </div>
 
-          <p class="stylique-privacy-line">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Photos are securely processed and never stored.
-          </p>
+          <div class="stylique-best-results-card" aria-label="For best results">
+            <h6>For Best Results</h6>
+            <div class="stylique-best-results-grid">
+              <div class="stylique-best-result-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <circle cx="12" cy="4.5" r="2.2"/>
+                  <path d="M8.5 9.2h7l1.1 10.3"/>
+                  <path d="M7.4 19.5 8.5 9.2"/>
+                  <path d="M10.2 10.2v9.3"/>
+                  <path d="M13.8 10.2v9.3"/>
+                </svg>
+                <span>Full Body<br>Visible</span>
+              </div>
+              <div class="stylique-best-result-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <circle cx="12" cy="12" r="3.5"/>
+                  <path d="M12 2.5v3"/>
+                  <path d="M12 18.5v3"/>
+                  <path d="M21.5 12h-3"/>
+                  <path d="M5.5 12h-3"/>
+                  <path d="m18.7 5.3-2.1 2.1"/>
+                  <path d="m7.4 16.6-2.1 2.1"/>
+                  <path d="m18.7 18.7-2.1-2.1"/>
+                  <path d="m7.4 7.4-2.1-2.1"/>
+                </svg>
+                <span>Good<br>Lighting</span>
+              </div>
+              <div class="stylique-best-result-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <circle cx="12" cy="7" r="3"/>
+                  <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+                </svg>
+                <span>Front<br>Facing</span>
+              </div>
+              <div class="stylique-best-result-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <rect x="5" y="5" width="14" height="14" rx="1.5"/>
+                </svg>
+                <span>Clean<br>Background</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stylique-upload-privacy-card">
+            <div class="stylique-upload-privacy-icon" aria-hidden="true">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                <path d="M12 3 5 6v5c0 4.4 2.8 8.5 7 10 4.2-1.5 7-5.6 7-10V6l-7-3Z"/>
+                <rect x="8.5" y="10.5" width="7" height="5.5" rx="1.3"/>
+                <path d="M10 10.5V9a2 2 0 1 1 4 0v1.5"/>
+              </svg>
+            </div>
+            <div class="stylique-upload-privacy-copy">
+              <h6>Your Privacy Matters</h6>
+              <p>Your photo is securely processed to generate the try-on result and never stored, shared, or re-used.</p>
+            </div>
+          </div>
         </div>
 
 
         <div class="stylique-action-section">
           <div class="stylique-tryon-options">
+            <h6>Choose Your Experience</h6>
             <div class="stylique-tryon-buttons">
 
               <button id="stylique-start-2d-tryon" class="stylique-btn-tryon stylique-btn-2d" onclick="start2DTryOn()"
@@ -499,6 +559,8 @@
         </div>
       </div>
     </div> <!-- Ensure stylique-modal-grid is closed -->
+
+    <div class="stylique-upload-powered">Powered by <strong>STYLIQUE</strong> Technologies</div>
 
     </div> <!-- End stylique-tryon-interface -->
 
@@ -2602,11 +2664,15 @@
       const reader = new FileReader();
       reader.onload = function (e) {
         document.getElementById('stylique-preview-img').src = e.target.result;
+        var uploadedThumb = document.getElementById('stylique-uploaded-thumb');
+        if (uploadedThumb) uploadedThumb.src = e.target.result;
         
         // Toggle the unified upload area state
         var uploadArea = document.getElementById('stylique-upload-area');
         if (uploadArea) {
           uploadArea.classList.add('is-uploaded');
+          var controls = uploadArea.closest('.stylique-tryon-controls');
+          if (controls) controls.classList.add('has-uploaded-photo');
           
           var emptyState = document.getElementById('stylique-upload-empty-state');
           var filledState = document.getElementById('stylique-upload-filled-state');
@@ -2616,8 +2682,7 @@
           var chipName = document.getElementById('stylique-file-chip-name');
           var chipSize = document.getElementById('stylique-file-chip-size');
           if (chipName) {
-            var name = file.name;
-            chipName.textContent = name.length > 24 ? name.substring(0, 21) + '...' : name;
+            chipName.textContent = 'Uploaded Photo';
             chipName.title = file.name;
           }
           if (chipSize) {
@@ -4098,6 +4163,8 @@
       if (uploadArea) {
         uploadArea.classList.remove('is-uploaded');
         uploadArea.style.display = 'block'; // Make sure container is visible
+        var controls = uploadArea.closest('.stylique-tryon-controls');
+        if (controls) controls.classList.remove('has-uploaded-photo');
       }
       var emptyState = document.getElementById('stylique-upload-empty-state');
       if (emptyState) emptyState.style.display = 'flex';
@@ -4108,6 +4175,8 @@
       if (chipName) chipName.textContent = '';
       var chipSize = document.getElementById('stylique-file-chip-size');
       if (chipSize) chipSize.textContent = '';
+      var uploadedThumb = document.getElementById('stylique-uploaded-thumb');
+      if (uploadedThumb) uploadedThumb.removeAttribute('src');
 
       // Reset 2D result
       var result2D = document.getElementById('stylique-inline-result');
