@@ -1331,7 +1331,15 @@
       document.getElementById('stylique-login-required').style.display = 'none';
       document.getElementById('stylique-tryon-interface').style.display = 'block';
       const modalContent = document.querySelector('.stylique-modal-content');
-      if (modalContent) modalContent.classList.add('stylique-upload-view-active');
+      if (modalContent) {
+        modalContent.classList.add('stylique-upload-view-active');
+        modalContent.classList.remove('stylique-result-active');
+        modalContent.setAttribute('data-stylique-view', 'upload');
+      }
+      const brandLockup = document.querySelector('.stylique-brand-lockup');
+      if (brandLockup) brandLockup.style.display = 'none';
+      const globalClose = document.querySelector('.stylique-modal-close');
+      if (globalClose) globalClose.style.display = 'flex';
       const userInfo = document.getElementById('stylique-user-info-container');
       if (userInfo) userInfo.style.display = 'none';
       
@@ -1344,12 +1352,15 @@
       document.getElementById('stylique-login-required').style.display = 'none';
       document.getElementById('stylique-tryon-interface').style.display = 'block';
       const modalContent = document.querySelector('.stylique-modal-content');
-      if (modalContent) modalContent.classList.add('stylique-upload-view-active');
+      if (modalContent) {
+        modalContent.classList.add('stylique-upload-view-active');
+        modalContent.classList.remove('stylique-result-active');
+        modalContent.setAttribute('data-stylique-view', 'upload');
+      }
       const brandLockup = document.querySelector('.stylique-brand-lockup');
       if (brandLockup) brandLockup.style.display = 'none';
       const globalClose = document.querySelector('.stylique-modal-close');
-      if (globalClose) globalClose.style.display = 'none';
-      if (brandLockup) brandLockup.style.display = 'none';
+      if (globalClose) globalClose.style.display = 'flex';
       const userInfo = document.getElementById('stylique-user-info-container');
       if (userInfo) userInfo.style.display = 'flex'; // Restore normal flex layout
 
