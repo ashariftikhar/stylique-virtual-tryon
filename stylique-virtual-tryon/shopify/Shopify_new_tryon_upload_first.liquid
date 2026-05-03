@@ -234,29 +234,29 @@
     <div id="stylique-tryon-interface" class="stylique-tryon-section">
 
       
-      <div class="stylique-tryon-header">
-        <div class="stylique-tryon-branding">
-          <img
-            src="{% if section.settings.logo_image %}{{ section.settings.logo_image | img_url: '60x60' }}{% else %}{{ section.settings.logo_url }}{% endif %}"
-            alt="Stylique" class="stylique-tryon-logo">
-          <div class="stylique-tryon-title">
-            <h3>See Yourself Before You Buy</h3>
-            <p>Upload a photo and preview how this item looks on you.</p>
-          </div>
-        </div>
-        <button class="stylique-header-close" onclick="window.closeStyliqueModal()" title="Close">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
+      <button class="stylique-modal-close-abs" onclick="window.closeStyliqueModal()" title="Close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
 
       <!-- Two-Column Layout Grid -->
       <div class="stylique-modal-grid">
 
         <!-- Left Column: Product Carousel -->
         <div class="stylique-left-column">
+          <div class="stylique-tryon-header">
+            <div class="stylique-tryon-branding">
+              <img
+                src="{% if section.settings.logo_image %}{{ section.settings.logo_image | img_url: '60x60' }}{% else %}{{ section.settings.logo_url }}{% endif %}"
+                alt="Stylique" class="stylique-tryon-logo">
+              <div class="stylique-tryon-title">
+                <h3>See Yourself Before You Buy</h3>
+                <p>Upload a photo and preview how this item looks on you.</p>
+              </div>
+            </div>
+          </div>
           <div id="stylique-product-image-carousel" style="display: none;"></div>
         </div>
 
@@ -276,7 +276,7 @@
           </div>
 
           <div class="stylique-user-info" id="stylique-user-info-container">
-            <span class="stylique-logged-in-as">Logged in as: <strong id="stylique-user-email"></strong></span>
+            <span class="stylique-logged-in-as"><strong id="stylique-user-email"></strong></span>
             <button class="stylique-btn-logout" onclick="logoutFromStylique()" title="Logout">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -339,23 +339,17 @@
             </div>
 
             <!-- Filled State (inside the exact same box) -->
-            <div class="stylique-upload-filled-state" id="stylique-upload-filled-state" style="display: none;">
-              <div class="stylique-filled-left">
-                <div class="stylique-uploaded-thumb-wrap">
-                  <img id="stylique-uploaded-thumb" alt="Uploaded try-on photo">
-                </div>
-                <div class="stylique-filled-details">
-                  <span class="stylique-filled-name" id="stylique-file-chip-name"></span>
-                  <span class="stylique-filled-size" id="stylique-file-chip-size"></span>
-                </div>
+            <div class="stylique-upload-filled-state" id="stylique-upload-filled-state" style="display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 12px; height: 100%;">
+              <div style="background: #eefdf4; border-radius: 50%; padding: 12px; color: #12b76a; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
               </div>
-              <button class="stylique-filled-change-btn" onclick="event.stopPropagation(); handleUploadClick()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17,8 12,3 7,8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                Replace Photo
+              <div style="font-weight: 600; font-size: 16px; color: #111827;">Success</div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #667085; background: #f8f9fa; padding: 6px 12px; border-radius: 16px;">
+                <span id="stylique-file-chip-name" style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
+                <span id="stylique-file-chip-size" style="color: #98a2b3;"></span>
+              </div>
+              <button class="stylique-filled-change-btn" onclick="event.stopPropagation(); handleUploadClick()" style="margin-top: 8px; padding: 8px 24px; border-radius: 50px; font-weight: 500; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                Change Photo
               </button>
             </div>
           </div>
@@ -407,18 +401,21 @@
             </div>
           </div>
 
-          <div class="stylique-upload-privacy-card">
-            <div class="stylique-upload-privacy-icon" aria-hidden="true">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                <path d="M12 3 5 6v5c0 4.4 2.8 8.5 7 10 4.2-1.5 7-5.6 7-10V6l-7-3Z"/>
-                <rect x="8.5" y="10.5" width="7" height="5.5" rx="1.3"/>
-                <path d="M10 10.5V9a2 2 0 1 1 4 0v1.5"/>
-              </svg>
-            </div>
-            <div class="stylique-upload-privacy-copy">
-              <h6>Your Privacy Matters</h6>
-              <p>Your photo is securely processed to generate the try-on result and never stored, shared, or re-used.</p>
-            </div>
+          <div class="stylique-privacy-line" style="margin-top: 12px; font-size: 11px; color: #7b8494; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Private processing
+            </span>
+            <span style="color: #eaecf0;">|</span>
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Photo never stored
+            </span>
+            <span style="color: #eaecf0;">|</span>
+            <span style="display: flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Secure & encrypted
+            </span>
           </div>
         </div>
 
