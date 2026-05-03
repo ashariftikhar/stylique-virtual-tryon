@@ -8980,3 +8980,144 @@ body.stylique-modal-open {
     font-size: 13px !important;
   }
 }
+
+/* Final micro-tweaks: image containment, product card rhythm, exact upload-state sizing. */
+@media (min-width: 769px) {
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-carousel-main {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-carousel-image,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-carousel-main img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+    display: block !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-info {
+    display: grid !important;
+    grid-template-columns: 58px minmax(0, 1fr) minmax(136px, auto) !important;
+    column-gap: 12px !important;
+    align-items: center !important;
+    padding: 10px 12px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-image {
+    grid-column: 1 !important;
+    width: 58px !important;
+    height: 58px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-details {
+    display: contents !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-details-left {
+    grid-column: 2 !important;
+    min-width: 0 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-details h4 {
+    max-width: 100% !important;
+    margin: 0 0 4px !important;
+    font-size: 16px !important;
+    line-height: 1.1 !important;
+    font-weight: 800 !important;
+    color: #111827 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-price {
+    margin: 0 !important;
+    font-size: 13.5px !important;
+    line-height: 1.1 !important;
+    font-weight: 800 !important;
+    color: #642fd7 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-user-info {
+    grid-column: 3 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 32px !important;
+    gap: 9px !important;
+    align-items: center !important;
+    justify-self: stretch !important;
+    min-width: 0 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-logged-in-as {
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-logged-in-as strong {
+    max-width: 100% !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-btn-logout {
+    position: static !important;
+    transform: none !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    justify-self: end !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-right-column,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-controls,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-section {
+    gap: 9px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-for-divider {
+    min-height: 24px !important;
+    padding: 1px 0 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-area,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-controls.has-uploaded-photo .stylique-upload-area {
+    height: 96px !important;
+    min-height: 96px !important;
+    max-height: 96px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-zone,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-filled-state {
+    height: 100% !important;
+    align-items: center !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-copy-group {
+    align-items: center !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-subtext {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    max-height: 2.6em !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-choose-btn,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-filled-change-btn {
+    align-self: center !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-privacy-line {
+    color: #a5acb8 !important;
+    opacity: 0.72 !important;
+    font-weight: 500 !important;
+  }
+}
