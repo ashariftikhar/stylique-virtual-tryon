@@ -8721,3 +8721,262 @@ body.stylique-modal-open {
     transform: translateY(-1px) !important;
   }
 }
+
+/* Senior polish pass: fixed shell, balanced columns, refined product/upload sections. */
+@media (min-width: 769px) {
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) {
+    width: min(900px, calc(100vw - 44px)) !important;
+    max-width: 900px !important;
+    height: min(520px, calc(90vh - 8px)) !important;
+    max-height: 520px !important;
+    overflow: hidden !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) #stylique-main-section {
+    padding: 16px 18px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-modal-grid {
+    grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr) !important;
+    gap: 18px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-header {
+    min-height: 46px !important;
+    padding: 0 44px 9px 0 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-title h3 {
+    font-size: 19px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-title p {
+    margin-top: 3px !important;
+    font-size: 11.5px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-carousel-main {
+    border-radius: 18px !important;
+    background: radial-gradient(circle at 18% 18%, rgba(244, 83, 111, 0.18), transparent 32%), linear-gradient(135deg, #ffdce7 0%, #eadcff 48%, #dadfff 100%) !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-carousel-nav {
+    width: 42px !important;
+    height: 42px !important;
+    background: rgba(255, 255, 255, 0.72) !important;
+    border: 1px solid rgba(100, 47, 215, 0.08) !important;
+    box-shadow: 0 12px 24px rgba(100, 47, 215, 0.10) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-right-column {
+    padding-top: 47px !important;
+    gap: 8px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-info {
+    position: relative !important;
+    height: 82px !important;
+    min-height: 82px !important;
+    padding: 10px 50px 10px 12px !important;
+    align-items: center !important;
+    background: rgba(255, 255, 255, 0.86) !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-details {
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(128px, auto) !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-product-details h4 {
+    max-width: 150px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-user-info {
+    min-width: 0 !important;
+    justify-self: end !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-logged-in-as {
+    display: flex !important;
+    flex-direction: column !important;
+    max-width: 124px !important;
+    min-width: 0 !important;
+    line-height: 1.15 !important;
+    color: #667085 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-logged-in-as::before {
+    content: "Logged in as:";
+    margin-bottom: 2px;
+    color: #8a92a3;
+    font-size: 9px;
+    font-weight: 500;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-logged-in-as strong {
+    max-width: 124px !important;
+    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: #642fd7 !important;
+    font-size: 10.5px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-btn-logout {
+    position: absolute !important;
+    right: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    border-radius: 11px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-for-divider {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin: 0 !important;
+    padding: 2px 0 !important;
+    min-height: 24px !important;
+    color: #6b7280 !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-for-divider::before,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-for-divider::after {
+    content: "" !important;
+    flex: 1 1 auto !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(100, 47, 215, 0.18), transparent) !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-for-divider span {
+    padding: 0 2px !important;
+    white-space: nowrap !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-for-divider strong {
+    color: #111827 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-controls,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-section {
+    gap: 8px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-area,
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-controls.has-uploaded-photo .stylique-upload-area {
+    height: 96px !important;
+    min-height: 96px !important;
+    padding: 13px 15px !important;
+    border-radius: 16px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-zone {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 12px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-copy-group {
+    gap: 11px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-icon-wrap {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-heading {
+    font-size: 14.5px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-subtext {
+    max-width: 210px !important;
+    font-size: 10px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-choose-btn {
+    min-height: 40px !important;
+    padding: 0 15px !important;
+    font-size: 12px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-filled-state {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 10px 0 !important;
+    gap: 10px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-filled-state > div:first-child {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-filled-state > div:nth-child(3) {
+    max-width: 116px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-best-results-card {
+    padding: 9px 12px !important;
+    opacity: 0.92 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-best-results-card h6 {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-best-results-grid {
+    margin-top: 6px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-upload-privacy-card {
+    display: none !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-privacy-line {
+    margin-top: 0 !important;
+    min-height: 18px !important;
+    font-size: 9.5px !important;
+    color: #8a92a3 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-action-section {
+    margin-top: 0 !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-options h6 {
+    margin: 0 0 7px !important;
+    font-size: 14px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-tryon-buttons {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 9px !important;
+  }
+
+  .stylique-modal-content.stylique-upload-view-active:not(.stylique-result-active):not(.stylique-tier3-active) .stylique-btn-tryon {
+    height: 44px !important;
+    min-height: 44px !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+  }
+}

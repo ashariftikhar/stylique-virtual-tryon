@@ -1425,6 +1425,8 @@
         if (nameElement && divider) {
           const u = window.styliqueSection.user;
           nameElement.textContent = u.name || u.firstName || u.email;
+          divider.removeAttribute('hidden');
+          divider.setAttribute('aria-hidden', 'false');
           divider.style.display = 'flex';
         }
       }
